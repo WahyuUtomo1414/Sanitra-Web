@@ -304,6 +304,56 @@ enum AutoCodePrefix: string
 | `MsProjectWorkflow` | Tidak punya kolom `code` di schema (lihat `database.md` §4.6). |
 | `MsStatus` | Kolom `code` berisi status code stabil (`draft`, `approved`, `invoiced`) — manual, dipakai di logika aplikasi. |
 
+#### 5.3.5 Status Enums (per entity type)
+
+Semua kode status di `ms_status.code` punya enum sendiri di `App\Enums\Status`. Dipakai untuk comparison & query yang type-safe (hindari magic string).
+
+Pattern setiap enum:
+
+- Case value = snake_case string (sama persis dengan `ms_status.code`).
+- Static method `type(): StatusType` → return `StatusType` yang matching (dipakai saat query `MsStatus`).
+- Instance method `label(): string` → label bahasa Indonesia untuk UI.
+- Instance method `color(): string` → warna semantik Filament (`gray`, `info`, `warning`, `success`, `danger`) untuk badge.
+
+**Daftar enum (6 file di `app/Enums/Status/`, total 25 case — sesuai SRS §6.1):**
+
+| Enum | Case | Jumlah |
+| --- | --- | --- |
+| `QuotationStatus` | `draft`, `sent`, `approved`, `rejected`, `revised` | 5 |
+| `ProjectStatus` | `ongoing`, `on_hold`, `closed`, `cancelled` | 4 |
+| `ProjectDtStatus` | `pending`, `in_progress`, `completed` | 3 |
+| `TermStatus` | `not_ready`, `ready_to_bill`, `invoiced`, `paid` | 4 |
+| `InvoiceStatus` | `draft`, `issued`, `partially_paid`, `paid`, `void`, `overdue` | 6 |
+| `PaymentStatus` | `pending`, `confirmed`, `rejected` | 3 |
+
+**Catatan verifikasi:** daftar case di atas berdasarkan interpretasi alur bisnis di PRD. Verifikasi final terhadap SRS §6.1 saat PDF tersedia — kalau ada beda nama atau tambahan status, update enum + seeder `MsStatus` sekaligus.
+
+**Pemakaian di service:**
+
+```php
+use App\Enums\Status\QuotationStatus;
+use App\Models\MsStatus;
+
+$approvedStatus = MsStatus::where('type', QuotationStatus::type()->value)
+    ->where('code', QuotationStatus::Approved->value)
+    ->firstOrFail();
+
+if ($quotation->status->code === QuotationStatus::Approved->value) {
+    // ...
+}
+```
+
+**Pemakaian di Filament table/infolist (badge):**
+
+```php
+Tables\Columns\TextColumn::make('status.code')
+    ->badge()
+    ->formatStateUsing(fn (string $state) => QuotationStatus::from($state)->label())
+    ->color(fn (string $state) => QuotationStatus::from($state)->color());
+```
+
+**Seeder `MsStatus`** (akan dibuat terpisah) harus loop seluruh case dari 6 enum ini dan generate 25 row. Dengan begitu enum = sumber kebenaran untuk seed, tidak ada drift antara code dan DB.
+
 ### 5.4 Enum untuk Ditambahkan Nanti
 
 Ditangguhkan sampai implementasi transaksi:
@@ -516,13 +566,15 @@ Sequence table adalah standar untuk ERP. Overhead-nya minim.
 
 Daftar file konkret saat implementasi (tidak di tahap ini):
 
-1. `app/Enums/CodeFormat.php` — enum metadata.
-2. `app/Enums/AutoCodePrefix.php` — enum mapping entity → prefix + format.
-3. `app/Enums/StatusType.php` — enum tipe status.
-4. `app/Enums/VatType.php` — enum jenis PPN.
-5. `database/migrations/2026_10_03_xxxxxx_create_sys_code_sequence_table.php` — migration tabel sequence.
-6. `app/Models/CodeSequence.php` — model minimal untuk `sys_code_sequence`.
-7. `app/Services/Shared/GenerateCodeService.php` — service generator.
-8. Update model `TransQuotationHd` dan `TransInvoiceHd` untuk cast `vat_type` ke `VatType::class`.
-9. Update Filament `CreateXxx` page untuk entity yang pakai AutoCode (`mutateFormDataBeforeCreate` → panggil service).
-10. Update Filament form schema untuk entity yang pakai AutoCode (`TextInput::make('code')->disabled()->dehydrated(false)`).
+1. ~~`app/Enums/CodeFormat.php`~~ ✓ dibuat.
+2. ~~`app/Enums/AutoCodePrefix.php`~~ ✓ dibuat.
+3. ~~`app/Enums/StatusType.php`~~ ✓ dibuat.
+4. ~~`app/Enums/VatType.php`~~ ✓ dibuat.
+5. ~~`app/Enums/Status/{Quotation,Project,ProjectDt,Term,Invoice,Payment}Status.php`~~ ✓ 6 file dibuat.
+6. ~~`database/migrations/2026_10_03_140014_create_sys_code_sequence_table.php`~~ ✓ dibuat.
+7. ~~`app/Models/CodeSequence.php`~~ ✓ dibuat.
+8. ~~`app/Services/Shared/GenerateCodeService.php`~~ ✓ dibuat.
+9. **TODO** Update model `TransQuotationHd` dan `TransInvoiceHd` untuk cast `vat_type` ke `VatType::class` dan `status_id` relation (tunggu transaksi model dibuat).
+10. **TODO** Update Filament `CreateXxx` page untuk entity yang pakai AutoCode (`mutateFormDataBeforeCreate` → panggil service).
+11. **TODO** Update Filament form schema untuk entity yang pakai AutoCode (`TextInput::make('code')->disabled()->dehydrated(false)`).
+12. **TODO** Seeder `MsStatus` yang loop seluruh case dari 6 status enum → generate 25 row ke `ms_status`.
