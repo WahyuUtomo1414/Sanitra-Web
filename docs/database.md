@@ -4,15 +4,15 @@
 
 ## 1. Ringkasan
 
-Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `user`) dan 9 transaksi. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
+Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
 
-Nama tabel dan nama kolom di bagian detail mengikuti **ejaan pada ERD**. Contoh kode hanya menunjukkan pola; belum ada model, migration, trait, atau package yang dibuat dari dokumen ini.
+Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Contoh kode menunjukkan pola; trait kolom migration sudah tersedia di `app/Traits`, sedangkan model dan migration domain belum dibuat dari dokumen ini.
 
 ## 2. Daftar tabel dan model
 
 | Kelompok | Tabel | Model Eloquent |
 | --- | --- | --- |
-| Master | `user` | `User` |
+| Master | `users` | `User` |
 | Master | `ms_company` | `MsCompany` |
 | Master | `ms_employee` | `MsEmployee` |
 | Master | `ms_client` | `MsClient` |
@@ -50,44 +50,80 @@ Setiap tabel domain memiliki `id` sebagai primary key `bigint unsigned`. ERD men
 | `updated_at` | timestamp, nullable | ya | ya | Waktu perubahan terakhir. |
 | `deleted_at` | timestamp, nullable | ya | ya | Soft delete. |
 
-Khusus `trans_project_monitoring`, SRS hanya menetapkan `created_by` dan `created_at`; log bersifat append-only. Kolom audit pada tabel `user` perlu disesuaikan dengan migration autentikasi Laravel agar tidak menggandakan kolom bawaan. `created_by` tidak diberi default ID tertentu: nilainya berasal dari user login atau dari strategi seeder yang nanti digunakan.
+Khusus `trans_project_monitoring`, SRS hanya menetapkan `created_by` dan `created_at`; log bersifat append-only. Kolom audit pada tabel `users` perlu disesuaikan dengan migration autentikasi Laravel agar tidak menggandakan kolom bawaan. `created_by` tidak diberi default ID pada migration: nilainya berasal dari user login. Trait model `AuditedBySoftDelete` melempar `RuntimeException` jika tidak ada user login — di seeder atau console command, panggil `Auth::setUser($user)` sebelum menyimpan model yang memakai trait ini.
 
-Pola migration untuk sebuah master dapat ditulis langsung dengan Blueprint Laravel. Tidak perlu membuat tabel `basemodel`:
+Gunakan `MasterTableColumns` untuk tabel master. Trait ini menambahkan `active`, tiga kolom audit, timestamps, dan soft delete. Polanya: trait dipasang pada kelas migration, kemudian `$this->addAuditColumns($table)` dipanggil setelah kolom domain. Tidak perlu membuat tabel `basemodel`:
 
 ```php
-Schema::create('ms_item_category', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 50)->unique();
-    $table->string('name', 128);
-    $table->text('description')->nullable();
+use App\Traits\MasterTableColumns;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-    $table->boolean('active')->default(true);
-    $table->foreignId('created_by');
-    $table->foreignId('updated_by')->nullable();
-    $table->foreignId('deleted_by')->nullable();
-    $table->timestamps();
-    $table->softDeletes();
-});
+return new class extends Migration
+{
+    use MasterTableColumns;
+
+    public function up(): void
+    {
+        Schema::create('ms_item_category', function (Blueprint $table) {
+            $table->id();
+            $table->string('code', 50)->unique();
+            $table->string('name', 128);
+            $table->text('description')->nullable();
+            $this->addAuditColumns($table);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('ms_item_category');
+    }
+};
 ```
 
-Kolom audit bisa dikemas sebagai helper/trait migration milik project saat implementasi supaya tidak berulang; contoh ini memakai API Laravel bawaan dan tidak membutuhkan package tambahan.
+Gunakan `TransactionTableColumns` pada tabel transaksi. `$this->addAuditColumns($table)` otomatis menambahkan `status_id` dengan foreign key ke `ms_status.id`, selain kolom audit, timestamps, dan soft delete. Jangan deklarasikan `status_id` dua kali. `id` dan kolom domain tetap ditulis pada migration masing-masing.
+
+Tabel `trans_quotation_dt`, `trans_invoice_dt`, dan tabel detail transaksi lain tanpa `status_id` memakai `$this->addAuditColumns($table, withStatus: false)`. Jangan memakai trait ini untuk `trans_project_monitoring`: buat hanya `created_by` dan `created_at` secara eksplisit sesuai aturan log append-only. Trait migration mengatur struktur kolom; validasi bahwa `ms_status.type` sesuai entitas tetap harus dilakukan di aplikasi.
+
+Contoh untuk detail transaksi tanpa status dan untuk log monitoring:
+
+```php
+// Di migration trans_quotation_dt yang memakai TransactionTableColumns:
+Schema::create('trans_quotation_dt', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('quotation_hd_id')->constrained('trans_quotation_hd');
+    // Tambahkan kolom detail lainnya.
+    $this->addAuditColumns($table, withStatus: false);
+});
+
+// Di migration trans_project_monitoring, tanpa trait kolom:
+Schema::create('trans_project_monitoring', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('project_hd_id')->constrained('trans_project_hd');
+    $table->foreignId('project_dt_id')->constrained('trans_project_dt');
+    // Tambahkan kolom log lainnya.
+    $table->foreignId('created_by');
+    $table->timestamp('created_at');
+});
+```
 
 ## 4. Detail tabel
 
 Tabel berikut mencantumkan **kolom domain** dari ERD; `id` dan kolom umum pada §3 tidak diulang di setiap tabel. `Ya` pada kolom Null berarti ERD menandai `NULL`. Relasi foreign key mengacu ke `id` tabel tujuan.
 
-### 4.1 `user`
+### 4.1 `users`
 
-Akun untuk login aplikasi. Model: `User`.
+Akun untuk login aplikasi. Model: `User`. Memakai tabel `users` bawaan Laravel (bukan `user` dari ERD).
 
-| Kolom | Tipe ERD | Null | Keterangan |
+| Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
 | `email` | varchar(128) | tidak | Email login; unik. |
 | `password` | varchar(255) | tidak | Hash password. |
-| `avatar` | varchar(255) | tidak | Path avatar menurut ERD. |
-| `employe_id` | bigint unsigned | ya | FK ke `ms_employee`; ejaan mengikuti ERD. |
+| `avatar` | varchar(255) | ya | Path avatar; nullable karena user baru belum tentu punya avatar. |
+| `employee_id` | bigint unsigned | ya | FK ke `ms_employee.id`; unique karena satu employee maksimal satu user (SRS). |
 
-Laravel baru sudah memiliki tabel `users` dan model `User`. Bila migration mengikuti ERD secara harfiah (`user`), model auth harus diarahkan ke tabel tersebut; bila mempertahankan `users`, seluruh relasi audit dan employee mengarah ke `users`. Jangan membuat kedua tabel auth. Relasi employee harus unik jika satu employee maksimal satu user seperti SRS.
+Seluruh FK audit (`created_by`, `updated_by`, `deleted_by`) dan FK employee pada tabel domain mengarah ke `users.id`.
 
 ### 4.2 `ms_company`
 
@@ -128,7 +164,7 @@ Client dan PIC internal yang menangani relasi client. Model: `MsClient`.
 | `pic_employee_id` | bigint unsigned | ya | FK ke `ms_employee.id`. |
 | `email` | varchar(128) | tidak | Email client. |
 | `phone` | varchar(18) | tidak | Nomor telepon. |
-| `addres` | varchar(255) | tidak | Alamat; ejaan mengikuti ERD. |
+| `address` | varchar(255) | tidak | Alamat. |
 | `description` | text | ya | Keterangan. |
 
 ### 4.5 `ms_project_type`
@@ -151,9 +187,9 @@ Template urutan dan bobot tahap untuk satu tipe project. Model: `MsProjectWorkfl
 | `name` | varchar(255) | tidak | Nama tahap. |
 | `sequence` | integer | tidak | Urutan tahap dalam tipe project. |
 | `description` | text | ya | Keterangan. |
-| `progres_weight` | integer | tidak | Bobot tahap; ejaan mengikuti ERD. |
+| `progress_weight` | integer | tidak | Bobot tahap. |
 
-Jumlah `progres_weight` per `type_id` harus 100 sebelum workflow dipakai (BR-03).
+Jumlah `progress_weight` per `type_id` harus 100 sebelum workflow dipakai (BR-03).
 
 ### 4.7 `ms_item_category`
 
@@ -239,15 +275,15 @@ Header quotation. Model: `TransQuotationHd`.
 | `project_type_id` | bigint unsigned | tidak | FK ke `ms_project_type.id`. |
 | `company_id` | bigint unsigned | tidak | FK ke `ms_company.id`; penerbit. |
 | `payment_type` | varchar(50) | tidak | Jenis/skema pembayaran. |
-| `notes` | text | tidak | Catatan. |
+| `notes` | text | ya | Catatan. |
 | `vat_type` | varchar(50) | tidak | Jenis PPN. |
-| `vat_amount` | integer | tidak | Nilai PPN. |
-| `discount_total` | integer | tidak | Total diskon. |
-| `subtotal` | integer | tidak | Subtotal. |
-| `grand_total` | integer | tidak | Total akhir. |
+| `vat_amount` | decimal(20,6) | tidak | Nilai PPN. |
+| `discount_total` | decimal(20,6) | tidak | Total diskon. |
+| `subtotal` | decimal(20,6) | tidak | Subtotal. |
+| `grand_total` | decimal(20,6) | tidak | Total akhir. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `quotation`. |
 
-Detail item ada di `trans_quotation_dt`, skema termin di `trans_quotation_term`. Versi quotation lama harus tetap tersimpan saat revisi (FR-13); ERD saat ini belum memuat kolom nomor revisi.
+Detail item ada di `trans_quotation_dt`, skema termin di `trans_quotation_term`. Siklus revisi dikelola lewat `status_id` (`Draft` → `Sent` → `Approved`/`Rejected`); tidak ada kolom nomor revisi di tabel.
 
 ### 4.14 `trans_quotation_dt`
 
@@ -260,9 +296,9 @@ Detail item quotation. Model: `TransQuotationDt`.
 | `unit_id` | bigint unsigned | tidak | FK ke `ms_unit.id`. |
 | `notes` | text | ya | Catatan item. |
 | `qty` | integer | tidak | Jumlah. |
-| `unit_price` | integer | tidak | Harga per unit saat quotation dibuat. |
-| `discount` | integer | tidak | Diskon baris. |
-| `total_price` | integer | tidak | Total baris. |
+| `unit_price` | decimal(20,6) | tidak | Harga per unit saat quotation dibuat. |
+| `discount` | decimal(20,6) | tidak | Diskon baris. |
+| `total_price` | decimal(20,6) | tidak | Total baris. |
 
 ### 4.15 `trans_quotation_term`
 
@@ -274,7 +310,7 @@ Termin yang disepakati dalam quotation. Model: `TransQuotationTerm`.
 | `sequence` | integer | tidak | Urutan termin. |
 | `term_name` | varchar(128) | tidak | Nama termin. |
 | `percentage` | integer | tidak | Persentase nilai quotation. |
-| `amount` | integer | tidak | Nilai termin; dibekukan saat Approved. |
+| `amount` | decimal(20,6) | tidak | Nilai termin; dibekukan saat Approved. |
 | `progress_threshold` | integer | tidak | Minimal progress agar siap tagih. |
 | `notes` | text | ya | Catatan termin. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `term`. |
@@ -311,7 +347,7 @@ Snapshot tahap project yang dibuat dari master workflow. Model: `TransProjectDt`
 | `project_workflow_id` | bigint unsigned | tidak | FK ke `ms_project_workflow.id`. |
 | `sequence` | integer | tidak | Urutan tahap. |
 | `work_name` | varchar(128) | tidak | Nama tahap pada project. |
-| `progres_weight` | integer | tidak | Bobot tahap; ejaan mengikuti ERD. |
+| `progress_weight` | integer | tidak | Bobot tahap. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `project_dt`. |
 | `start_date` | date | ya | Tanggal mulai tahap. |
 | `end_date` | date | ya | Tanggal selesai tahap. |
@@ -329,8 +365,8 @@ Log perubahan status/progress tahap project. Model: `TransProjectMonitoring`.
 | `status_before_id` | bigint unsigned | tidak | FK ke `ms_status.id` sebelum perubahan. |
 | `status_after_id` | bigint unsigned | tidak | FK ke `ms_status.id` setelah perubahan. |
 | `log_type` | varchar(50) | tidak | Jenis log, termasuk perubahan/override/rework. |
-| `progres_before` | integer | tidak | Progress sebelumnya; ejaan mengikuti ERD. |
-| `progres_after` | integer | tidak | Progress sesudahnya; ejaan mengikuti ERD. |
+| `progress_before` | integer | tidak | Progress sebelumnya. |
+| `progress_after` | integer | tidak | Progress sesudahnya. |
 | `notes` | text | ya | Alasan atau keterangan. |
 
 Log tidak diedit atau dihapus; koreksi dibuat sebagai log baru (BR-10). Kolom audit khusus: `created_by` dan `created_at`.
@@ -349,10 +385,10 @@ Header invoice/tagihan. Model: `TransInvoiceHd`.
 | `company_id` | bigint unsigned | tidak | FK ke `ms_company.id`; penerbit. |
 | `bank_account_id` | bigint unsigned | tidak | FK ke `ms_bank_account.id`. |
 | `due_date` | date | tidak | Jatuh tempo. |
-| `subtotal` | integer | tidak | Subtotal tagihan. |
+| `subtotal` | decimal(20,6) | tidak | Subtotal tagihan. |
 | `vat_type` | varchar(50) | tidak | Jenis PPN. |
-| `vat_amount` | integer | tidak | Nilai PPN. |
-| `grand_total` | integer | tidak | Total tagihan. |
+| `vat_amount` | decimal(20,6) | tidak | Nilai PPN. |
+| `grand_total` | decimal(20,6) | tidak | Total tagihan. |
 | `notes` | text | ya | Catatan. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `invoice`. |
 
@@ -367,7 +403,7 @@ Termin yang dimasukkan ke invoice. Model: `TransInvoiceDt`.
 | `sequence` | integer | tidak | Urutan baris. |
 | `description` | text | ya | Keterangan. |
 | `percentage` | integer | tidak | Persentase termin saat invoice dibuat. |
-| `amount` | integer | tidak | Nilai termin saat invoice dibuat. |
+| `amount` | decimal(20,6) | tidak | Nilai termin saat invoice dibuat. |
 
 Satu termin hanya boleh masuk satu invoice **aktif**. Invoice Void tetap tersimpan dalam histori dan termin dapat masuk invoice baru (FR-31, FR-34).
 
@@ -380,12 +416,12 @@ Pembayaran dan bukti transfer invoice. Model: `TransPayment`.
 | `code` | varchar(50) | tidak | Kode pembayaran. |
 | `transaction_date` | date | tidak | Tanggal pembayaran. |
 | `invoice_hd_id` | bigint unsigned | tidak | FK ke `trans_invoice_hd.id`. |
-| `amount` | integer | tidak | Nominal pembayaran. |
+| `amount` | decimal(20,6) | tidak | Nominal pembayaran. |
 | `payment_method` | varchar(128) | tidak | Metode pembayaran. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `payment`. |
 | `notes` | text | ya | Catatan. |
-| `reference_no` | varchar(50) | tidak | Nomor referensi. |
-| `payment_proof` | varchar(255) | tidak | Path file bukti transfer. |
+| `reference_no` | varchar(50) | ya | Nomor referensi; nullable karena tidak semua metode punya (mis. cash). |
+| `payment_proof` | varchar(255) | ya | Path file bukti transfer; nullable saat payment belum di-upload buktinya. |
 
 Hanya payment berstatus Confirmed yang dihitung ke pelunasan invoice.
 
@@ -395,7 +431,7 @@ Hanya payment berstatus Confirmed yang dihitung ke pelunasan invoice.
 | --- | --- | --- |
 | `ms_company` | `ms_company.parent_id` | satu induk memiliki banyak company anak |
 | `ms_company` | `ms_employee.company_id`, `ms_project_type.company_id` | satu company memiliki banyak employee/tipe project |
-| `ms_employee` | `user.employe_id`, `ms_company.pic_employee_id`, `ms_client.pic_employee_id`, `trans_project_hd.pic_employee_id` | satu employee dapat menjadi PIC; relasi user maksimal satu |
+| `ms_employee` | `users.employee_id`, `ms_company.pic_employee_id`, `ms_client.pic_employee_id`, `trans_project_hd.pic_employee_id` | satu employee dapat menjadi PIC; relasi user maksimal satu |
 | `ms_project_type` | `ms_project_workflow.type_id`, quotation/project `project_type_id` | satu tipe memiliki banyak template tahap dan transaksi |
 | `ms_item_category` | `ms_item.item_category_id` | satu kategori memiliki banyak item |
 | `ms_item`, `ms_unit` | `ms_item_unit.item_id`, `ms_item_unit.unit_id` | banyak-ke-banyak melalui konversi unit |
@@ -409,9 +445,9 @@ Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `
 
 ## 6. Urutan migration
 
-1. Tabel autentikasi Laravel (`users`) atau `user` sesuai nama tabel yang akan digunakan. Cache dan jobs bawaan Laravel tetap terpisah dari 21 tabel domain ERD.
+1. Tabel autentikasi Laravel (`users`) bawaan Laravel. Cache dan jobs bawaan Laravel tetap terpisah dari 21 tabel domain ERD.
 2. `ms_company` dengan `parent_id`, tetapi tunda foreign key `pic_employee_id`.
-3. `ms_employee`, lalu tambahkan foreign key `ms_company.pic_employee_id` dan FK employee pada tabel auth. Urutan dua langkah ini menghindari siklus company ↔ employee.
+3. `ms_employee`, lalu tambahkan foreign key `ms_company.pic_employee_id` dan FK `users.employee_id`. Urutan dua langkah ini menghindari siklus company ↔ employee.
 4. `ms_client`, `ms_project_type`, `ms_project_workflow`.
 5. `ms_item_category`, `ms_unit`, `ms_item`, `ms_item_unit`.
 6. `ms_bank_account`, `ms_status`.
@@ -419,24 +455,25 @@ Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `
 8. `trans_project_hd`, `trans_project_dt`, `trans_project_monitoring`.
 9. `trans_invoice_hd`, `trans_invoice_dt`, `trans_payment`.
 
-Migration `down()` menghapus foreign key tambahan dan tabel dalam urutan terbalik. Nama tabel `user` pada ERD berbeda dari `users` bawaan Laravel; seluruh migration dan relasi harus konsisten memakai satu pilihan nama.
+Migration `down()` menghapus foreign key tambahan dan tabel dalam urutan terbalik. Proyek memakai `users` dari bawaan Laravel; nama `user` pada ERD tidak dipakai.
 
 ## 7. Index dan constraint utama
 
-- Unique pada `user.email`, kode master yang merupakan identifier, (`ms_status.type`, `ms_status.code`), `trans_project_hd.quotation_hd_id`, (`ms_project_workflow.type_id`, `sequence`), (`trans_quotation_term.quotation_hd_id`, `sequence`), dan (`ms_item_unit.item_id`, `unit_id`).
+- Unique pada `users.email`, kode master yang merupakan identifier, (`ms_status.type`, `ms_status.code`), `trans_project_hd.quotation_hd_id`, (`ms_project_workflow.type_id`, `sequence`), (`trans_quotation_term.quotation_hd_id`, `sequence`), dan (`ms_item_unit.item_id`, `unit_id`).
 - Index pada seluruh foreign key, kode dokumen, status + tanggal transaksi, `trans_invoice_hd.due_date`, serta `trans_payment.invoice_hd_id` untuk daftar outstanding dan histori.
 - Validasi rentang 0–100 untuk persentase termin, threshold, bobot workflow/tahap, dan progress project. Jumlah lintas baris seperti total termin atau total bobot workflow, serta tepat satu unit dasar per item, divalidasi saat transaksi disimpan.
 - `trans_invoice_dt.quotation_term_id` tidak dapat dibuat unique global jika invoice Void tetap disimpan dan termin dapat ditagih ulang. Saat pembuatan invoice, kunci termin dan validasi bahwa belum ada invoice aktif yang memakainya.
-- Nilai Rupiah di ERD bertipe `INT`. Saat migration dibuat, gunakan tipe integer yang mampu menampung total transaksi project; `bigInteger` lebih aman untuk nilai uang dan tetap tidak memakai float.
+- Nilai Rupiah pakai `decimal(20, 6)` untuk seluruh kolom nominal (subtotal, grand_total, amount, unit_price, discount, vat_amount, dsb.). ERD menulis `INT`; abaikan dan ikut rekomendasi dokumen ini. Konsisten di semua migration, model cast (`decimal:6`), dan form input.
 - Soft delete bukan pengganti status bisnis Void, Rejected, atau Revised. Histori transaksi dan log monitoring harus tetap dapat ditelusuri.
 
 ## 8. Pola model Eloquent dan migration
 
-Model domain perlu nama tabel eksplisit serta relasi dengan nama foreign key dari ERD. Contoh model master dengan Laravel bawaan:
+Model domain perlu nama tabel eksplisit serta relasi dengan nama foreign key dari ERD. Trait migration di §3 tidak dipasang pada model. Model master dan model transaksi yang memiliki kolom audit lengkap dapat memakai trait model `AuditedBySoftDelete` yang sudah ada, bersama `SoftDeletes`. Contoh model master:
 
 ```php
 namespace App\Models;
 
+use App\Traits\AuditedBySoftDelete;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -444,7 +481,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MsItem extends Model
 {
-    use SoftDeletes;
+    use AuditedBySoftDelete, SoftDeletes;
 
     protected $table = 'ms_item';
 
@@ -467,31 +504,48 @@ class MsItem extends Model
 }
 ```
 
-Contoh migration transaksi dengan relasi eksplisit:
+Contoh migration transaksi berstatus. Pastikan migration `ms_status` berjalan sebelum migration ini:
 
 ```php
-Schema::create('trans_quotation_term', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('quotation_hd_id')->constrained('trans_quotation_hd');
-    $table->unsignedInteger('sequence');
-    $table->string('term_name', 128);
-    $table->unsignedTinyInteger('percentage');
-    $table->unsignedBigInteger('amount');
-    $table->unsignedTinyInteger('progress_threshold');
-    $table->text('notes')->nullable();
-    $table->foreignId('status_id')->constrained('ms_status');
-    $table->foreignId('created_by');
-    $table->foreignId('updated_by')->nullable();
-    $table->foreignId('deleted_by')->nullable();
-    $table->timestamps();
-    $table->softDeletes();
+use App\Traits\TransactionTableColumns;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-    $table->unique(['quotation_hd_id', 'sequence']);
-});
+return new class extends Migration
+{
+    use TransactionTableColumns;
+
+    public function up(): void
+    {
+        Schema::create('trans_quotation_term', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('quotation_hd_id')->constrained('trans_quotation_hd');
+            $table->unsignedInteger('sequence');
+            $table->string('term_name', 128);
+            $table->unsignedTinyInteger('percentage');
+            $table->decimal('amount', 20, 6);
+            $table->unsignedTinyInteger('progress_threshold');
+            $table->text('notes')->nullable();
+            $this->addAuditColumns($table);
+
+            $table->unique(['quotation_hd_id', 'sequence']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('trans_quotation_term');
+    }
+};
 ```
 
-Contoh tersebut sengaja memperlihatkan kolom langsung, bukan trait custom yang belum ada di project. Saat implementasi, kolom audit dapat dipindahkan ke helper/trait internal tanpa mengubah skema. File gambar dan bukti pembayaran disimpan di storage; database hanya menyimpan path.
+Pada model `TransQuotationTerm`, gunakan `AuditedBySoftDelete` dan `SoftDeletes`, serta `protected $table = 'trans_quotation_term';`. Untuk `TransProjectMonitoring`, jangan pasang trait model itu karena event update/delete tidak sesuai sifat log yang tidak boleh diubah. File gambar dan bukti pembayaran disimpan di storage; database hanya menyimpan path.
 
 ### Catatan penamaan dari ERD
 
-ERD menulis `employe_id`, `addres`, `progres_weight`, `progres_before`, dan `progres_after`. Dokumen ini mempertahankan ejaan itu agar sesuai sumber. Jika nama diperbaiki saat implementasi, perubahan harus seragam di ERD, migration, model, form, dan query. Tabel role/permission yang disebut SRS belum digambar dalam ERD ini, sehingga belum dijabarkan sebagai tabel domain di dokumen konsep awal.
+ERD menulis typo `employe_id`, `addres`, `progres_weight`, `progres_before`, dan `progres_after`. Dokumen ini menormalkan ejaan menjadi `employee_id`, `address`, `progress_weight`, `progress_before`, dan `progress_after`. Perbaikan harus dibawa kembali ke ERD agar seragam dengan migration, model, form, dan query.
+
+### Role dan permission
+
+Role dan permission memakai [Spatie Laravel Permission](https://spatie.be/docs/laravel-permission). Setup dan assignment dilakukan di Filament, bukan dari migration domain ini. Tabel `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, dan `role_has_permissions` dibuat oleh migration bawaan paket.
