@@ -265,7 +265,7 @@ Action::make('approve')
     ->icon('heroicon-o-check-circle')
     ->color('success')
     ->requiresConfirmation()
-    ->modalDescription('Setelah di-approve, quotation tidak bisa diedit dan project otomatis dibuat.')
+    ->modalDescription('Setelah di-approve, quotation tidak bisa diedit dan dapat dipilih saat membuat project.')
     ->visible(fn ($record) => $record->status->code === 'sent')
     ->action(function ($record) {
         app(ApproveQuotationService::class)->execute($record);
@@ -433,27 +433,31 @@ Trigger **setelah** `DB::transaction()` commit, bukan di dalam. Alasan: kalau em
 ```php
 public function execute(TransQuotationHd $quotation): TransQuotationHd
 {
-    $project = DB::transaction(function () use ($quotation) {
-        // ... create project, copy workflow, dll.
-        return $project;
+    $approvedQuotation = DB::transaction(function () use ($quotation) {
+        // Validasi status Sent, lalu ubah quotation menjadi Approved.
+        $quotation->update(['status_id' => $this->getStatusId('quotation', 'approved')]);
+
+        return $quotation->refresh();
     });
 
-    // Notification di luar transaction
-    $this->notifyTeamIfFirstTermNotDp($quotation, $project);
+    // Project belum dibuat pada tahap ini.
+    $this->notifyTeamIfFirstTermNotDp($approvedQuotation);
 
-    return $project;
+    return $approvedQuotation;
 }
 
-protected function notifyTeamIfFirstTermNotDp(TransQuotationHd $quotation, TransProjectHd $project): void
+protected function notifyTeamIfFirstTermNotDp(TransQuotationHd $quotation): void
 {
     $firstTerm = $quotation->terms()->orderBy('sequence')->first();
 
     if ($firstTerm && $firstTerm->progress_threshold > 0) {
-        $recipients = $this->resolveTeknisAndPic($project);
-        Notification::send($recipients, new QuotationApprovedNotification($quotation, $project));
+        $recipients = $this->resolveTeknisAndAssignedPic($quotation);
+        Notification::send($recipients, new QuotationApprovedNotification($quotation));
     }
 }
 ```
+
+Sumber PIC untuk email saat quotation Approved perlu ditetapkan sebelum implementasi: `trans_project_hd.pic_employee_id` belum ada karena project baru dibuat lewat form setelah approval. Notification pada tahap ini hanya dapat menautkan quotation atau form create Project.
 
 ### 7.2 Queue atau sync?
 

@@ -614,7 +614,7 @@ Relation manager:
 Custom action (menggantikan edit status langsung):
 
 - `SendAction` → ubah status dari Draft ke Sent.
-- `ApproveAction` → ubah status dari Sent ke Approved, trigger pembuatan project.
+- `ApproveAction` → ubah status dari Sent ke Approved; project kemudian dibuat lewat form create Project dengan memilih quotation Approved.
 - `RejectAction` → ubah status dari Sent ke Rejected.
 
 Catatan:
@@ -650,7 +650,8 @@ Relation manager:
 
 Catatan:
 
-- `quotation_hd_id` unique; project dibuat otomatis dari quotation Approved — form create normal dibatasi.
+- Form create Project memilih quotation berstatus Approved. `client_id`, `company_id`, dan `project_type_id` terisi dari quotation tersebut; service tetap memvalidasi status dan mencegah project ganda.
+- `quotation_hd_id` unique agar satu quotation hanya dapat memiliki satu project. Tahap project dibuat dari master workflow saat form create Project disimpan.
 - `progress_percentage` dihitung dari jumlah bobot tahap Completed; read-only di form.
 - `status_id` select dibatasi `MsStatus::where('type', 'project')`.
 - Setelah termin pertama ditagih, bobot tahap dan daftar tahap tidak bisa diubah (BR-06).

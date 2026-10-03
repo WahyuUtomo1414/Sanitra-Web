@@ -47,7 +47,7 @@ Hak akses berlaku per role, bukan per company. Satu user boleh tidak terhubung k
 
 ### 3.3 Project dan monitoring
 
-- Tepat satu project dibuat dari quotation Approved; client, company, tipe project, dan tahap disalin dari quotation serta master workflow. (FR-20–21)
+- User membuat project melalui form dengan memilih quotation Approved; satu quotation hanya dapat dipakai untuk satu project. Client, company, tipe project, dan tahap disalin dari quotation serta master workflow. (FR-20–21)
 - Teknis memperbarui status dan tanggal tahap. Progress project = jumlah bobot tahap berstatus Completed. Setiap perubahan mencatat status/progress sebelum dan sesudah, user, dan waktu. (FR-22–23, BR-03)
 - Status tahap yang mundur memerlukan alasan. Tahap yang telah terkunci karena penagihan hanya boleh diubah oleh pihak berizin override, wajib dengan alasan dan log. Rework sesudah penagihan dicatat tanpa mengubah progress. (FR-24–25, BR-07–08)
 - Sejak termin pertama ditagih, tahap tidak dapat ditambah, dihapus, atau diubah bobotnya. Project Closed otomatis bila progress 100% dan semua termin Paid. (BR-06, BR-13)
@@ -71,7 +71,7 @@ Hak akses berlaku per role, bukan per company. Satu user boleh tidak terhubung k
 | Langkah | Pemicu / tindakan | Hasil yang harus terlihat |
 | --- | --- | --- |
 | 1. Penawaran | Marketing menyimpan Draft, mengirim, lalu mencatat respons | Versi dan status quotation terlacak; total serta persentase termin valid |
-| 2. Project | Quotation Approved dibuat menjadi project | Hanya satu project; tahap mengikuti workflow yang disetujui |
+| 2. Project | User memilih quotation Approved pada form create Project | Hanya satu project per quotation; tahap mengikuti workflow yang disetujui |
 | 3. Pelaksanaan | Teknis mengubah tahap | Progress dihitung dari bobot Completed; perubahan dan alasan tercatat |
 | 4. Siap tagih | Progress mencapai threshold | Termin Ready to Bill tepat sekali dan Finance menerima notifikasi |
 | 5. Invoice | Finance memilih termin Ready to Bill | Invoice terbentuk, termin Invoiced, tahap Completed terkunci secara atomik |
