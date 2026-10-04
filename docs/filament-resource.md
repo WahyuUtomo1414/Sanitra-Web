@@ -617,6 +617,8 @@ Field:
 - `description`
 - `active`
 
+`type` dipilih dari dua opsi: **Waktu** (nilai tersimpan `waktu`) dan **Barang** (nilai tersimpan `barang`). Tabel dan halaman detail menampilkan label bahasa Indonesia.
+
 ### 14.10 MsBankAccount
 
 Field:

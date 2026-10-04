@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\MsUnits\Schemas;
 
+use App\Enums\UnitType;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -29,11 +31,10 @@ class MsUnitForm
                         ->required()
                         ->maxLength(128),
 
-                    TextInput::make('type')
+                    Select::make('type')
                         ->label('Tipe')
                         ->required()
-                        ->maxLength(50)
-                        ->helperText('Mis. berat, panjang, volume, satuan.'),
+                        ->options(UnitType::options()),
 
                     Textarea::make('description')
                         ->columnSpanFull()

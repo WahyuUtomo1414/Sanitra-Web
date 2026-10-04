@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MsUnits\Tables;
 
+use App\Enums\UnitType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -25,7 +26,12 @@ class MsUnitsTable
             ->columns([
                 TextColumn::make('code')->label('Kode')->searchable()->sortable(),
                 TextColumn::make('name')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('type')->label('Tipe')->searchable()->sortable()->toggleable(),
+                TextColumn::make('type')
+                    ->label('Tipe')
+                    ->formatStateUsing(fn (string $state): string => UnitType::tryFrom($state)?->label() ?? $state)
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
 
                 IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
 
