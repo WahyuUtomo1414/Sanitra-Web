@@ -16,6 +16,7 @@ class MsProjectTypeForm
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextInput::make('code')
                         ->label('Kode')
@@ -31,6 +32,7 @@ class MsProjectTypeForm
 
             Section::make('Relasi')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('company_id')
                         ->label('Perusahaan')
@@ -42,6 +44,7 @@ class MsProjectTypeForm
 
             Section::make('Status')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')

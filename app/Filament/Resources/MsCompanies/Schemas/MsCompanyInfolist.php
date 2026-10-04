@@ -14,20 +14,28 @@ class MsCompanyInfolist
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
-                    TextEntry::make('code')->label('Kode'),
+                    TextEntry::make('code')->label('Kode')->columnSpanFull(),
                     TextEntry::make('name')->label('Nama'),
                     TextEntry::make('legal_name')->label('Nama Legal'),
                     TextEntry::make('email')->label('Email'),
                     TextEntry::make('phone')->label('Telepon'),
-                    TextEntry::make('description')->label('Deskripsi')->placeholder('-'),
+                    TextEntry::make('description')->label('Deskripsi')->placeholder('-')->columnSpanFull(),
+                    IconEntry::make('active')->label('Aktif')->boolean(),
+                ]),
+
+            Section::make('Relasi')
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
                     TextEntry::make('parent.name')->label('Perusahaan Induk')->placeholder('-'),
                     TextEntry::make('picEmployee.name')->label('PIC Karyawan')->placeholder('-'),
-                    IconEntry::make('active')->label('Aktif')->boolean(),
                 ]),
 
             Section::make('Audit Data')
                 ->columnSpanFull()
+                ->columns(2)
                 ->collapsible()
                 ->schema([
                     TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),

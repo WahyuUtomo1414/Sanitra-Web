@@ -17,6 +17,7 @@ class MsStatusForm
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('type')
                         ->label('Tipe Entitas')
@@ -39,6 +40,7 @@ class MsStatusForm
                         ->helperText('Label yang tampil di UI.'),
 
                     Textarea::make('description')
+                        ->columnSpanFull()
                         ->label('Deskripsi')
                         ->nullable()
                         ->rows(3),
@@ -46,6 +48,7 @@ class MsStatusForm
 
             Section::make('Status')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')

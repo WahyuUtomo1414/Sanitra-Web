@@ -14,18 +14,26 @@ class MsEmployeeInfolist
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
-                    TextEntry::make('code')->label('Kode'),
+                    TextEntry::make('code')->label('Kode')->columnSpanFull(),
                     TextEntry::make('name')->label('Nama'),
                     TextEntry::make('position')->label('Jabatan'),
-                    TextEntry::make('company.name')->label('Perusahaan'),
                     TextEntry::make('email')->label('Email'),
                     TextEntry::make('phone')->label('Telepon'),
                     IconEntry::make('active')->label('Aktif')->boolean(),
                 ]),
 
+            Section::make('Relasi')
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('company.name')->label('Perusahaan'),
+                ]),
+
             Section::make('Audit Data')
                 ->columnSpanFull()
+                ->columns(2)
                 ->collapsible()
                 ->schema([
                     TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),

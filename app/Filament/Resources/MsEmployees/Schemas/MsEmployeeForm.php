@@ -16,8 +16,10 @@ class MsEmployeeForm
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextInput::make('code')
+                        ->columnSpanFull()
                         ->label('Kode')
                         ->disabled()
                         ->dehydrated(false)
@@ -48,6 +50,7 @@ class MsEmployeeForm
 
             Section::make('Relasi')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('company_id')
                         ->label('Perusahaan')
@@ -59,6 +62,7 @@ class MsEmployeeForm
 
             Section::make('Status')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')

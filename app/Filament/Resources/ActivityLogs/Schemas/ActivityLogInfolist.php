@@ -16,6 +16,7 @@ class ActivityLogInfolist
             ->components([
                 Section::make('Aktivitas')
                     ->columnSpanFull()
+                    ->columns(2)
                     ->schema([
                         TextEntry::make('event')->label('Event')->badge(),
                         TextEntry::make('subject_type')
@@ -27,9 +28,11 @@ class ActivityLogInfolist
                     ]),
                 Section::make('Nilai Sesudah')
                     ->columnSpanFull()
+                    ->columns(2)
                     ->schema([
                         KeyValueEntry::make('attributes')
                             ->label('Fields')
+                            ->columnSpanFull()
                             ->state(fn (Activity $record): array => $record->attribute_changes?->get('attributes', []) ?? [])
                             ->keyLabel('Field')
                             ->valueLabel('Nilai Sesudah')
@@ -37,9 +40,11 @@ class ActivityLogInfolist
                     ]),
                 Section::make('Nilai Sebelum')
                     ->columnSpanFull()
+                    ->columns(2)
                     ->schema([
                         KeyValueEntry::make('old')
                             ->label('Fields')
+                            ->columnSpanFull()
                             ->state(fn (Activity $record): array => $record->attribute_changes?->get('old', []) ?? [])
                             ->keyLabel('Field')
                             ->valueLabel('Nilai Sebelum')

@@ -15,17 +15,31 @@ class MsItemInfolist
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextEntry::make('code')->label('Kode'),
                     TextEntry::make('name')->label('Nama Item'),
-                    TextEntry::make('category.name')->label('Kategori'),
-                    TextEntry::make('description')->label('Deskripsi')->placeholder('-'),
-                    ImageEntry::make('image')->label('Gambar')->disk('public')->square(),
+                    TextEntry::make('description')->label('Deskripsi')->placeholder('-')->columnSpanFull(),
                     IconEntry::make('active')->label('Aktif')->boolean(),
+                ]),
+
+            Section::make('Relasi')
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('category.name')->label('Kategori'),
+                ]),
+
+            Section::make('Media')
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
+                    ImageEntry::make('image')->label('Gambar')->disk('public')->square(),
                 ]),
 
             Section::make('Audit Data')
                 ->columnSpanFull()
+                ->columns(2)
                 ->collapsible()
                 ->schema([
                     TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),

@@ -18,6 +18,7 @@ class MsItemForm
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextInput::make('code')
                         ->label('Kode')
@@ -31,6 +32,7 @@ class MsItemForm
                         ->maxLength(128),
 
                     Textarea::make('description')
+                        ->columnSpanFull()
                         ->label('Deskripsi')
                         ->nullable()
                         ->rows(3),
@@ -38,6 +40,7 @@ class MsItemForm
 
             Section::make('Relasi')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('item_category_id')
                         ->label('Kategori Item')
@@ -49,6 +52,7 @@ class MsItemForm
 
             Section::make('Media')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     FileUpload::make('image')
                         ->label('Gambar')
@@ -62,6 +66,7 @@ class MsItemForm
 
             Section::make('Status')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')

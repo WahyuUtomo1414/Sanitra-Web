@@ -17,6 +17,7 @@ class UserForm
         return $schema->components([
             Section::make('Informasi Akun')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextInput::make('name')
                         ->label('Nama')
@@ -42,6 +43,7 @@ class UserForm
 
             Section::make('Relasi')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('employee_id')
                         ->label('Karyawan')
@@ -54,6 +56,7 @@ class UserForm
 
             Section::make('Media')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     FileUpload::make('avatar')
                         ->label('Avatar')

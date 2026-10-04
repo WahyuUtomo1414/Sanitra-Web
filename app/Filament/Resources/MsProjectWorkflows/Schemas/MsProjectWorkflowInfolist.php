@@ -14,17 +14,19 @@ class MsProjectWorkflowInfolist
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextEntry::make('type.name')->label('Tipe Project'),
-                    TextEntry::make('sequence')->label('Urutan'),
                     TextEntry::make('name')->label('Nama Tahap'),
+                    TextEntry::make('sequence')->label('Urutan'),
                     TextEntry::make('progress_weight')->label('Bobot')->suffix('%'),
-                    TextEntry::make('description')->label('Deskripsi')->placeholder('-'),
+                    TextEntry::make('description')->label('Deskripsi')->placeholder('-')->columnSpanFull(),
                     IconEntry::make('active')->label('Aktif')->boolean(),
                 ]),
 
             Section::make('Audit Data')
                 ->columnSpanFull()
+                ->columns(2)
                 ->collapsible()
                 ->schema([
                     TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),

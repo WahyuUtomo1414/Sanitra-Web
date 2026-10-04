@@ -14,16 +14,18 @@ class MsUnitInfolist
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextEntry::make('code')->label('Kode'),
                     TextEntry::make('name')->label('Nama'),
                     TextEntry::make('type')->label('Tipe'),
-                    TextEntry::make('description')->label('Deskripsi')->placeholder('-'),
+                    TextEntry::make('description')->label('Deskripsi')->placeholder('-')->columnSpanFull(),
                     IconEntry::make('active')->label('Aktif')->boolean(),
                 ]),
 
             Section::make('Audit Data')
                 ->columnSpanFull()
+                ->columns(2)
                 ->collapsible()
                 ->schema([
                     TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),

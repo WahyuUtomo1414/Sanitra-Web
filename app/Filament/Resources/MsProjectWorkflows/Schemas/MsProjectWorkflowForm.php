@@ -17,6 +17,7 @@ class MsProjectWorkflowForm
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('type_id')
                         ->label('Tipe Project')
@@ -46,6 +47,7 @@ class MsProjectWorkflowForm
                         ->helperText('Total bobot per tipe project harus 100% sebelum workflow dipakai.'),
 
                     Textarea::make('description')
+                        ->columnSpanFull()
                         ->label('Deskripsi')
                         ->nullable()
                         ->rows(3),
@@ -53,6 +55,7 @@ class MsProjectWorkflowForm
 
             Section::make('Status')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')

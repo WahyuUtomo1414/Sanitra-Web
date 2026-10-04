@@ -17,6 +17,7 @@ class MsClientForm
         return $schema->components([
             Section::make('Informasi Utama')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     TextInput::make('code')
                         ->label('Kode')
@@ -42,12 +43,14 @@ class MsClientForm
                         ->maxLength(18),
 
                     Textarea::make('address')
+                        ->columnSpanFull()
                         ->label('Alamat')
                         ->required()
                         ->rows(2)
                         ->maxLength(255),
 
                     Textarea::make('description')
+                        ->columnSpanFull()
                         ->label('Deskripsi')
                         ->nullable()
                         ->rows(3),
@@ -55,6 +58,7 @@ class MsClientForm
 
             Section::make('Relasi')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Select::make('pic_employee_id')
                         ->label('PIC Karyawan')
@@ -66,6 +70,7 @@ class MsClientForm
 
             Section::make('Status')
                 ->columnSpanFull()
+                ->columns(2)
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')
