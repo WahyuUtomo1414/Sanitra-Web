@@ -353,7 +353,53 @@ Tables\Columns\TextColumn::make('status.code')
     ->color(fn (string $state) => QuotationStatus::from($state)->color());
 ```
 
-**Seeder `MsStatus`** (akan dibuat terpisah) harus loop seluruh case dari 6 enum ini dan generate 25 row. Dengan begitu enum = sumber kebenaran untuk seed, tidak ada drift antara code dan DB.
+**Seeder `MsStatus`** sudah dibuat di `SanitraMasterSeeder` — loop seluruh case dari 6 enum ini menghasilkan 25 row. Enum = sumber kebenaran untuk seed, tidak ada drift antara code dan DB.
+
+#### 5.3.6 `UnitType`
+
+Jenis satuan di `ms_unit.type`. Dipakai untuk membedakan unit waktu (jam, hari, bulan) dari unit barang (kg, liter, unit, paket).
+
+```php
+namespace App\Enums;
+
+enum UnitType: string
+{
+    case Waktu = 'waktu';
+    case Barang = 'barang';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Waktu => 'Waktu',
+            self::Barang => 'Barang',
+        };
+    }
+
+    public static function options(): array
+    {
+        return [
+            self::Waktu->value => self::Waktu->label(),
+            self::Barang->value => self::Barang->label(),
+        ];
+    }
+}
+```
+
+Cast di model `MsUnit`:
+
+```php
+protected function casts(): array
+{
+    return ['type' => UnitType::class];
+}
+```
+
+Pemakaian di Filament select:
+
+```php
+Select::make('type')
+    ->options(UnitType::options());
+```
 
 ### 5.4 Enum untuk Ditambahkan Nanti
 

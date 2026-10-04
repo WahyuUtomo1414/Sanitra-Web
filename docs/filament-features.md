@@ -7,7 +7,7 @@ Doc ini mencatat fitur tambahan di luar resource CRUD standar — export data, a
 ### Implementasi saat ini
 
 - **Dashboard Owner:** empat statistik master dihitung langsung dari database. Empat statistik transaksi dan dua grafik memakai data contoh dengan label yang jelas karena model transaksi belum tersedia.
-- **Activity Log:** `spatie/laravel-activitylog` v5.1.1 terpasang dan tabel `activity_log` sudah dimigrasikan. Semua model master (termasuk Project Type, Project Workflow, dan Item Unit) mencatat perubahan domain, kecuali `User` dan `CodeSequence`. Halaman Activity Log global bersifat read-only, dengan filter tanggal, event, tipe entitas, dan pelaku. Spatie v5 menyimpan diff di `attribute_changes` dan memakai `Spatie\Activitylog\Models\Concerns\LogsActivity` serta `Spatie\Activitylog\Support\LogOptions`.
+- **Activity Log:** `spatie/laravel-activitylog` v5.1.1 terpasang dan tabel `activity_log` sudah dimigrasikan. Semua model master (termasuk Project Type, Project Workflow, dan Item Unit) mencatat perubahan domain, kecuali `User` dan `CodeSequence`. Logging dikonfigurasi lewat custom trait `LogsMasterActivity` di `app/Traits/` — bukan `LogsActivity` langsung di model. Halaman Activity Log global bersifat read-only, dengan filter tanggal, event, tipe entitas, dan pelaku. Spatie v5 menyimpan diff di `attribute_changes`.
 - **Export Excel:** `pxlrbt/filament-excel` v4.1.0 terpasang pada seluruh 10 halaman daftar resource master. Tombol unduh berada di header halaman, sejajar dengan tombol Tambah; export mengikuti tabel/filternya dan menghasilkan XLSX. `MsItemUnit` tercatat di audit log, tetapi tidak memiliki resource tabel mandiri untuk tombol export.
 
 ---
@@ -154,29 +154,46 @@ php artisan migrate
 
 ### 2.3 Setup di Model
 
-Tambahkan trait `LogsActivity` ke semua model domain yang perlu di-log:
+Implementasi memakai custom trait `LogsMasterActivity` di `app/Traits/LogsMasterActivity.php` — bukan `LogsActivity` langsung di model. Trait ini membungkus konfigurasi standar sekali agar semua model master konsisten:
 
 ```php
+// app/Traits/LogsMasterActivity.php
+namespace App\Traits;
+
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class MsCompany extends Model
+trait LogsMasterActivity
 {
-    use AuditedBySoftDelete, SoftDeletes, LogsActivity;
+    use LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'code', 'email', 'phone', 'active'])  // kolom yang di-log
-            ->logOnlyDirty()    // hanya log kalau ada perubahan
+            ->logAll()
+            ->logExcept(['id', 'created_by', 'updated_by', 'deleted_by', 'created_at', 'updated_at', 'deleted_at'])
+            ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
 }
 ```
 
-`->logOnly([...])` — whitelist kolom; hindari log kolom `created_by`, `updated_by` karena itu audit internal, bukan perubahan data user.
+Pemakaian di model — cukup tambahkan satu trait:
 
-`->logOnlyDirty()` — hanya buat log entry kalau ada field yang benar-benar berubah.
+```php
+use App\Traits\LogsMasterActivity;
+
+class MsCompany extends Model
+{
+    use AuditedBySoftDelete, LogsMasterActivity, SoftDeletes;
+}
+```
+
+`->logAll()` + `->logExcept([...])` — log semua kolom kecuali kolom audit internal dan timestamp. Lebih aman daripada `->logOnly([...])` karena tidak perlu update whitelist saat kolom baru ditambah.
+
+`->logOnlyDirty()` + `->dontLogEmptyChanges()` — hanya buat log entry kalau ada field yang benar-benar berubah.
+
+**Model yang memakai `LogsMasterActivity`:** MsCompany, MsEmployee, MsClient, MsItem, MsItemCategory, MsItemUnit, MsUnit, MsBankAccount, MsProjectType, MsProjectWorkflow, MsStatus.
 
 ### 2.4 Membaca Log
 
@@ -338,8 +355,8 @@ Yang perlu disesuaikan setelah publish config:
 - [x] `spatie/laravel-activitylog` v5.1.1 berfungsi dengan Laravel 13.
 - [ ] Cek apakah plugin `noxoua/filament-activity-log` support Filament 5 — kalau tidak, gunakan opsi B (RelationManager custom).
 - [ ] Tentukan apakah log perlu retention policy (hapus log > N hari) atau disimpan selamanya. Untuk satu tahun, tabel `activity_log` bisa punya ratusan ribu baris — pertimbangkan index dan cleanup scheduler.
-- [ ] Tentukan kolom apa saja yang di-log per model (`logOnly`). Kolom sensitif (password, token) jangan masuk.
-- [ ] Pastikan `LogsActivity` tidak konflik dengan `AuditedBySoftDelete` — keduanya bisa aktif bersamaan karena bekerja di event yang berbeda (spatie via observer, auditedby via model events `saving`/`deleting`).
+- [x] Kolom yang di-log sudah dikonfigurasi: `logAll()` + `logExcept(['id', 'created_by', 'updated_by', 'deleted_by', 'created_at', 'updated_at', 'deleted_at'])`. Kolom sensitif (password, token) tidak masuk karena `User` tidak di-log.
+- [x] `LogsMasterActivity` (membungkus `LogsActivity`) tidak konflik dengan `AuditedBySoftDelete` — keduanya aktif bersamaan karena bekerja di event yang berbeda (spatie via observer, auditedby via model events `saving`/`deleting`).
 
 ---
 
