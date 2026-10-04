@@ -556,14 +556,69 @@ class QuotationApprovedNotification extends Notification
 
 ---
 
-## 6. Urutan Implementasi
+## 6. Import Data Master
+
+**Status: Dicatat, belum dikerjakan.**
+
+Memungkinkan user mengupload file Excel untuk mengisi data master secara massal — tanpa harus input satu per satu lewat form. Tersedia sebagai **satu halaman terpusat** (bukan per-resource), dengan pilihan entity yang ingin diimport, download template, dan laporan error per baris.
+
+### 6.1 Scope
+
+Yang perlu bisa diimport: Perusahaan, Karyawan, Klien, Item, Kategori Item, Satuan, Bank Account. Status dan Project Type tidak perlu — jumlahnya sedikit dan sudah di-seed.
+
+### 6.2 Tracking Import — Tabel `sys_import_log`
+
+Setiap sesi upload disimpan ke tabel `sys_import_log`. User bisa lihat riwayat import dan error detail per baris tanpa harus ingat pesan yang muncul di layar.
+
+```
+sys_import_log
+├── id
+├── imported_by     → FK users.id
+├── entity          → varchar: 'MsCompany' | 'MsEmployee' | dst
+├── filename        → nama file yang diupload
+├── total_rows      → jumlah baris di file
+├── success_count   → berhasil diimport
+├── failed_count    → gagal validasi
+├── errors          → JSON: [{row: 3, message: "email duplikat"}, ...]
+├── status          → 'done' | 'partial' | 'failed'
+└── created_at
+```
+
+Prefix `sys_` karena ini tabel infrastruktur sistem (bukan domain bisnis) — sama seperti `sys_code_sequence` yang sudah ada.
+
+Tidak ada tabel terpisah untuk error per baris — JSON `errors` cukup untuk volume master data yang tidak akan ratusan ribu baris.
+
+### 6.3 Package yang Direkomendasikan
+
+Alternatif Filament-native: **`filament/actions`** `ImportAction` — tersedia di Filament v3+ sebagai first-party feature. Perlu dicek apakah sudah include di instalasi Filament 5.9.0 atau perlu install terpisah.
+
+Fallback: `maatwebsite/excel` sudah ter-install sebagai dependency `pxlrbt/filament-excel` — bisa dipakai langsung tanpa install tambahan.
+
+### 6.4 Hal yang Perlu Diputuskan
+
+- [ ] Package mana yang dipakai: `filament/actions` ImportAction (first-party) atau `maatwebsite/excel` custom?
+- [ ] Template download: file `.xlsx` kosong per entity dengan header kolom yang sesuai.
+- [ ] Behaviour duplikat: kalau row sudah ada (berdasarkan `name` atau `email`), skip atau update?
+- [ ] AutoCode saat import: kode di-generate otomatis per row via `GenerateCodeService`, user tidak perlu isi kolom kode.
+- [ ] Validasi error: skip baris yang gagal, lanjut baris berikutnya — bukan rollback semua. Error dicatat di `sys_import_log.errors`.
+- [ ] Resource mana yang prioritas pertama untuk diimport?
+
+### 6.5 Hal yang Perlu Diverifikasi Sebelum Implementasi
+
+- [ ] Cek apakah `ImportAction` sudah tersedia di Filament 5.9.0 tanpa install tambahan.
+- [ ] Cek apakah `maatwebsite/excel` yang ter-install sudah support PHP 8.4.
+
+---
+
+## 7. Urutan Implementasi
 
 | Urutan | Fitur | Prasyarat |
 | --- | --- | --- |
 | 1 | **Dashboard (Owner)** | Tidak ada — master model sudah ada, dummy untuk transaksi |
 | 2 | **Activity Log** | Install `spatie/laravel-activitylog`, migrate |
 | 3 | **Export Excel** | Install `pxlrbt/filament-excel` |
-| 4 | **PDF Export** | Model transaksi selesai |
-| 5 | **Notifikasi Email** | Model transaksi + Spatie Permission selesai |
+| 4 | **Import Data Master** | Verifikasi package (filament ImportAction atau maatwebsite/excel) |
+| 5 | **PDF Export** | Model transaksi selesai |
+| 6 | **Notifikasi Email** | Model transaksi + Spatie Permission selesai |
 
-Fitur 1–3 bisa dikerjakan sekarang tanpa menunggu transaksi. Fitur 4–5 tunggu setelah layer transaksi selesai.
+Fitur 1–4 bisa dikerjakan sekarang tanpa menunggu transaksi. Fitur 5–6 tunggu setelah layer transaksi selesai.
