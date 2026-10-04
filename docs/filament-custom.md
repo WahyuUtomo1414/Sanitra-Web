@@ -1,6 +1,6 @@
 # Filament Custom Panel Sanitra
 
-**Status:** Konsep awal · **Acuan:** [filament-resource.md](filament-resource.md) · **Panel:** Filament 4
+**Status:** Implemented · **Acuan:** [filament-resource.md](filament-resource.md) · **Panel:** Filament 5.9.0
 
 ## 1. Tujuan
 
@@ -9,8 +9,8 @@ Dokumen ini mencatat kustomisasi tampilan dan branding panel admin Filament untu
 Scope kustomisasi:
 
 - Tema warna (palette, sidebar, topbar, button).
-- Logo panel dan favicon.
-- Login page (opsional, jika butuh branding khusus).
+- Logo pada halaman login, nama aplikasi pada panel, dan favicon.
+- Login page dengan layout bawaan Filament.
 - Font (opsional).
 - Dark mode policy.
 
@@ -24,7 +24,7 @@ Palette ini **berbeda dari warna web publik sanitra.co.id** yang memakai hijau d
 
 | Nama | Hex | Pemakaian |
 | --- | --- | --- |
-| `--sanitra-primary-950` | `#052e16` | Background sidebar nav dan footer. |
+| `--sanitra-primary-950` | `#052e16` | Background sidebar dan bidang kiri topbar desktop. |
 | `--sanitra-primary-900` | `#14532d` | Hover state sidebar group, border card gelap. |
 | `--sanitra-primary-800` | `#166534` | Primary button default. |
 | `--sanitra-primary-700` | `#15803d` | Primary button hover, link primary. |
@@ -51,19 +51,26 @@ Filament sudah menyediakan skala gray bawaan via Tailwind. Tidak perlu override 
 
 ## 3. Register Palette di PanelProvider
 
-Filament 4 menyediakan API `colors()` untuk mengganti skala warna sistem. Pakai `Color::Green` sebagai basis sehingga seluruh komponen (badge, action button, filter chip) ikut berubah warna. CSS override di §4 hanya untuk branding sidebar/topbar yang di luar jangkauan API warna.
+Filament 5 menyediakan API `colors()` untuk mengganti skala warna sistem. Pakai `Color::Green` sebagai basis sehingga seluruh komponen (badge, action button, filter chip) ikut berubah warna. CSS override di §4 hanya untuk branding sidebar/topbar yang di luar jangkauan API warna.
 
-Di `app/Providers/Filament/AdminPanelProvider.php`:
+Di `app/Providers/Filament/DashboardPanelProvider.php`:
 
 ```php
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 
 public function panel(Panel $panel): Panel
 {
     return $panel
         ->default()
-        ->id('admin')
-        ->path('admin')
+        ->id('dashboard')
+        ->path('dashboard')
+        ->login()
+        ->brandName(config('app.name'))
+        ->brandLogo(fn (): ?string => request()->routeIs('filament.dashboard.auth.login') ? asset('assets/logo.png') : null)
+        ->brandLogoHeight('3.5rem')
+        ->favicon(asset('assets/favicon1.png'))
+        ->darkMode(false)
         ->colors([
             'primary' => Color::Green,
             'danger' => Color::Rose,
@@ -72,7 +79,7 @@ public function panel(Panel $panel): Panel
             'info' => Color::Lime,
         ])
         ->renderHook(
-            \Filament\View\PanelsRenderHook::HEAD_END,
+            PanelsRenderHook::HEAD_END,
             fn () => view('filament.hooks.admin-theme'),
         );
 }
@@ -84,6 +91,8 @@ Catatan:
 - `info` memakai Lime supaya badge informatif tetap senada palette sage tanpa butuh custom scale.
 - `warning` tetap Amber agar status warning (misal invoice jatuh tempo) tetap kontras dan dikenali universal.
 - Variable `--sanitra-sage-*` di §2 hanya dipakai lewat CSS override di §4, bukan via API warna Filament.
+- `brandLogo()` mengembalikan gambar hanya pada route login. Di halaman panel lain, Filament menampilkan `brandName()` sebagai teks.
+- `brandName()` membaca `config('app.name')`, yang bersumber dari `APP_NAME` di `.env`. Setelah mengubah `.env` saat config cache aktif, jalankan `php artisan config:clear` atau bangun ulang cache konfigurasi.
 
 ## 4. CSS Override via Render Hook
 
@@ -91,9 +100,11 @@ Pola override memakai render hook `HEAD_END` dengan file blade yang berisi `<sty
 
 **Pola layout:**
 
-- **Sidebar header** (area brand logo) → background putih, agar logo asli (teks navy + sage) tetap kebaca.
+- **Login** → logo `logo.png` pada header login bawaan Filament.
+- **Topbar desktop** → teks nama aplikasi di tengah bidang kiri hijau tua selebar sidebar; bagian kanan tetap putih.
+- **Sidebar header mobile** → teks nama aplikasi pada background putih saat drawer dibuka. Pembungkus header ini disembunyikan di desktop agar tidak menyisakan garis putih di atas navigasi.
 - **Sidebar nav & footer** → background forest green tua.
-- **Topbar** → background putih full, border bawah tipis sebagai pemisah dari content.
+- **Topbar** → tanpa border bawah dan bayangan.
 - **Active sidebar item** → background semi-transparan putih + left border amber.
 
 File: `resources/views/filament/hooks/admin-theme.blade.php`
@@ -118,10 +129,56 @@ File: `resources/views/filament/hooks/admin-theme.blade.php`
         color-scheme: light;
     }
 
-    /* Topbar — full putih dengan border bawah tipis */
+    .fi-body {
+        --topbar-height: 5rem;
+    }
+
+    /* Topbar putih dengan bidang brand selebar sidebar */
     .fi-topbar {
         background: #ffffff !important;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        border-bottom: 0;
+        box-shadow: none !important;
+        position: relative;
+    }
+
+    @media (min-width: 64rem) {
+        .fi-topbar {
+            background-image: linear-gradient(
+                to right,
+                var(--sanitra-primary-950) 0,
+                var(--sanitra-primary-950) var(--sidebar-width),
+                #ffffff var(--sidebar-width),
+                #ffffff 100%
+            ) !important;
+        }
+
+        .fi-body-has-topbar .fi-sidebar-header-ctn {
+            display: none;
+        }
+    }
+
+    .fi-topbar-start > a {
+        position: absolute;
+        inset-inline-start: calc(var(--sidebar-width) / 2);
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+        width: var(--sidebar-width);
+    }
+
+    .fi-topbar-start .fi-logo,
+    .fi-sidebar-header-logo-ctn .fi-logo {
+        height: auto !important;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .fi-topbar-start .fi-logo {
+        color: #ffffff;
     }
 
     .fi-topbar-start,
@@ -139,11 +196,21 @@ File: `resources/views/filament/hooks/admin-theme.blade.php`
         background: var(--sanitra-primary-950) !important;
     }
 
-    /* Sidebar header (brand container) — strip putih agar logo kebaca */
+    /* Header sidebar hanya tampil saat sidebar menjadi drawer di layar kecil */
     .fi-sidebar-header,
     .fi-sidebar-header-ctn {
         background: #ffffff !important;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .fi-body-has-topbar .fi-sidebar-header {
+        height: 5rem;
+        padding: 0.5rem;
+    }
+
+    .fi-sidebar-header-logo-ctn {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
     }
 
     .fi-sidebar-header-logo-ctn,
@@ -171,7 +238,7 @@ File: `resources/views/filament/hooks/admin-theme.blade.php`
 
     /* Label group pakai sage pale biar hierarki kebaca */
     .fi-sidebar-group-label {
-        color: rgba(183, 196, 164, 0.78) !important; /* --sanitra-sage-300 muted */
+        color: rgba(183, 196, 164, 0.78) !important;
     }
 
     .fi-sidebar-group-btn,
@@ -224,63 +291,56 @@ File: `resources/views/filament/hooks/admin-theme.blade.php`
 
 Catatan:
 
-- Media query mobile tidak diperlukan karena topbar sudah default putih.
-- Border tipis `rgba(15, 23, 42, 0.06)` di sidebar header & topbar memberi pemisah halus tanpa harsh line.
-- Jika logo lu nanti punya varian putih (invert), bagian `.fi-sidebar-header` bisa di-swap jadi `var(--sanitra-primary-950)` dan logo diganti ke versi putih — tanpa itu, sekarang strip putih dulu.
+- Bidang hijau pada topbar hanya aktif mulai lebar `64rem` dan mengikuti `--sidebar-width`; topbar mobile tetap putih.
+- Header sidebar desktop disembunyikan karena nama aplikasi sudah tampil di kiri topbar. Ini juga menghilangkan strip putih di atas navigasi.
+- CSS tidak mengubah warna gambar logo login. Teks nama aplikasi di topbar desktop berwarna putih supaya kontras dengan bidang hijau.
 
 ## 5. Logo dan Favicon
 
-### 5.1 Logo panel
+### 5.1 Logo login
 
-Logo brand aktif saat ini: **`public/assets/logo.png`**.
+Logo yang dipakai pada halaman login: **`public/assets/logo.png`**.
 
 Karakteristik logo:
 
 - Teks "SANITRA" biru navy, sub-teks "SAPTA UTAMA" sage green.
 - Icon kombinasi gradient hijau-biru.
-- Background putih/transparan.
-- **Hanya ada satu varian**, dioptimasi untuk background terang.
+- Background transparan; halaman login bawaan Filament berwarna putih.
 
-Karena logo berwarna gelap, area brand container di sidebar dan topbar memakai **background putih** (lihat §4). Dengan pola ini logo bisa dipakai apa adanya tanpa butuh varian putih.
+Halaman panel tidak memakai gambar logo. Saat `brandLogo()` mengembalikan `null`, komponen logo Filament menampilkan teks dari `brandName()` di topbar desktop dan header drawer mobile.
 
-Register di `AdminPanelProvider`:
+Register di `DashboardPanelProvider`:
 
 ```php
-->brandLogo(asset('assets/logo.png'))
-->brandLogoHeight('2rem')
+->brandLogo(fn (): ?string => request()->routeIs('filament.dashboard.auth.login') ? asset('assets/logo.png') : null)
+->brandLogoHeight('3.5rem')
 ```
 
 Catatan:
 
 - `->darkModeBrandLogo()` tidak dipanggil karena dark mode dimatikan (§6).
-- Kalau nanti lu bikin varian logo putih (invert), simpan sebagai `public/assets/logo-light.png`, update `.fi-sidebar-header` di §4 agar background jadi `var(--sanitra-primary-950)`, dan ganti `->brandLogo()` ke varian baru.
-- Format PNG saat ini cukup untuk resolusi standar; untuk display retina/4K pertimbangkan menambahkan versi SVG di `public/assets/logo.svg` dan ganti referensi `->brandLogo()`.
+- Route login panel adalah `filament.dashboard.auth.login`; jika ID panel berubah, sesuaikan nama route pada callback `brandLogo()`.
 
 ### 5.2 Favicon
 
 **Status saat ini:**
 
-- `public/assets/favicon.png` ✓ sudah ada — icon gradient hijau-biru (bagian ikon dari logo).
-- `public/favicon.ico` ⚠ masih 0 bytes (placeholder bawaan Laravel). Browser auto-request `/favicon.ico` by default tanpa lewat Filament link, jadi file ini **tetap perlu diisi** atau di-delete.
+- `public/assets/favicon1.png` ✓ sudah ada dan sudah dipakai.
+- `public/favicon.ico` ⚠ masih 0 bytes (placeholder bawaan Laravel). Browser auto-request `/favicon.ico` by default tanpa lewat Filament link — perlu diisi atau di-delete.
 
-**Yang masih perlu dibereskan:**
-
-1. **Downsize `favicon.png`.** File saat ini **~1 MB** — kegedean untuk favicon (ideal <50 KB). Downsize ke 256×256 atau 512×512 PNG terkompresi. Bisa pakai [Squoosh](https://squoosh.app/) atau `pngquant`.
-2. **Isi `public/favicon.ico`.** Generate `.ico` multi-size (16/32/48) dari `favicon.png` via [RealFaviconGenerator](https://realfavicongenerator.net/) atau tool serupa. Taruh hasilnya di `public/favicon.ico`. Alternatif: delete file 0 bytes itu dan terima 404 di root favicon request (acceptable tapi muncul di dev tools).
-
-Register di `AdminPanelProvider`:
+Register di `DashboardPanelProvider`:
 
 ```php
-->favicon(asset('assets/favicon.png'))
+->favicon(asset('assets/favicon1.png'))
 ```
 
-Filament akan inject `<link rel="icon" href="...">` yang override default `/favicon.ico` request **di dalam panel admin**. Halaman non-panel (login screen pertama kali, halaman error) tetap hit `/favicon.ico` langsung.
-
-### 5.3 Nama panel (title tag)
+### 5.3 Nama aplikasi pada panel dan title tag
 
 ```php
-->brandName('Sanitra Admin')
+->brandName(config('app.name'))
 ```
+
+`config('app.name')` membaca `APP_NAME` dari `.env`; nilai saat ini adalah `Sanitra`. Teks ini tampil di bidang kiri topbar desktop dan header sidebar saat drawer mobile dibuka.
 
 ## 6. Dark Mode Policy
 
@@ -291,7 +351,7 @@ Alasan: aplikasi internal, dark mode nambah beban desain (palette dua set, test 
 Implementasi:
 
 - `html.fi.dark { color-scheme: light; }` di CSS override (§4) mencegah class dark Filament mengubah skema warna sistem bila ada komponen yang lolos.
-- Di `AdminPanelProvider`, non-aktifkan toggle:
+- Di `DashboardPanelProvider`, non-aktifkan toggle:
 
 ```php
 ->darkMode(false)
@@ -305,7 +365,7 @@ Rekomendasi tahap awal: pakai Inter default agar bundling CSS tetap ringan.
 
 ## 8. Login Page
 
-Login page memakai layout bawaan Filament. Karena background default login putih, logo `public/assets/logo.png` otomatis kebaca tanpa override tambahan.
+Login page memakai layout bawaan Filament. Callback `brandLogo()` pada §5.1 hanya mengembalikan `public/assets/logo.png` pada route login, sehingga logo berwarna tampil di atas background putih. Halaman panel lainnya memakai teks nama aplikasi.
 
 Opsional untuk sentuhan brand:
 
@@ -313,49 +373,69 @@ Opsional untuk sentuhan brand:
 
 Jika butuh ilustrasi, tagline, atau split layout (form kiri, visual kanan), buat custom login page extends `Filament\Pages\Auth\Login`. Tahap awal: skip, pakai bawaan.
 
-## 9. Struktur File
+## 9. Avatar Pengguna
+
+Model `User` implements `HasAvatar` dari Filament agar avatar yang diupload tampil di topbar dan AccountWidget bawaan.
+
+```php
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
+use Filament\Panel;
+use Illuminate\Support\Facades\Storage;
+
+class User extends Authenticatable implements FilamentUser, HasAvatar
+{
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->avatar ? Storage::url($this->avatar) : null;
+    }
+}
+```
+
+Catatan:
+- Avatar disimpan via `FileUpload` di `UserResource` ke direktori `users/avatar` (disk `public`).
+- Jika `avatar` null, Filament fallback ke avatar initials bawaan (UI Avatars).
+
+## 10. Struktur File
 
 ```
 resources/
 └── views/
     └── filament/
         └── hooks/
-            └── admin-theme.blade.php      # CSS override (§4)
+            └── admin-theme.blade.php      # CSS override (§4) — sudah dibuat
 
 public/
-├── favicon.ico                             # ⚠ 0 bytes, perlu diisi atau di-delete (§5.2)
+├── favicon.ico                             # ⚠ 0 bytes, perlu diisi atau di-delete
 └── assets/
-    ├── logo.png                            # ✓ logo brand aktif (§5.1)
-    └── favicon.png                         # ✓ ada; perlu downsize dari ~1 MB (§5.2)
+    ├── logo.png                            # logo halaman login (§5.1)
+    ├── logo1.png                           # aset alternatif, tidak dipakai
+    ├── favicon1.png                        # ✓ favicon aktif (§5.2)
+    └── favicon.png                         # file lama, tidak dipakai
 ```
 
-## 10. Checklist Setup
+## 11. Checklist Setup
 
-Urutan setup kustomisasi:
+Status kustomisasi saat ini:
 
-1. **Bereskan favicon.** `public/assets/favicon.png` sudah ada tapi perlu di-downsize (<50 KB) dan `public/favicon.ico` perlu diisi atau di-delete — detail di §5.2.
-2. Buat file `resources/views/filament/hooks/admin-theme.blade.php` dengan isi §4.
-3. Update `AdminPanelProvider`:
-   - `->colors([...])` sesuai §3.
-   - `->renderHook(HEAD_END, ...)` ke blade hook.
-   - `->brandLogo(asset('assets/logo.png'))`, `->brandLogoHeight('2rem')`.
-   - `->favicon(asset('assets/favicon.png'))`.
-   - `->brandName('Sanitra Admin')`.
-   - `->darkMode(false)`.
-4. Jalankan `php artisan filament:assets` setelah perubahan asset Filament.
-5. Buka panel di browser, cek:
-   - Sidebar body forest green, sidebar header strip putih dengan logo tampil utuh.
-   - Topbar full putih dengan border bawah tipis.
-   - Active sidebar item punya background semi-transparan + left border amber.
-   - Button primary forest green, hover ke lebih terang.
-   - Label group sidebar warna sage pale (bukan putih penuh) agar hierarki kebaca.
-   - Tab browser menampilkan favicon icon hijau-biru.
-6. Cek di mobile (<1024px): sidebar jadi drawer, logo tetap di strip putih saat drawer dibuka.
+- [x] `resources/views/filament/hooks/admin-theme.blade.php` dibuat.
+- [x] `DashboardPanelProvider` dikonfigurasi: colors, renderHook, brandLogo, favicon, darkMode(false).
+- [x] Logo `logo.png` tampil hanya di login dengan height `3.5rem`.
+- [x] Halaman panel menampilkan teks dari `APP_NAME` pada bidang kiri topbar desktop; bagian kanan topbar tetap putih.
+- [x] Header sidebar desktop disembunyikan agar tidak menyisakan garis putih di atas navigasi.
+- [x] Favicon `favicon1.png` aktif.
+- [x] `User` model implements `HasAvatar` — avatar tampil di topbar.
+- [ ] `public/favicon.ico` masih 0 bytes — perlu diisi atau di-delete.
 
-## 11. Catatan Pengembangan
+## 12. Catatan Pengembangan
 
 - **Selector `.fi-*` bisa berubah antar versi mayor Filament.** Setelah upgrade mayor, verifikasi ulang semua selector di §4.
 - **Jangan hardcode warna di komponen resource.** Semua warna harus merujuk ke variable CSS atau Filament color system; override lokal mempersulit tema global.
 - **Jangan pakai `!important` di luar file hook.** `!important` di komponen resource atau blade view bakal konflik dengan hook dan sulit debug.
-- **Logo wajib dua varian (light/dark).** Logo single-tone sering gagal kontras di salah satu background.
+- Jika dark mode diaktifkan nanti, siapkan varian logo dengan kontras yang sesuai untuk halaman login.
 - **Palette hex di §2 bersifat normatif.** Jangan mengubah hex tanpa update dokumen ini; perubahan palette = perubahan branding = butuh persetujuan.

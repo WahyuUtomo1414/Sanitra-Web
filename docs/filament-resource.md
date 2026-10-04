@@ -1,6 +1,6 @@
 # Requirement Filament Resource Sanitra
 
-**Status:** Konsep awal · **Acuan:** [database.md](database.md), [prd.md](prd.md) · **Panel:** Filament 4
+**Status:** Implemented (master resources) · **Acuan:** [database.md](database.md), [prd.md](prd.md) · **Panel:** Filament 5.9.0
 
 ## 1. Tujuan
 
@@ -140,7 +140,7 @@ class MsCompanyResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Master Data';
+    protected static string|UnitEnum|null $navigationGroup = 'Perusahaan';
 
     protected static ?string $navigationLabel = 'Perusahaan';
 
@@ -247,18 +247,20 @@ Pengecualian:
 
 ## 8. Navigation Group
 
+Sidebar terdiri dari 5 navigation group. Group master data dipecah per domain — tidak semua disatukan di "Master Data" agar sidebar tidak terlalu panjang.
+
 | Resource | Group |
 | --- | --- |
 | `User` | `Pengguna` |
-| `MsCompany` | `Master Data` |
-| `MsEmployee` | `Master Data` |
-| `MsClient` | `Master Data` |
-| `MsProjectType` | `Master Data` |
-| `MsProjectWorkflow` | `Master Data` |
-| `MsItemCategory` | `Master Data` |
-| `MsItem` | `Master Data` |
-| `MsUnit` | `Master Data` |
-| `MsBankAccount` | `Master Data` |
+| `MsCompany` | `Perusahaan` |
+| `MsEmployee` | `Perusahaan` |
+| `MsClient` | `Perusahaan` |
+| `MsBankAccount` | `Perusahaan` |
+| `MsItemCategory` | `Item` |
+| `MsItem` | `Item` |
+| `MsUnit` | `Item` |
+| `MsProjectType` | `Project` |
+| `MsProjectWorkflow` | `Project` |
 | `MsStatus` | `Master Data` |
 | `TransQuotationHd` | `Penjualan` |
 | `TransProjectHd` | `Project` |
@@ -270,15 +272,15 @@ Pengecualian:
 | Model | Navigation Label | Model Label | Plural Model Label | Slug | Group | Icon |
 | --- | --- | --- | --- | --- | --- | --- |
 | `User` | `Pengguna` | `Pengguna` | `Pengguna` | `users` | `Pengguna` | `heroicon-o-users` |
-| `MsCompany` | `Perusahaan` | `Perusahaan` | `Perusahaan` | `companies` | `Master Data` | `heroicon-o-building-office-2` |
-| `MsEmployee` | `Karyawan` | `Karyawan` | `Karyawan` | `employees` | `Master Data` | `heroicon-o-identification` |
-| `MsClient` | `Klien` | `Klien` | `Klien` | `clients` | `Master Data` | `heroicon-o-user-circle` |
-| `MsProjectType` | `Tipe Project` | `Tipe Project` | `Tipe Project` | `project-types` | `Master Data` | `heroicon-o-squares-2x2` |
-| `MsProjectWorkflow` | `Workflow Project` | `Workflow Project` | `Workflow Project` | `project-workflows` | `Master Data` | `heroicon-o-queue-list` |
-| `MsItemCategory` | `Kategori Item` | `Kategori Item` | `Kategori Item` | `item-categories` | `Master Data` | `heroicon-o-tag` |
-| `MsItem` | `Item` | `Item` | `Item` | `items` | `Master Data` | `heroicon-o-cube` |
-| `MsUnit` | `Unit` | `Unit` | `Unit` | `units` | `Master Data` | `heroicon-o-scale` |
-| `MsBankAccount` | `Rekening Bank` | `Rekening Bank` | `Rekening Bank` | `bank-accounts` | `Master Data` | `heroicon-o-building-library` |
+| `MsCompany` | `Perusahaan` | `Perusahaan` | `Perusahaan` | `companies` | `Perusahaan` | `heroicon-o-building-office-2` |
+| `MsEmployee` | `Karyawan` | `Karyawan` | `Karyawan` | `employees` | `Perusahaan` | `heroicon-o-identification` |
+| `MsClient` | `Klien` | `Klien` | `Klien` | `clients` | `Perusahaan` | `heroicon-o-user-circle` |
+| `MsBankAccount` | `Rekening Bank` | `Rekening Bank` | `Rekening Bank` | `bank-accounts` | `Perusahaan` | `heroicon-o-building-library` |
+| `MsItemCategory` | `Kategori Item` | `Kategori Item` | `Kategori Item` | `item-categories` | `Item` | `heroicon-o-tag` |
+| `MsItem` | `Item` | `Item` | `Item` | `items` | `Item` | `heroicon-o-cube` |
+| `MsUnit` | `Unit` | `Unit` | `Unit` | `units` | `Item` | `heroicon-o-scale` |
+| `MsProjectType` | `Tipe Project` | `Tipe Project` | `Tipe Project` | `project-types` | `Project` | `heroicon-o-squares-2x2` |
+| `MsProjectWorkflow` | `Workflow Project` | `Workflow Project` | `Workflow Project` | `project-workflows` | `Project` | `heroicon-o-queue-list` |
 | `MsStatus` | `Status` | `Status` | `Status` | `statuses` | `Master Data` | `heroicon-o-check-badge` |
 | `TransQuotationHd` | `Quotation` | `Quotation` | `Quotation` | `quotations` | `Penjualan` | `heroicon-o-document-text` |
 | `TransProjectHd` | `Project` | `Project` | `Project` | `projects` | `Project` | `heroicon-o-briefcase` |

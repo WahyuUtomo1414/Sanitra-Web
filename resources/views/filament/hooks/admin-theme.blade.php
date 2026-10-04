@@ -17,10 +17,56 @@
         color-scheme: light;
     }
 
-    /* Topbar — full putih dengan border bawah tipis */
+    .fi-body {
+        --topbar-height: 5rem;
+    }
+
+    /* Topbar putih dengan bidang brand selebar sidebar */
     .fi-topbar {
         background: #ffffff !important;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        border-bottom: 0;
+        box-shadow: none !important;
+        position: relative;
+    }
+
+    @media (min-width: 64rem) {
+        .fi-topbar {
+            background-image: linear-gradient(
+                to right,
+                var(--sanitra-primary-950) 0,
+                var(--sanitra-primary-950) var(--sidebar-width),
+                #ffffff var(--sidebar-width),
+                #ffffff 100%
+            ) !important;
+        }
+
+        .fi-body-has-topbar .fi-sidebar-header-ctn {
+            display: none;
+        }
+    }
+
+    .fi-topbar-start > a {
+        position: absolute;
+        inset-inline-start: calc(var(--sidebar-width) / 2);
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+        width: var(--sidebar-width);
+    }
+
+    .fi-topbar-start .fi-logo,
+    .fi-sidebar-header-logo-ctn .fi-logo {
+        height: auto !important;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .fi-topbar-start .fi-logo {
+        color: #ffffff;
     }
 
     .fi-topbar-start,
@@ -38,11 +84,21 @@
         background: var(--sanitra-primary-950) !important;
     }
 
-    /* Sidebar header (brand container) — strip putih agar logo kebaca */
+    /* Header sidebar hanya tampil saat sidebar menjadi drawer di layar kecil */
     .fi-sidebar-header,
     .fi-sidebar-header-ctn {
         background: #ffffff !important;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .fi-body-has-topbar .fi-sidebar-header {
+        height: 5rem;
+        padding: 0.5rem;
+    }
+
+    .fi-sidebar-header-logo-ctn {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
     }
 
     .fi-sidebar-header-logo-ctn,

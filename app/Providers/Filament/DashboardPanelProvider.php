@@ -29,10 +29,10 @@ class DashboardPanelProvider extends PanelProvider
             ->id('dashboard')
             ->path('dashboard')
             ->login()
-            ->brandName('Sanitra Admin')
-            ->brandLogo(asset('assets/logo.png'))
-            ->brandLogoHeight('2rem')
-            ->favicon(asset('assets/favicon.png'))
+            ->brandName(config('app.name'))
+            ->brandLogo(fn (): ?string => request()->routeIs('filament.dashboard.auth.login') ? asset('assets/logo.png') : null)
+            ->brandLogoHeight('3.5rem')
+            ->favicon(asset('assets/favicon1.png'))
             ->darkMode(false)
             ->colors([
                 'primary' => Color::Green,
