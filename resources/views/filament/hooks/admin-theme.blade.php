@@ -86,27 +86,66 @@
         margin: 0 auto !important;
     }
 
-    /* Logo di halaman login — ukuran lebih compact, proporsional, dan berjarak lega ke form */
-    .fi-simple-header .fi-logo,
-    .fi-simple-main-ctn .fi-logo,
-    .fi-simple-page .fi-logo {
-        height: 2.75rem !important;
-        max-height: 2.85rem !important;
-        width: auto !important;
-        margin: 0 auto 1.75rem auto !important;
-        display: block !important;
+    /* Auth Split Screen Page Styling */
+    .fi-auth-layout .fi-simple-page {
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
-    .fi-simple-header {
-        margin-bottom: 1.25rem !important;
+    .fi-auth-layout .fi-simple-header {
+        margin-bottom: 2rem !important;
+        text-align: center !important;
     }
 
-    .fi-simple-header-heading {
+    .fi-auth-layout .fi-simple-header-heading {
+        font-size: 1.75rem !important;
+        font-weight: 800 !important;
+        color: var(--sanitra-slate-800) !important;
+        letter-spacing: -0.02em !important;
         margin-top: 0 !important;
         margin-bottom: 0.5rem !important;
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        color: var(--sanitra-slate-800) !important;
+    }
+
+    .fi-auth-layout .fi-simple-header-subheading {
+        font-size: 0.9rem !important;
+        color: var(--sanitra-slate-500) !important;
+        line-height: 1.5 !important;
+    }
+
+    .fi-auth-layout input[type="email"],
+    .fi-auth-layout input[type="password"] {
+        border-radius: 0.625rem !important;
+        padding: 0.75rem 1rem !important;
+        border-color: #cbd5e1 !important;
+        font-size: 0.95rem !important;
+    }
+
+    .fi-auth-layout input[type="email"]:focus,
+    .fi-auth-layout input[type="password"]:focus {
+        border-color: var(--sanitra-primary-600) !important;
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
+    }
+
+    .fi-auth-layout button[type="submit"] {
+        border-radius: 0.625rem !important;
+        padding: 0.75rem 1.5rem !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        justify-content: center !important;
+        margin-top: 1rem !important;
+        background: var(--sanitra-primary-600) !important;
+        box-shadow: 0 2px 4px 0 rgba(22, 163, 74, 0.2) !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .fi-auth-layout button[type="submit"]:hover {
+        background: var(--sanitra-primary-700) !important;
+        box-shadow: 0 4px 8px 0 rgba(22, 163, 74, 0.3) !important;
     }
 
     .fi-topbar-start .fi-logo,

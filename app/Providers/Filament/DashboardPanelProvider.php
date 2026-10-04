@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,11 +29,11 @@ class DashboardPanelProvider extends PanelProvider
             ->default()
             ->id('dashboard')
             ->path('dashboard')
-            ->login()
+            ->login(Login::class)
             ->brandName(config('app.name'))
             ->brandLogo(asset('assets/logo.png'))
             ->brandLogoHeight('3rem')
-            ->favicon(asset('assets/favicon1.png'))
+            ->favicon(asset('assets/favicon.png'))
             ->darkMode(false)
             ->colors([
                 'primary' => Color::Green,

@@ -344,15 +344,13 @@ Default Filament memakai Inter. Boleh dibiarkan. Jika brand guideline Sanitra me
 
 Rekomendasi tahap awal: pakai Inter default agar bundling CSS tetap ringan.
 
-## 8. Login Page
+## 8. Login Page (Split-Screen Modern)
 
-Login page memakai layout bawaan Filament. Callback `brandLogo()` pada §5.1 hanya mengembalikan `public/assets/logo.png` pada route login, sehingga logo berwarna tampil di atas background putih. Halaman panel lainnya memakai teks nama aplikasi.
-
-Opsional untuk sentuhan brand:
-
-- Background halaman: gradient sage sangat terang (`#f7faf3` → `#eef3e6`) via CSS override tambahan di render hook. Tidak wajib — polos putih sudah OK.
-
-Jika butuh ilustrasi, tagline, atau split layout (form kiri, visual kanan), buat custom login page extends `Filament\Pages\Auth\Login`. Tahap awal: skip, pakai bawaan.
+Halaman login mengadopsi layout modern split-screen 50/50:
+- **Kolom Kiri (Desktop)**: Foto fasilitas IPAL/Water Treatment (`public/assets/auth-bg.jpg`) dengan dark gradient halus di bagian bawah. Tampilan sangat bersih dan minimalis tanpa teks berlebih: hanya judul sistem "Sistem Informasi Manajemen Proyek & Operasional" yang diletakkan elegan di kiri bawah.
+- **Kolom Kanan**: Form login bersih berlatar putih dengan logo Sanitra proporsional, sapaan "Masuk ke Akun Anda" / "Selamat Datang", input email & password standar Filament (lengkap dengan toggle show/hide), checkbox "Ingat Saya", dan tombol submit hijau segar. Tanpa login Google/sosial.
+- **Responsif**: Di layar smartphone/tablet, kolom foto otomatis disembunyikan sehingga form login langsung tampil nyaman dan mudah diisi.
+- **Arsitektur**: Menggunakan custom page `App\Filament\Pages\Auth\Login` yang meng-extend `Filament\Auth\Pages\Login` dengan layout `resources/views/filament/layouts/auth.blade.php`. Seluruh fungsionalitas keamanan (rate limiting, credential verification, remember token) tetap 100% bawaan Filament/Laravel. Standalone CSS tanpa perlu compile `npm run build`.
 
 ## 9. Avatar Pengguna
 
