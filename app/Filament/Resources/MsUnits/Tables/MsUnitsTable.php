@@ -24,8 +24,14 @@ class MsUnitsTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('name')->label('Nama')->searchable()->sortable(),
+                TextColumn::make('code')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('type')
                     ->label('Tipe')
                     ->formatStateUsing(fn (string $state): string => UnitType::tryFrom($state)?->label() ?? $state)
@@ -33,7 +39,10 @@ class MsUnitsTable
                     ->sortable()
                     ->toggleable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -56,7 +65,8 @@ class MsUnitsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

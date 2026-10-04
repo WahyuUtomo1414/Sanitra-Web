@@ -23,13 +23,31 @@ class MsBankAccountsTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('name')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('bank_name')->label('Bank')->searchable()->sortable(),
-                TextColumn::make('account_number')->label('No Rekening')->searchable()->copyable(),
-                TextColumn::make('account_name')->label('Atas Nama')->searchable()->toggleable(),
+                TextColumn::make('code')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('bank_name')
+                    ->label('Bank')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('account_number')
+                    ->label('No Rekening')
+                    ->searchable()
+                    ->copyable(),
+                TextColumn::make('account_name')
+                    ->label('Atas Nama')
+                    ->searchable()
+                    ->toggleable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -52,7 +70,8 @@ class MsBankAccountsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

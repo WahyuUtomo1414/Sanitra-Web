@@ -16,16 +16,22 @@ class MsProjectTypeInfolist
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    TextEntry::make('code')->label('Kode'),
-                    TextEntry::make('name')->label('Nama'),
-                    IconEntry::make('active')->label('Aktif')->boolean(),
+                    TextEntry::make('code')
+                        ->label('Kode'),
+                    TextEntry::make('name')
+                        ->label('Nama'),
+                    IconEntry::make('active')
+                        ->label('Aktif')
+                        ->boolean(),
                 ]),
 
             Section::make('Relasi')
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    TextEntry::make('company.name')->label('Perusahaan')->placeholder('-'),
+                    TextEntry::make('company.name')
+                        ->label('Perusahaan')
+                        ->placeholder('-'),
                 ]),
 
             Section::make('Audit Data')
@@ -33,12 +39,27 @@ class MsProjectTypeInfolist
                 ->columns(2)
                 ->collapsible()
                 ->schema([
-                    TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),
-                    TextEntry::make('created_at')->label('Dibuat Pada')->dateTime('d M Y H:i'),
-                    TextEntry::make('updatedBy.name')->label('Diubah Oleh')->placeholder('-'),
-                    TextEntry::make('updated_at')->label('Diubah Pada')->dateTime('d M Y H:i')->placeholder('-'),
-                    TextEntry::make('deletedBy.name')->label('Dihapus Oleh')->placeholder('-')->visible(fn ($record) => $record?->deleted_at),
-                    TextEntry::make('deleted_at')->label('Dihapus Pada')->dateTime('d M Y H:i')->visible(fn ($record) => $record?->deleted_at),
+                    TextEntry::make('createdBy.name')
+                        ->label('Dibuat Oleh')
+                        ->placeholder('-'),
+                    TextEntry::make('created_at')
+                        ->label('Dibuat Pada')
+                        ->dateTime('d M Y H:i'),
+                    TextEntry::make('updatedBy.name')
+                        ->label('Diubah Oleh')
+                        ->placeholder('-'),
+                    TextEntry::make('updated_at')
+                        ->label('Diubah Pada')
+                        ->dateTime('d M Y H:i')
+                        ->placeholder('-'),
+                    TextEntry::make('deletedBy.name')
+                        ->label('Dihapus Oleh')
+                        ->placeholder('-')
+                        ->visible(fn ($record) => $record?->deleted_at),
+                    TextEntry::make('deleted_at')
+                        ->label('Dihapus Pada')
+                        ->dateTime('d M Y H:i')
+                        ->visible(fn ($record) => $record?->deleted_at),
                 ]),
         ]);
     }

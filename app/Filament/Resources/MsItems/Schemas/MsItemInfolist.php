@@ -17,24 +17,35 @@ class MsItemInfolist
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    TextEntry::make('code')->label('Kode'),
-                    TextEntry::make('name')->label('Nama Item'),
-                    TextEntry::make('description')->label('Deskripsi')->placeholder('-')->columnSpanFull(),
-                    IconEntry::make('active')->label('Aktif')->boolean(),
+                    TextEntry::make('code')
+                        ->label('Kode'),
+                    TextEntry::make('name')
+                        ->label('Nama Item'),
+                    TextEntry::make('description')
+                        ->label('Deskripsi')
+                        ->placeholder('-')
+                        ->columnSpanFull(),
+                    IconEntry::make('active')
+                        ->label('Aktif')
+                        ->boolean(),
                 ]),
 
             Section::make('Relasi')
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    TextEntry::make('category.name')->label('Kategori'),
+                    TextEntry::make('category.name')
+                        ->label('Kategori'),
                 ]),
 
             Section::make('Media')
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    ImageEntry::make('image')->label('Gambar')->disk('public')->square(),
+                    ImageEntry::make('image')
+                        ->label('Gambar')
+                        ->disk('public')
+                        ->square(),
                 ]),
 
             Section::make('Audit Data')
@@ -42,12 +53,27 @@ class MsItemInfolist
                 ->columns(2)
                 ->collapsible()
                 ->schema([
-                    TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),
-                    TextEntry::make('created_at')->label('Dibuat Pada')->dateTime('d M Y H:i'),
-                    TextEntry::make('updatedBy.name')->label('Diubah Oleh')->placeholder('-'),
-                    TextEntry::make('updated_at')->label('Diubah Pada')->dateTime('d M Y H:i')->placeholder('-'),
-                    TextEntry::make('deletedBy.name')->label('Dihapus Oleh')->placeholder('-')->visible(fn ($record) => $record?->deleted_at),
-                    TextEntry::make('deleted_at')->label('Dihapus Pada')->dateTime('d M Y H:i')->visible(fn ($record) => $record?->deleted_at),
+                    TextEntry::make('createdBy.name')
+                        ->label('Dibuat Oleh')
+                        ->placeholder('-'),
+                    TextEntry::make('created_at')
+                        ->label('Dibuat Pada')
+                        ->dateTime('d M Y H:i'),
+                    TextEntry::make('updatedBy.name')
+                        ->label('Diubah Oleh')
+                        ->placeholder('-'),
+                    TextEntry::make('updated_at')
+                        ->label('Diubah Pada')
+                        ->dateTime('d M Y H:i')
+                        ->placeholder('-'),
+                    TextEntry::make('deletedBy.name')
+                        ->label('Dihapus Oleh')
+                        ->placeholder('-')
+                        ->visible(fn ($record) => $record?->deleted_at),
+                    TextEntry::make('deleted_at')
+                        ->label('Dihapus Pada')
+                        ->dateTime('d M Y H:i')
+                        ->visible(fn ($record) => $record?->deleted_at),
                 ]),
         ]);
     }

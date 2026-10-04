@@ -23,13 +23,30 @@ class MsClientsTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('name')->label('Nama Klien')->searchable()->sortable(),
-                TextColumn::make('picEmployee.name')->label('PIC')->placeholder('-')->toggleable(),
-                TextColumn::make('email')->label('Email')->searchable()->toggleable(),
-                TextColumn::make('phone')->label('Telepon')->toggleable(),
+                TextColumn::make('code')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama Klien')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('picEmployee.name')
+                    ->label('PIC')
+                    ->placeholder('-')
+                    ->toggleable(),
+                TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('phone')
+                    ->label('Telepon')
+                    ->toggleable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -52,7 +69,8 @@ class MsClientsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

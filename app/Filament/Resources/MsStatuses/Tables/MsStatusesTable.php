@@ -26,11 +26,24 @@ class MsStatusesTable
         return $table
             ->defaultSort('type')
             ->columns([
-                TextColumn::make('type')->label('Tipe Entitas')->badge()->sortable()->searchable(),
-                TextColumn::make('code')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('name')->label('Nama')->searchable()->sortable(),
+                TextColumn::make('type')
+                    ->label('Tipe Entitas')
+                    ->badge()
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('code')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama')
+                    ->searchable()
+                    ->sortable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -57,7 +70,8 @@ class MsStatusesTable
                     ->label('Tipe Entitas')
                     ->options(collect(StatusType::cases())
                         ->mapWithKeys(fn (StatusType $case) => [$case->value => $case->value])),
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

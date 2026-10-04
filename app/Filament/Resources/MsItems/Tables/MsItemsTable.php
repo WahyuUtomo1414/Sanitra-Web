@@ -25,13 +25,28 @@ class MsItemsTable
     {
         return $table
             ->columns([
-                ImageColumn::make('image')->label('Gambar')->disk('public')->square(),
+                ImageColumn::make('image')
+                    ->label('Gambar')
+                    ->disk('public')
+                    ->square(),
 
-                TextColumn::make('code')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('name')->label('Nama Item')->searchable()->sortable(),
-                TextColumn::make('category.name')->label('Kategori')->sortable()->toggleable(),
+                TextColumn::make('code')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama Item')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('category.name')
+                    ->label('Kategori')
+                    ->sortable()
+                    ->toggleable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -59,7 +74,8 @@ class MsItemsTable
                     ->relationship('category', 'name')
                     ->searchable()
                     ->preload(),
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

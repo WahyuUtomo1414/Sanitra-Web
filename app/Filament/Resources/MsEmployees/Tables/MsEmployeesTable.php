@@ -23,14 +23,34 @@ class MsEmployeesTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('name')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('position')->label('Jabatan')->searchable()->sortable(),
-                TextColumn::make('company.name')->label('Perusahaan')->sortable()->toggleable(),
-                TextColumn::make('email')->label('Email')->searchable()->toggleable(),
-                TextColumn::make('phone')->label('Telepon')->toggleable(),
+                TextColumn::make('code')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('position')
+                    ->label('Jabatan')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('company.name')
+                    ->label('Perusahaan')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('phone')
+                    ->label('Telepon')
+                    ->toggleable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -53,7 +73,8 @@ class MsEmployeesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

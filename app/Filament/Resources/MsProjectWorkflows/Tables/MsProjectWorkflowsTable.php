@@ -24,12 +24,26 @@ class MsProjectWorkflowsTable
         return $table
             ->defaultSort('sequence')
             ->columns([
-                TextColumn::make('type.name')->label('Tipe Project')->sortable()->searchable(),
-                TextColumn::make('sequence')->label('Urutan')->sortable(),
-                TextColumn::make('name')->label('Nama Tahap')->searchable()->sortable(),
-                TextColumn::make('progress_weight')->label('Bobot')->suffix('%')->sortable(),
+                TextColumn::make('type.name')
+                    ->label('Tipe Project')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('sequence')
+                    ->label('Urutan')
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label('Nama Tahap')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('progress_weight')
+                    ->label('Bobot')
+                    ->suffix('%')
+                    ->sortable(),
 
-                IconColumn::make('active')->label('Aktif')->boolean()->sortable(),
+                IconColumn::make('active')
+                    ->label('Aktif')
+                    ->boolean()
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Dibuat Oleh')
@@ -52,7 +66,8 @@ class MsProjectWorkflowsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('active')->label('Status Aktif'),
+                TernaryFilter::make('active')
+                    ->label('Status Aktif'),
                 TrashedFilter::make(),
             ])
             ->recordActions([
