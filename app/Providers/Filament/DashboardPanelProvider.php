@@ -30,8 +30,8 @@ class DashboardPanelProvider extends PanelProvider
             ->path('dashboard')
             ->login()
             ->brandName(config('app.name'))
-            ->brandLogo(fn (): ?string => request()->routeIs('filament.dashboard.auth.login') ? asset('assets/logo.png') : null)
-            ->brandLogoHeight('3.5rem')
+            ->brandLogo(asset('assets/logo.png'))
+            ->brandLogoHeight('3rem')
             ->favicon(asset('assets/favicon1.png'))
             ->darkMode(false)
             ->colors([

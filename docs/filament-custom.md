@@ -16,42 +16,33 @@ Scope kustomisasi:
 
 ## 2. Palette Warna
 
-Palette memakai nuansa hijau tua (forest green) sebagai primary dan sage (muted gray-green) sebagai secondary. Sage dipilih karena cocok dengan warna sub-text "SAPTA UTAMA" di logo brand, sehingga panel admin tetap selaras dengan identitas visual. Accent amber dipertahankan untuk kontras hangat.
+Palette memakai nuansa putih bersih (clean white) sebagai background sidebar dan topbar, selaras dengan karakter perusahaan pengolahan air & lingkungan hidup. Aksen aktif menggunakan hijau segar (`#16a34a`) berpadu dengan aksen garis amber (`#f59e0b`), serta hover hijau mint lembut (`#f0fdf4`).
 
-Palette ini **berbeda dari warna web publik sanitra.co.id** yang memakai hijau daun cerah; versi panel internal sengaja lebih tua, muted, dan profesional.
-
-### 2.1 Primary (forest green)
+### 2.1 Primary & Hover (Fresh Green)
 
 | Nama | Hex | Pemakaian |
 | --- | --- | --- |
-| `--sanitra-primary-950` | `#052e16` | Background sidebar dan bidang kiri topbar desktop. |
-| `--sanitra-primary-900` | `#14532d` | Hover state sidebar group, border card gelap. |
-| `--sanitra-primary-800` | `#166534` | Primary button default. |
-| `--sanitra-primary-700` | `#15803d` | Primary button hover, link primary. |
-| `--sanitra-primary-600` | `#16a34a` | Badge/chip success, icon aktif. |
+| `--sanitra-primary-700` | `#15803d` | Hover button & hover text/icon sidebar. |
+| `--sanitra-primary-600` | `#16a34a` | Background active menu item & primary button. |
+| `--sanitra-primary-50` | `#f0fdf4` | Background hover item sidebar (mint lembut). |
 
-### 2.2 Sage (secondary — selaras logo)
+### 2.2 Accent (Amber)
 
 | Nama | Hex | Pemakaian |
 | --- | --- | --- |
-| `--sanitra-sage-700` | `#556b47` | Border sage dark, tag outline. |
-| `--sanitra-sage-500` | `#87a96b` | Highlight sekunder, badge info sage, chart sekunder. |
-| `--sanitra-sage-300` | `#b7c4a4` | Background pill/tag sage ringan. |
+| `--sanitra-accent-500` | `#f59e0b` | Indikator strip sisi kiri active menu item (left border), badge warning. |
 
-### 2.3 Accent (amber hangat)
+### 2.3 Netral & Border
 
 | Nama | Hex | Pemakaian |
 | --- | --- | --- |
-| `--sanitra-accent-500` | `#f59e0b` | Indikator active sidebar item (left border), badge warning. |
-| `--sanitra-accent-100` | `#fef3c7` | Background pill/notification ringan. |
-
-### 2.4 Netral
-
-Filament sudah menyediakan skala gray bawaan via Tailwind. Tidak perlu override untuk gray/slate.
+| `--sanitra-bg` | `#ffffff` | Background sidebar dan topbar (full white). |
+| `--sanitra-border` | `#e2e8f0` | Border kanan sidebar dan border bawah topbar. |
+| `--sanitra-slate-700` | `#334155` | Teks menu inaktif (default). |
+| `--sanitra-slate-600` | `#475569` | Ikon menu inaktif & kontrol topbar. |
+| `--sanitra-slate-500` | `#64748b` | Group label sidebar (uppercase). |
 
 ## 3. Register Palette di PanelProvider
-
-Filament 5 menyediakan API `colors()` untuk mengganti skala warna sistem. Pakai `Color::Green` sebagai basis sehingga seluruh komponen (badge, action button, filter chip) ikut berubah warna. CSS override di §4 hanya untuk branding sidebar/topbar yang di luar jangkauan API warna.
 
 Di `app/Providers/Filament/DashboardPanelProvider.php`:
 
@@ -67,8 +58,8 @@ public function panel(Panel $panel): Panel
         ->path('dashboard')
         ->login()
         ->brandName(config('app.name'))
-        ->brandLogo(fn (): ?string => request()->routeIs('filament.dashboard.auth.login') ? asset('assets/logo.png') : null)
-        ->brandLogoHeight('3.5rem')
+        ->brandLogo(asset('assets/logo.png'))
+        ->brandLogoHeight('3rem')
         ->favicon(asset('assets/favicon1.png'))
         ->darkMode(false)
         ->colors([
@@ -85,27 +76,17 @@ public function panel(Panel $panel): Panel
 }
 ```
 
-Catatan:
-
-- `primary` dan `success` sengaja sama (Green) karena identitas visual Sanitra dominan hijau.
-- `info` memakai Lime supaya badge informatif tetap senada palette sage tanpa butuh custom scale.
-- `warning` tetap Amber agar status warning (misal invoice jatuh tempo) tetap kontras dan dikenali universal.
-- Variable `--sanitra-sage-*` di §2 hanya dipakai lewat CSS override di §4, bukan via API warna Filament.
-- `brandLogo()` mengembalikan gambar hanya pada route login. Di halaman panel lain, Filament menampilkan `brandName()` sebagai teks.
-- `brandName()` membaca `config('app.name')`, yang bersumber dari `APP_NAME` di `.env`. Setelah mengubah `.env` saat config cache aktif, jalankan `php artisan config:clear` atau bangun ulang cache konfigurasi.
-
 ## 4. CSS Override via Render Hook
-
-Pola override memakai render hook `HEAD_END` dengan file blade yang berisi `<style>` block. Pola ini terbukti bertahan terhadap update Filament selama selector `.fi-*` tidak berubah.
 
 **Pola layout:**
 
-- **Login** → logo `logo.png` pada header login bawaan Filament.
-- **Topbar desktop** → teks nama aplikasi di tengah bidang kiri hijau tua selebar sidebar; bagian kanan tetap putih.
-- **Sidebar header mobile** → teks nama aplikasi pada background putih saat drawer dibuka. Pembungkus header ini disembunyikan di desktop agar tidak menyisakan garis putih di atas navigasi.
-- **Sidebar nav & footer** → background forest green tua.
-- **Topbar** → tanpa border bawah dan bayangan.
-- **Active sidebar item** → background semi-transparan putih + left border amber.
+- **Topbar desktop** → background putih bersih dengan border bawah `#e2e8f0` dan vertical border sejajar sidebar. Logo Sanitra berwarna penuh tampil di kiri atas.
+- **Sidebar nav & footer** → background putih bersih dengan border kanan halus `#e2e8f0`.
+- **Group label** → teks slate-500 uppercase semi-bold.
+- **Menu inaktif** → teks slate-700 dan ikon slate-600 yang tajam dan nyaman dibaca.
+- **Menu hover** → background mint lembut `#f0fdf4` dengan teks dan ikon hijau `#15803d`.
+- **Menu active (Opsi A)** → background hijau segar `#16a34a`, teks & ikon putih, dengan strip aksen amber `#f59e0b` di sisi kiri.
+- **Primary button** → background hijau segar `#16a34a` senada active menu.
 
 File: `resources/views/filament/hooks/admin-theme.blade.php`
 
@@ -307,19 +288,19 @@ Karakteristik logo:
 - Icon kombinasi gradient hijau-biru.
 - Background transparan; halaman login bawaan Filament berwarna putih.
 
-Halaman panel tidak memakai gambar logo. Saat `brandLogo()` mengembalikan `null`, komponen logo Filament menampilkan teks dari `brandName()` di topbar desktop dan header drawer mobile.
+Logo `logo.png` tampil di halaman login maupun topbar dashboard berlatar putih dengan skala proporsional.
 
 Register di `DashboardPanelProvider`:
 
 ```php
-->brandLogo(fn (): ?string => request()->routeIs('filament.dashboard.auth.login') ? asset('assets/logo.png') : null)
-->brandLogoHeight('3.5rem')
+->brandLogo(asset('assets/logo.png'))
+->brandLogoHeight('3rem')
 ```
 
 Catatan:
 
 - `->darkModeBrandLogo()` tidak dipanggil karena dark mode dimatikan (§6).
-- Route login panel adalah `filament.dashboard.auth.login`; jika ID panel berubah, sesuaikan nama route pada callback `brandLogo()`.
+- CSS hook memastikan logo berukuran `3.15rem` di topbar dan `2.75rem` di halaman login dengan jarak bawah yang lega.
 
 ### 5.2 Favicon
 
