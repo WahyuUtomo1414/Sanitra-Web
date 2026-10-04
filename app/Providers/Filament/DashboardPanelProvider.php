@@ -10,6 +10,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -28,9 +29,22 @@ class DashboardPanelProvider extends PanelProvider
             ->id('dashboard')
             ->path('dashboard')
             ->login()
+            ->brandName('Sanitra Admin')
+            ->brandLogo(asset('assets/logo.png'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('assets/favicon.png'))
+            ->darkMode(false)
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Green,
+                'danger' => Color::Rose,
+                'warning' => Color::Amber,
+                'success' => Color::Green,
+                'info' => Color::Lime,
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => view('filament.hooks.admin-theme'),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
