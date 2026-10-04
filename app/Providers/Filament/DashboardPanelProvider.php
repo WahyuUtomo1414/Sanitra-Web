@@ -31,7 +31,7 @@ class DashboardPanelProvider extends PanelProvider
             ->login(Login::class)
             ->brandName(config('app.name'))
             ->brandLogo(asset('assets/logo.png'))
-            ->brandLogoHeight('3rem')
+            ->brandLogoHeight('2rem')
             ->favicon(asset('assets/favicon.png'))
             ->darkMode(false)
             ->colors([

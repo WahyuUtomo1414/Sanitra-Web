@@ -588,25 +588,41 @@ Prefix `sys_` karena ini tabel infrastruktur sistem (bukan domain bisnis) — sa
 
 Tidak ada tabel terpisah untuk error per baris — JSON `errors` cukup untuk volume master data yang tidak akan ratusan ribu baris.
 
-### 6.3 Package yang Direkomendasikan
+### 6.3 Package
 
-Alternatif Filament-native: **`filament/actions`** `ImportAction` — tersedia di Filament v3+ sebagai first-party feature. Perlu dicek apakah sudah include di instalasi Filament 5.9.0 atau perlu install terpisah.
+**`maatwebsite/excel`** — sudah ter-install sebagai dependency `pxlrbt/filament-excel`, tidak perlu install tambahan. UI tetap dibangun sebagai custom Filament Page; `maatwebsite/excel` hanya menangani pembacaan file Excel-nya.
 
-Fallback: `maatwebsite/excel` sudah ter-install sebagai dependency `pxlrbt/filament-excel` — bisa dipakai langsung tanpa install tambahan.
+`filament/actions` ImportAction tidak dipakai — tidak cocok untuk satu halaman terpusat multi-entity.
 
-### 6.4 Hal yang Perlu Diputuskan
+### 6.4 Keputusan yang Sudah Ditetapkan
 
-- [ ] Package mana yang dipakai: `filament/actions` ImportAction (first-party) atau `maatwebsite/excel` custom?
-- [ ] Template download: file `.xlsx` kosong per entity dengan header kolom yang sesuai.
-- [ ] Behaviour duplikat: kalau row sudah ada (berdasarkan `name` atau `email`), skip atau update?
-- [ ] AutoCode saat import: kode di-generate otomatis per row via `GenerateCodeService`, user tidak perlu isi kolom kode.
-- [ ] Validasi error: skip baris yang gagal, lanjut baris berikutnya — bukan rollback semua. Error dicatat di `sys_import_log.errors`.
-- [ ] Resource mana yang prioritas pertama untuk diimport?
+- [x] **Package:** `maatwebsite/excel` langsung (sudah tersedia).
+- [x] **UI:** Custom Filament Page terpusat — user pilih entity, upload file, lihat riwayat import. Bukan per-resource.
+- [x] **Navigation group:** `Master Data` (sejajar dengan MsStatus dan Activity Log).
+- [x] **Template download:** File `.xlsx` kosong per entity dengan header kolom yang sesuai — tersedia di halaman import.
+- [x] **AutoCode:** Kode di-generate otomatis per row via `GenerateCodeService`. Kolom `code` tidak perlu ada di template.
+- [x] **Validasi error:** Skip baris yang gagal, lanjut baris berikutnya. Error per baris dicatat di `sys_import_log.errors`.
+- [x] **Duplikat:** Hanya kolom yang memang unique per entity yang divalidasi (bukan semua kolom). Validasi dilakukan di PHP sebelum insert — bukan dari DB constraint. Baris yang melanggar unique dicatat sebagai error, bukan di-update.
+- [x] **Async/Queue:** Tidak dipakai — aplikasi di-deploy ke shared web hosting yang tidak support background worker. Semua proses import berjalan synchronous dalam satu HTTP request. Batasi jumlah baris per upload (max 500 baris) untuk menghindari timeout `max_execution_time` hosting.
 
-### 6.5 Hal yang Perlu Diverifikasi Sebelum Implementasi
+### 6.5 Kolom Unique per Entity
 
-- [ ] Cek apakah `ImportAction` sudah tersedia di Filament 5.9.0 tanpa install tambahan.
-- [ ] Cek apakah `maatwebsite/excel` yang ter-install sudah support PHP 8.4.
+Validasi duplikat hanya untuk kolom yang unique secara bisnis. Kolom `code` tidak perlu divalidasi karena di-generate otomatis dan pasti unik.
+
+| Entity | Kolom yang divalidasi unique |
+| --- | --- |
+| `MsCompany` | `email` |
+| `MsEmployee` | `email` |
+| `MsClient` | `email` |
+| `MsItem` | `name` (dalam kategori yang sama) |
+| `MsItemCategory` | `name` |
+| `MsUnit` | `code` (manual, bukan auto-generate) |
+| `MsBankAccount` | `account_number` |
+
+### 6.6 Hal yang Perlu Diverifikasi Sebelum Implementasi
+
+- [ ] Cek versi `maatwebsite/excel` yang ter-install dan pastikan support PHP 8.4.
+- [ ] Konfirmasi kolom unique per entity sesuai tabel §6.5 — sesuaikan kalau ada yang beda dengan kebutuhan bisnis.
 
 ---
 

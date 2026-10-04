@@ -304,6 +304,19 @@ Section::make('Relasi')
 
 Field lain seperti kode, status aktif, gambar, dan field khusus resource tetap ditampilkan dalam section yang sesuai; atur urutannya agar pasangan utama di atas tidak terpecah.
 
+### 7.2 Standar Pesan Validasi Form (Belum Diimplementasikan)
+
+Standar ini berlaku untuk semua form Create/Edit resource, form relation manager, dan form pengguna. Tujuannya agar user tahu field yang bermasalah dan cara memperbaikinya.
+
+- Tampilkan pesan kesalahan di dekat field yang gagal validasi, memakai bahasa Indonesia yang singkat dan spesifik. Nama field dalam pesan harus sama dengan label yang terlihat di form, bukan nama kolom database seperti `company_id`.
+- Terjemahkan aturan umum secara terpusat, misalnya wajib diisi, format email, pilihan tidak valid, nilai minimum/maksimum, batas panjang, dan file unggahan. Jangan menulis ulang pesan umum di setiap input.
+- Tambahkan pesan khusus hanya untuk aturan yang membutuhkan konteks bisnis, misalnya kode sudah digunakan, total bobot workflow harus 100%, unit dasar item harus tepat satu, atau termin belum memenuhi syarat penagihan.
+- Jangan menampilkan nama tabel, nama rule, stack trace, atau pesan database mentah kepada user. Pesan harus menyebut tindakan yang bisa dilakukan.
+- Pertahankan validasi sisi server. Tanda wajib, helper text, dan pembatasan pilihan di UI membantu pengisian, tetapi tidak menggantikan pesan saat penyimpanan gagal.
+- Pastikan locale aplikasi dan berkas terjemahan validasi bahasa Indonesia tersedia pada setiap environment. Periksa pesan untuk form utama dan relation manager, termasuk kondisi create dan edit.
+
+Contoh pesan: **“Nama perusahaan wajib diisi.”**, **“Masukkan alamat email yang valid.”**, dan **“Kode klien sudah digunakan.”**
+
 ## 8. Navigation Group
 
 Sidebar terdiri dari 5 navigation group. Group master data dipecah per domain — tidak semua disatukan di "Master Data" agar sidebar tidak terlalu panjang.
