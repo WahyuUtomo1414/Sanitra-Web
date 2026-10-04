@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\AuditedBySoftDelete;
+use App\Traits\LogsMasterActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MsClient extends Model
 {
-    use AuditedBySoftDelete, SoftDeletes;
+    use AuditedBySoftDelete, LogsMasterActivity, SoftDeletes;
 
     protected $table = 'ms_client';
 

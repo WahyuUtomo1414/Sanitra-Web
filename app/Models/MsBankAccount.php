@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Traits\AuditedBySoftDelete;
+use App\Traits\LogsMasterActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MsBankAccount extends Model
 {
-    use AuditedBySoftDelete, SoftDeletes;
+    use AuditedBySoftDelete, LogsMasterActivity, SoftDeletes;
 
     protected $table = 'ms_bank_account';
 

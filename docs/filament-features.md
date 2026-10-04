@@ -1,8 +1,14 @@
 # Filament Features Sanitra
 
-**Status:** Planning · **Acuan:** [filament-resource.md](filament-resource.md), [architecture.md](architecture.md) · **Panel:** Filament 5.9.0
+**Status:** Dashboard Owner, Activity Log, dan Export Excel selesai (2026-10-04); fitur lain masih planning · **Acuan:** [filament-resource.md](filament-resource.md), [architecture.md](architecture.md) · **Panel:** Filament 5.9.0
 
 Doc ini mencatat fitur tambahan di luar resource CRUD standar — export data, activity log, dsb. Setiap fitur punya section tersendiri dengan rekomendasi package, cara integrasi, dan hal yang perlu diverifikasi sebelum implementasi.
+
+### Implementasi saat ini
+
+- **Dashboard Owner:** empat statistik master dihitung langsung dari database. Empat statistik transaksi dan dua grafik memakai data contoh dengan label yang jelas karena model transaksi belum tersedia.
+- **Activity Log:** `spatie/laravel-activitylog` v5.1.1 terpasang dan tabel `activity_log` sudah dimigrasikan. Semua model master (termasuk Project Type, Project Workflow, dan Item Unit) mencatat perubahan domain, kecuali `User` dan `CodeSequence`. Halaman Activity Log global bersifat read-only, dengan filter tanggal, event, tipe entitas, dan pelaku. Spatie v5 menyimpan diff di `attribute_changes` dan memakai `Spatie\Activitylog\Models\Concerns\LogsActivity` serta `Spatie\Activitylog\Support\LogOptions`.
+- **Export Excel:** `pxlrbt/filament-excel` v4.1.0 terpasang pada seluruh 10 halaman daftar resource master. Tombol unduh berada di header halaman, sejajar dengan tombol Tambah; export mengikuti tabel/filternya dan menghasilkan XLSX. `MsItemUnit` tercatat di audit log, tetapi tidak memiliki resource tabel mandiri untuk tombol export.
 
 ---
 
@@ -24,7 +30,7 @@ composer require pxlrbt/filament-excel
 
 Filament Excel secara internal mengandalkan `maatwebsite/excel` (Laravel Excel), yang akan ikut ter-install sebagai dependency.
 
-**Status kompatibilitas:** Package ini aktif dikembangkan dan mendukung Filament v3+. Verifikasi support Filament v5 sebelum install:
+**Status kompatibilitas:** v4.1.0 terpasang dan tombol export berfungsi di Filament 5.9.0.
 
 ```bash
 composer show pxlrbt/filament-excel  # cek constraint filament/filament di bagian requires
@@ -34,23 +40,31 @@ Jika belum support v5, gunakan `maatwebsite/excel` langsung + Filament `Action` 
 
 ### 1.3 Cara Integrasi (via `pxlrbt/filament-excel`)
 
-Tambahkan `ExportAction` ke `toolbarActions` di class Table resource:
+Tambahkan `ExportAction` ke `getHeaderActions()` di halaman List resource, berdampingan dengan `CreateAction`:
 
 ```php
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Actions\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use Filament\Actions\CreateAction;
 
-->toolbarActions([
-    ExportAction::make()
-        ->exports([
-            ExcelExport::make()
-                ->fromTable()          // pakai kolom yang sudah didefinisikan di table
-                ->withFilename(fn ($resource) => $resource::getModelLabel() . '-' . now()->format('Ymd'))
-                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX),
-        ]),
-    BulkActionGroup::make([...]),
-])
+protected function getHeaderActions(): array
+{
+    return [
+        CreateAction::make(),
+        ExportAction::make()
+            ->label('Unduh Excel')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->button()
+            ->outlined()
+            ->color('success')
+            ->exports([
+                ExcelExport::make()
+                    ->fromTable()          // pakai kolom yang sudah didefinisikan di table
+                    ->withFilename(fn ($resource) => $resource::getModelLabel() . '-' . now()->format('Ymd'))
+                    ->withWriterType(\Maatwebsite\Excel\Excel::XLSX),
+            ]),
+    ];
+}
 ```
 
 `->fromTable()` auto-memetakan kolom dari definisi Table Filament — tidak perlu listing kolom ulang.
@@ -69,9 +83,9 @@ ExcelExport::make()
 
 ### 1.4 Penempatan Export
 
-- Export global (semua record yang terfilter) → `toolbarActions` di Table.
+- Export global (semua record yang terfilter) → `getHeaderActions()` di halaman List.
 - Export per-baris (satu record) → `recordActions` atau custom `Action` di infolist.
-- Untuk data master, cukup export global di toolbar.
+- Untuk data master, cukup export global di header halaman.
 
 ### 1.5 Fallback: Manual dengan `maatwebsite/excel`
 
@@ -98,10 +112,10 @@ Pendekatan ini lebih verbose tapi tidak bergantung pada plugin third-party.
 
 ### 1.6 Hal yang Perlu Diverifikasi
 
-- [ ] Cek kompatibilitas `pxlrbt/filament-excel` dengan Filament 5.9.x sebelum install.
-- [ ] Cek apakah `maatwebsite/excel` kompatibel dengan PHP 8.4 (seharusnya iya di v3.1.x+).
-- [ ] Tentukan resource mana saja yang butuh export (semua master? transaksi juga?).
-- [ ] Tentukan format: XLSX saja, atau CSV juga? Untuk data master, XLSX cukup.
+- [x] `pxlrbt/filament-excel` v4.1.0 berfungsi dengan Filament 5.9.x.
+- [x] `maatwebsite/excel` v4.0.3 terpasang pada PHP 8.4.
+- [x] Export tersedia di seluruh 10 resource master.
+- [x] Format export XLSX.
 
 ---
 
@@ -122,13 +136,13 @@ composer require spatie/laravel-activitylog
 ```
 
 **Kompatibilitas:**
-- Laravel 13 ✓ (package v4.x mendukung Laravel 11+)
+- Laravel 13 ✓ (package v5.1.1)
 - PHP 8.4 ✓
 
 **Apa yang dilakukan:**
 - Menyediakan trait `LogsActivity` untuk Eloquent model.
 - Secara default merekam event `created`, `updated`, `deleted` ke tabel `activity_log`.
-- Setiap entry menyimpan: `log_name`, `description`, `subject_type`, `subject_id`, `causer_type`, `causer_id` (user yang melakukan), `properties` (JSON berisi `attributes` dan `old` — nilai sebelum dan sesudah).
+- Setiap entry menyimpan: `log_name`, `description`, `subject_type`, `subject_id`, `causer_type`, `causer_id` (user yang melakukan), `attribute_changes` (JSON berisi `attributes` dan `old` — nilai sebelum dan sesudah).
 
 **Publish dan migrate:**
 
@@ -143,8 +157,8 @@ php artisan migrate
 Tambahkan trait `LogsActivity` ke semua model domain yang perlu di-log:
 
 ```php
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class MsCompany extends Model
 {
@@ -155,7 +169,7 @@ class MsCompany extends Model
         return LogOptions::defaults()
             ->logOnly(['name', 'code', 'email', 'phone', 'active'])  // kolom yang di-log
             ->logOnlyDirty()    // hanya log kalau ada perubahan
-            ->dontSubmitEmptyLogs();
+            ->dontLogEmptyChanges();
     }
 }
 ```
@@ -171,10 +185,10 @@ use Spatie\Activitylog\Models\Activity;
 
 // Semua log untuk satu record
 $company = MsCompany::find(1);
-$company->activities;  // HasMany ke Activity
+$company->activitiesAsSubject;  // MorphMany ke Activity
 
 // Log terakhir
-$company->activities()->latest()->first();
+$company->activitiesAsSubject()->latest()->first();
 
 // Log global (semua model)
 Activity::all();
@@ -186,8 +200,8 @@ Activity::causedBy(auth()->user())
     ->get();
 
 // Akses diff field
-$log->properties->get('attributes');  // nilai setelah
-$log->properties->get('old');         // nilai sebelum
+$log->attribute_changes->get('attributes');  // nilai setelah
+$log->attribute_changes->get('old');         // nilai sebelum
 ```
 
 ### 2.5 Integrasi di Filament
@@ -276,7 +290,7 @@ Navigation group: `Master Data` (bareng Status) atau group baru `Sistem` sesuai 
 
 **Filter table:** tanggal (range), event type, subject_type (tipe entitas), causer (user).
 
-**View page (infolist):** tampilkan full `properties` JSON — pisahkan antara `attributes` (nilai sesudah) dan `old` (nilai sebelum) agar diff mudah dibaca.
+**View page (infolist):** tampilkan `attribute_changes` JSON — pisahkan antara `attributes` (nilai sesudah) dan `old` (nilai sebelum) agar diff mudah dibaca.
 
 Alasan pilih Opsi C dibanding A/B:
 - Opsi A (plugin) belum tentu support Filament v5.
@@ -310,18 +324,18 @@ Yang perlu disesuaikan setelah publish config:
 
 ```php
 // Berapa lama log disimpan (null = selamanya)
-'delete_records_older_than_days' => 365,  // 1 tahun, atau sesuaikan
+'clean_after_days' => 365,  // berlaku saat perintah clean dijalankan
 
 // Model activity (bisa di-extend kalau butuh custom field)
 'activity_model' => \Spatie\Activitylog\Models\Activity::class,
 
 // Auth guard
-'default_auth_driver' => 'web',
+'default_auth_driver' => null,  // gunakan auth driver aktif
 ```
 
 ### 2.8 Hal yang Perlu Diverifikasi
 
-- [ ] Cek kompatibilitas `spatie/laravel-activitylog` v4 dengan Laravel 13 (`composer show spatie/laravel-activitylog` setelah install).
+- [x] `spatie/laravel-activitylog` v5.1.1 berfungsi dengan Laravel 13.
 - [ ] Cek apakah plugin `noxoua/filament-activity-log` support Filament 5 — kalau tidak, gunakan opsi B (RelationManager custom).
 - [ ] Tentukan apakah log perlu retention policy (hapus log > N hari) atau disimpan selamanya. Untuk satu tahun, tabel `activity_log` bisa punya ratusan ribu baris — pertimbangkan index dan cleanup scheduler.
 - [ ] Tentukan kolom apa saja yang di-log per model (`logOnly`). Kolom sensitif (password, token) jangan masuk.
@@ -337,7 +351,7 @@ Ada 4 dashboard yang direncanakan berdasarkan role pengguna:
 
 | Dashboard | Target User | Status |
 | --- | --- | --- |
-| **Owner / All** | Owner / Super Admin | **Dikerjakan sekarang** |
+| **Owner / All** | Owner / Super Admin | **Selesai (master live, transaksi dummy)** |
 | Marketing | Tim penjualan & quotation | Tunggu model transaksi |
 | Project | Tim pelaksana project | Tunggu model transaksi |
 | Finance | Tim keuangan & invoice | Tunggu model transaksi |
