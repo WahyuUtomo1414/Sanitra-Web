@@ -1,6 +1,6 @@
 # Arsitektur Aplikasi Sanitra
 
-**Status:** Konsep awal · **Acuan:** [database.md](database.md), [filament-resource.md](filament-resource.md), [filament-lifecycle-hook.md](filament-lifecycle-hook.md) · **Framework:** Laravel 13 + Filament 4
+**Status:** Implemented (core) · **Acuan:** [database.md](database.md), [filament-resource.md](filament-resource.md), [filament-lifecycle-hook.md](filament-lifecycle-hook.md), [filament-features.md](filament-features.md) · **Framework:** Laravel 13 + Filament 5.9.0
 
 ## 1. Tujuan
 
@@ -17,6 +17,7 @@ Doc ini **tidak** menggantikan:
 - `filament-resource.md` — konvensi resource/form/table.
 - `filament-lifecycle-hook.md` — service pattern + lifecycle hook.
 - `filament-custom.md` — tema panel Filament.
+- `filament-features.md` — fitur tambahan: export Excel, activity log.
 
 ## 2. Overview Arsitektur
 
