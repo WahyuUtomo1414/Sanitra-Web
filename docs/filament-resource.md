@@ -241,9 +241,68 @@ Pengecualian:
 - `UserResource` memakai `List`, `Create`, dan `Edit` (tanpa `View` karena data user sederhana).
 - Halaman detail memakai `Infolist`.
 - Resource header transaksi (`TransQuotationHd`, `TransProjectHd`, `TransInvoiceHd`) wajib punya halaman `View` dengan relation manager detail.
-- Form resource wajib memakai `Filament\Schemas\Components\Section` dan setiap section memakai `columnSpanFull()` agar input dikelompokkan per konteks (misal `Informasi Utama`, `Relasi`, `Nominal`, `Status`).
-- Infolist resource wajib memakai `Filament\Schemas\Components\Section` dengan minimal section `Informasi Utama` dan `Audit Data`; setiap section memakai `columnSpanFull()`.
+- Form resource wajib memakai `Filament\Schemas\Components\Section` dan setiap section memakai `columnSpanFull()` agar input dikelompokkan per konteks (misal `Informasi Utama`, `Relasi`, `Nominal`, `Status`). Isi section mengikuti layout dua kolom di §7.1.
+- Infolist resource wajib memakai `Filament\Schemas\Components\Section` dengan minimal section `Informasi Utama` dan `Audit Data`; setiap section memakai `columnSpanFull()` dan isi section mengikuti layout dua kolom di §7.1.
 - Section `Audit Data` berisi `createdBy`, `created_at`, `updatedBy`, `updated_at`, `deletedBy`, dan `deleted_at` untuk resource domain yang memakai audit/soft delete.
+
+### 7.1 Standar Layout Form dan Halaman Detail
+
+Aturan ini berlaku untuk **semua resource**, baik form Create/Edit maupun infolist halaman View. `columnSpanFull()` pada `Section` mengatur lebar section terhadap halaman; `->columns(2)` pada section mengatur field **di dalamnya**. Keduanya harus dipakai bersama. Filament menampilkan dua kolom mulai breakpoint `lg` dan satu kolom pada layar yang lebih kecil.
+
+- Setiap section yang berisi field memakai `->columnSpanFull()->columns(2)`. Ini mencakup `Informasi Utama`, `Relasi`, `Status`, `Audit Data`, dan section lain yang relevan.
+- Field pendek memakai lebar **satu kolom** agar dua field yang berkaitan tampil berdampingan. Pasangkan secara logis dan jaga urutan yang sama di form serta infolist: misalnya **Nama | Nama Legal**, **Email | Telepon**, **Perusahaan Induk | PIC Karyawan**, **Dibuat Oleh | Dibuat Pada**, dan seterusnya.
+- `Deskripsi` memakai `->columnSpanFull()`. Field teks panjang atau multiline lain, seperti alamat dan catatan, juga boleh selebar dua kolom agar mudah dibaca atau diisi.
+- Jangan memakai `->columnSpanFull()` pada semua input atau entry. Jika satu section memiliki jumlah field pendek ganjil, field terakhir boleh menempati satu kolom; jangan dipasangkan dengan field yang tidak berkaitan hanya untuk mengisi baris.
+- Pilihan relasi (`Select` pada form, nama relasi pada infolist) mengikuti grid yang sama. Bila ada dua relasi terkait, letakkan berdampingan di section `Relasi`.
+- Field audit di halaman View ditata berpasangan per kejadian: `createdBy` dengan `created_at`, `updatedBy` dengan `updated_at`, dan `deletedBy` dengan `deleted_at` jika record dihapus.
+
+Contoh pola `MsCompanyForm` (aturan yang sama diterapkan pada resource lain):
+
+```php
+Section::make('Informasi Utama')
+    ->columnSpanFull()
+    ->columns(2)
+    ->schema([
+        TextInput::make('name')->label('Nama'),
+        TextInput::make('legal_name')->label('Nama Legal'),
+        TextInput::make('email')->label('Email'),
+        TextInput::make('phone')->label('Telepon'),
+        Textarea::make('description')->label('Deskripsi')->columnSpanFull(),
+    ]),
+
+Section::make('Relasi')
+    ->columnSpanFull()
+    ->columns(2)
+    ->schema([
+        Select::make('parent_id')->label('Perusahaan Induk'),
+        Select::make('pic_employee_id')->label('PIC Karyawan'),
+    ]),
+```
+
+Contoh pola `MsCompanyInfolist`:
+
+```php
+Section::make('Informasi Utama')
+    ->columnSpanFull()
+    ->columns(2)
+    ->schema([
+        TextEntry::make('name')->label('Nama'),
+        TextEntry::make('legal_name')->label('Nama Legal'),
+        TextEntry::make('email')->label('Email'),
+        TextEntry::make('phone')->label('Telepon'),
+        TextEntry::make('description')->label('Deskripsi')->columnSpanFull(),
+    ]),
+
+Section::make('Relasi')
+    ->columnSpanFull()
+    ->columns(2)
+    ->schema([
+        TextEntry::make('parent.name')->label('Perusahaan Induk'),
+        TextEntry::make('picEmployee.name')->label('PIC Karyawan'),
+    ]),
+```
+
+Field lain seperti kode, status aktif, gambar, dan field khusus resource tetap ditampilkan dalam section yang sesuai; atur urutannya agar pasangan utama di atas tidak terpecah.
 
 ## 8. Navigation Group
 
@@ -293,9 +352,9 @@ Setelah command resource dijalankan:
 
 - Rapikan resource class agar sesuai pola modular Filament (§5).
 - Sesuaikan `navigationGroup`, `navigationIcon`, `navigationLabel`, `modelLabel`, `pluralModelLabel`, dan `slug`.
-- Rapikan form schema (bagi per `Section` dengan `columnSpanFull()`).
+- Rapikan form schema (bagi per `Section` dengan `columnSpanFull()` dan `columns(2)` untuk isinya; lihat §7.1).
 - Rapikan table schema.
-- Tambahkan infolist untuk halaman detail.
+- Tambahkan infolist untuk halaman detail dengan aturan dua kolom yang sama (§7.1).
 - Tambahkan kolom audit `createdBy`, `updatedBy`, dan `deletedBy` pada semua table resource domain.
 - Aktifkan query tanpa `SoftDeletingScope` untuk resource domain.
 - Pertahankan dukungan soft delete pada table action dan filter.
@@ -779,7 +838,7 @@ Kolom: `code`, `transaction_date`, `invoice.code`, `amount`, `payment_method`, `
 
 ## 16. Infolist Per Resource
 
-Semua infolist memiliki minimal section `Informasi Utama` dan `Audit Data`.
+Semua infolist memiliki minimal section `Informasi Utama` dan `Audit Data`. Susunan field mengikuti standar dua kolom §7.1; deskripsi dan teks panjang memakai lebar penuh.
 
 ### 16.1 User
 
