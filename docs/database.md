@@ -1,10 +1,10 @@
 # Database Aplikasi Web Sanitra
 
-**Status:** Konsep awal · **Acuan:** [ERD Sanitra](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png), [SRS Sanitra](../../../Berkas/SRS_Aplikasi_Web_Sanitra.pdf) · **Terkait:** [PRD](prd.md)
+**Status:** Konsep awal untuk transaksi; ekstensi dokumen dan kontak klien sudah ditulis di kode, migration belum dijalankan · **Acuan:** [ERD Sanitra](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png), [SRS Sanitra](../../../Berkas/SRS_Aplikasi_Web_Sanitra.pdf) · **Terkait:** [PRD](prd.md)
 
 ## 1. Ringkasan
 
-Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
+Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. Aplikasi menambahkan `ms_client_contact` dan `ms_document` di luar ERD awal; migration keduanya sudah dibuat, tetapi belum dijalankan. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
 
 Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Contoh kode menunjukkan pola; trait kolom migration sudah tersedia di `app/Traits`, sedangkan model dan migration domain belum dibuat dari dokumen ini.
 
@@ -16,6 +16,8 @@ Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada
 | Master | `ms_company` | `MsCompany` |
 | Master | `ms_employee` | `MsEmployee` |
 | Master | `ms_client` | `MsClient` |
+| Master (ekstensi) | `ms_client_contact` | `MsClientContact` |
+| Master (ekstensi) | `ms_document` | `MsDocument` |
 | Master | `ms_project_type` | `MsProjectType` |
 | Master | `ms_project_workflow` | `MsProjectWorkflow` |
 | Master | `ms_item_category` | `MsItemCategory` |
@@ -155,17 +157,46 @@ Karyawan dan PIC internal. Model: `MsEmployee`.
 
 ### 4.4 `ms_client`
 
-Client dan PIC internal yang menangani relasi client. Model: `MsClient`.
+Client dan PIC internal yang menangani relasi client. Model: `MsClient`. `email` dan `phone` adalah kontak umum perusahaan; orang yang dapat dihubungi dicatat di `ms_client_contact`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
 | `code` | varchar(50) | tidak | Kode client; unik menurut FR-03. |
 | `name` | varchar(128) | tidak | Nama client. |
 | `pic_employee_id` | bigint unsigned | ya | FK ke `ms_employee.id`. |
-| `email` | varchar(128) | tidak | Email client. |
-| `phone` | varchar(18) | tidak | Nomor telepon. |
+| `email` | varchar(128) | tidak | Email umum client. |
+| `phone` | varchar(18) | tidak | Telepon umum client. |
 | `address` | varchar(255) | tidak | Alamat. |
 | `description` | text | ya | Keterangan. |
+
+### 4.4a `ms_client_contact` (ekstensi)
+
+Kontak orang di pihak client; berbeda dari `ms_client.pic_employee_id` yang menunjuk PIC internal Sanitra. Satu client dapat memiliki banyak kontak. Model: `MsClientContact`.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `client_id` | bigint unsigned | tidak | FK ke `ms_client.id`. |
+| `name` | varchar(128) | tidak | Nama orang. |
+| `position` | varchar(128) | ya | Jabatan. |
+| `email` | varchar(128) | ya | Email langsung kontak. |
+| `phone` | varchar(18) | ya | Telepon langsung kontak. |
+| `is_primary` | boolean | tidak | Kontak utama; service menjaga maksimal satu per client. |
+
+Tabel memakai `MasterTableColumns`, termasuk `active`, audit user, timestamps, dan soft delete. `SaveClientContactService` mengunci baris client dan mengosongkan penanda utama kontak lain ketika kontak utama baru disimpan.
+
+### 4.4b `ms_document` (ekstensi)
+
+Dokumen bersama untuk berbagai entitas. Model: `MsDocument`. Saat ini hanya relasi dan UI client yang diimplementasikan; employee dan project dapat memakai tabel yang sama setelah relasi serta alias masing-masing ditambahkan.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `ref_type` | varchar(32) | tidak | Alias pemilik dari morph map; saat ini `client`. Diisi relasi aplikasi. |
+| `ref_id` | bigint unsigned | tidak | ID pemilik sesuai `ref_type`. Diisi relasi aplikasi. |
+| `name` | varchar(128) | tidak | Nama dokumen, teks bebas. |
+| `file_path` | varchar(255) | tidak | Path file pada disk private `local`. |
+| `notes` | text | ya | Catatan dokumen. |
+
+Tabel memakai `MasterTableColumns` dan index gabungan (`ref_type`, `ref_id`). Pasangan referensi polymorphic tidak memiliki foreign key database dinamis; relasi model dan akses file harus selalu dibatasi ke pemiliknya. Kolom `document_type` dan `mime_type` tidak disimpan. Model melindungi `ref_type` dan `ref_id` dari mass assignment; form tidak meminta keduanya.
 
 ### 4.5 `ms_project_type`
 
@@ -432,6 +463,8 @@ Hanya payment berstatus Confirmed yang dihitung ke pelunasan invoice.
 | `ms_company` | `ms_company.parent_id` | satu induk memiliki banyak company anak |
 | `ms_company` | `ms_employee.company_id`, `ms_project_type.company_id` | satu company memiliki banyak employee/tipe project |
 | `ms_employee` | `users.employee_id`, `ms_company.pic_employee_id`, `ms_client.pic_employee_id`, `trans_project_hd.pic_employee_id` | satu employee dapat menjadi PIC; relasi user maksimal satu |
+| `ms_client` | `ms_client_contact.client_id` | satu client memiliki banyak kontak |
+| `ms_client` (alias `client`) | `ms_document.ref_type` + `ms_document.ref_id` | satu client memiliki banyak dokumen lewat relasi polymorphic |
 | `ms_project_type` | `ms_project_workflow.type_id`, quotation/project `project_type_id` | satu tipe memiliki banyak template tahap dan transaksi |
 | `ms_item_category` | `ms_item.item_category_id` | satu kategori memiliki banyak item |
 | `ms_item`, `ms_unit` | `ms_item_unit.item_id`, `ms_item_unit.unit_id` | banyak-ke-banyak melalui konversi unit |
@@ -455,12 +488,15 @@ Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `
 8. `trans_project_hd`, `trans_project_dt`, `trans_project_monitoring`.
 9. `trans_invoice_hd`, `trans_invoice_dt`, `trans_payment`.
 
+Migration ekstensi `ms_client_contact` dan `ms_document` berjalan setelah `ms_client`. Keduanya sudah dibuat di repo, tetapi **belum dijalankan** sesuai keputusan saat implementasi.
+
 Migration `down()` menghapus foreign key tambahan dan tabel dalam urutan terbalik. Proyek memakai `users` dari bawaan Laravel; nama `user` pada ERD tidak dipakai.
 
 ## 7. Index dan constraint utama
 
 - Unique pada `users.email`, kode master yang merupakan identifier, (`ms_status.type`, `ms_status.code`), `trans_project_hd.quotation_hd_id`, (`ms_project_workflow.type_id`, `sequence`), (`trans_quotation_term.quotation_hd_id`, `sequence`), dan (`ms_item_unit.item_id`, `unit_id`).
 - Index pada seluruh foreign key, kode dokumen, status + tanggal transaksi, `trans_invoice_hd.due_date`, serta `trans_payment.invoice_hd_id` untuk daftar outstanding dan histori.
+- `ms_document` memiliki index (`ref_type`, `ref_id`); tidak ada foreign key dinamis untuk pemilik polymorphic. `ms_client_contact.client_id` memakai foreign key biasa.
 - Validasi rentang 0–100 untuk persentase termin, threshold, bobot workflow/tahap, dan progress project. Jumlah lintas baris seperti total termin atau total bobot workflow, serta tepat satu unit dasar per item, divalidasi saat transaksi disimpan.
 - `trans_invoice_dt.quotation_term_id` tidak dapat dibuat unique global jika invoice Void tetap disimpan dan termin dapat ditagih ulang. Saat pembuatan invoice, kunci termin dan validasi bahwa belum ada invoice aktif yang memakainya.
 - Nilai Rupiah pakai `decimal(20, 6)` untuk seluruh kolom nominal (subtotal, grand_total, amount, unit_price, discount, vat_amount, dsb.). ERD menulis `INT`; abaikan dan ikut rekomendasi dokumen ini. Konsisten di semua migration, model cast (`decimal:6`), dan form input.

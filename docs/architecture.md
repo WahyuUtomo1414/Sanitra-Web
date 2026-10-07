@@ -605,7 +605,13 @@ Sequence table adalah standar untuk ERP. Overhead-nya minim.
 - **AutoCode selalu via service, bukan model event.** Model yang pakai AutoCode (misal `MsItemCategory`, `TransQuotationHd`) **tidak** punya boot method yang auto-generate code. Pembuatan kode adalah tanggung jawab Filament hook.
 - **Jangan pindah logic ke Model observer** meski terlihat lebih "ringkas". Observer bikin side effect yang gak kelihatan di call site; lebih sulit test dan skip.
 - **Enum helper method harus pure.** Boleh `match` statement, boleh `return label string`, tapi **tidak** boleh akses DB atau panggil service.
-- **File implementation (enum, service, migration sequence table) belum dibuat.** Doc ini adalah blueprint — buat setelah mindset dan tanda tangan setuju.
+- Enum, service, dan migration sequence table AutoCode sudah dibuat; status per file ada di lampiran.
+
+### 7.1 Dokumen bersama dan kontak klien
+
+`MsDocument` menyimpan dokumen berbagai entitas di tabel `ms_document`. Relasi `MsClient::documents()` memakai `morphMany` dengan kolom `ref_type` dan `ref_id`; `MsDocument::reference()` memakai `morphTo`. `AppServiceProvider` mendaftarkan alias morph map `client` → `MsClient`, sehingga kode menyimpan alias stabil dan relasi mengisi referensi saat dokumen dibuat dari client. Alias employee atau project ditambahkan ketika relasi dan UI entitas tersebut diimplementasikan. Referensi tidak diminta dari pengguna dan tidak ditampilkan pada daftar dokumen.
+
+Dokumen client disimpan di disk `local` yang private; detail upload, preview gambar, dan tautan PDF sementara ada di [filament-resource.md](filament-resource.md) §17.1. `MsClientContact` tetap tabel anak client dengan FK biasa. `SaveClientContactService` menjaga maksimal satu kontak utama dalam satu transaksi database. Migration untuk kedua tabel baru sudah ditulis, tetapi belum dijalankan.
 
 ---
 

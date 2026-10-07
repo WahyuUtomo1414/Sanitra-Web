@@ -1,6 +1,6 @@
 # Requirement Filament Resource Sanitra
 
-**Status:** Implemented (master resources) · **Acuan:** [database.md](database.md), [prd.md](prd.md) · **Panel:** Filament 5.9.0
+**Status:** Implemented (master resources); UI kontak dan dokumen klien ditulis, migration baru belum dijalankan · **Acuan:** [database.md](database.md), [prd.md](prd.md) · **Panel:** Filament 5.9.0
 
 ## 1. Tujuan
 
@@ -47,6 +47,8 @@ Model yang **tidak** jadi resource standalone (dikelola lewat relation manager):
 | Model | Dikelola dari resource |
 | --- | --- |
 | `MsItemUnit` | `MsItemResource` |
+| `MsClientContact` | `MsClientResource` |
+| `MsDocument` | `MsClientResource` untuk saat ini; tabel dokumen dirancang bersama untuk entitas lain |
 | `TransQuotationDt` | `TransQuotationHdResource` |
 | `TransQuotationTerm` | `TransQuotationHdResource` |
 | `TransProjectDt` | `TransProjectHdResource` |
@@ -57,7 +59,7 @@ Catatan:
 
 - Semua resource domain memakai pola soft delete dan audit user.
 - Model domain wajib menulis `protected $table` eksplisit karena nama tabel mengikuti ERD.
-- Model domain memakai `protected $guarded = ['id'];`, bukan `$fillable`.
+- Model domain memakai `protected $guarded = ['id'];`, bukan `$fillable`; `MsDocument` juga menjaga `ref_type` dan `ref_id` dari mass assignment.
 
 ## 3. Dependency
 
@@ -471,10 +473,10 @@ FileUpload::make('image')
 
 Ketentuan:
 
-- Gunakan `disk('public')` untuk semua upload gambar dan dokumen.
+- Gunakan `disk('public')` untuk upload yang memang boleh diakses publik. Dokumen klien memakai `disk('local')` dengan visibilitas private.
 - Gunakan `directory()` sesuai nama tabel atau konteks resource.
 - Database hanya menyimpan path file, bukan binary file.
-- Jalankan `php artisan storage:link` agar file di disk public bisa diakses dari browser.
+- Jalankan `php artisan storage:link` agar file di disk public bisa diakses dari browser; dokumen private tidak memakai storage link publik.
 
 Mapping directory upload:
 
@@ -482,6 +484,7 @@ Mapping directory upload:
 | --- | --- | --- | --- |
 | `UserResource` | `avatar` | `public` | `users/avatar` |
 | `MsItemResource` | `image` | `public` | `items` |
+| `MsClientResource` → `DocumentsRelationManager` | `file_path` | `local` (private) | `documents/client/{client_id}` |
 | `TransPaymentResource` | `payment_proof` | `public` | `payments/proof` |
 
 ## 14. Form Per Resource
@@ -557,8 +560,10 @@ Field:
 Catatan:
 
 - `code` wajib unik (FR-03).
-- `pic_employee_id` memakai select relasi ke `MsEmployee`, opsional.
+- `pic_employee_id` memakai select relasi ke `MsEmployee`, opsional; label UI **PIC Internal**.
+- `email` dan `phone` tetap berada di tabel client sebagai **Email Umum** dan **Telepon Umum**. Kontak orang dikelola lewat relation manager.
 - `address` memakai textarea.
+- Dokumen dan kontak dikelola setelah client tersimpan melalui relation manager pada halaman Edit; halaman View menampilkan keduanya tanpa action perubahan.
 
 ### 14.5 MsProjectType
 
@@ -647,6 +652,7 @@ Field:
 Catatan:
 
 - `account_number` disimpan sebagai string agar nol awal tidak hilang.
+- Field `name` berlabel **Label Rekening** pada form, tabel daftar, dan halaman detail; `bank_name` tetap Nama Bank.
 
 ### 14.11 MsStatus
 
@@ -805,7 +811,7 @@ Kolom: `code`, `name`, `position`, `company.name`, `email`, `active`, audit.
 
 ### 15.4 MsClient
 
-Kolom: `code`, `name`, `picEmployee.name`, `email`, `phone`, `active`, audit.
+Kolom: `code`, `name`, `picEmployee.name` (PIC Internal), `email` (Email Umum), `phone` (Telepon Umum), `active`, audit.
 
 ### 15.5 MsProjectType
 
@@ -829,7 +835,7 @@ Kolom: `code`, `name`, `type`, `active`, audit.
 
 ### 15.10 MsBankAccount
 
-Kolom: `code`, `name`, `bank_name`, `account_number`, `account_name`, `active`, audit.
+Kolom: `code`, `name` (Label Rekening), `bank_name`, `account_number`, `account_name`, `active`, audit.
 
 ### 15.11 MsStatus
 
@@ -869,7 +875,7 @@ Tampilkan: kode, nama, jabatan, perusahaan, email, telepon, status aktif, audit 
 
 ### 16.4 MsClient
 
-Tampilkan: kode, nama, PIC karyawan, email, telepon, alamat, deskripsi, status aktif, audit data.
+Tampilkan: kode, nama, PIC Internal, Email Umum, Telepon Umum, alamat, deskripsi, status aktif, audit data, serta relation manager Kontak Klien dan Dokumen Klien.
 
 ### 16.5 MsProjectType
 
@@ -893,7 +899,7 @@ Tampilkan: kode, nama, tipe, deskripsi, status aktif, audit data.
 
 ### 16.10 MsBankAccount
 
-Tampilkan: kode, nama, nama bank, nomor rekening, nama pemilik, deskripsi, status aktif, audit data.
+Tampilkan: kode, Label Rekening, nama bank, nomor rekening, nama pemilik, deskripsi, status aktif, audit data.
 
 ### 16.11 MsStatus
 
@@ -917,7 +923,17 @@ Tampilkan: kode, tanggal transaksi, invoice, nominal, metode pembayaran, nomor r
 
 ## 17. Relation Manager
 
-### 17.1 MsItemResource → UnitsRelationManager
+### 17.1 MsClientResource → ContactsRelationManager dan DocumentsRelationManager
+
+`ContactsRelationManager` mengelola banyak `MsClientContact` melalui relasi `contacts`. Form berisi nama kontak (wajib), jabatan, email, telepon, dan toggle Kontak Utama. `SaveClientContactService` memastikan maksimal satu kontak utama per client saat create/edit. Tabel menampilkan data kontak dan penanda utama. `ms_client.email` dan `ms_client.phone` tetap menjadi kontak umum perusahaan; `pic_employee_id` tetap PIC internal.
+
+`DocumentsRelationManager` mengelola `MsDocument` melalui relasi polymorphic `documents`. Form hanya meminta Nama Dokumen, Catatan (opsional), dan File (wajib); **`ref_type` dan `ref_id` diisi otomatis oleh relasi**, tidak ditampilkan di form maupun tabel. Saat ini alias `client` dipetakan ke `MsClient` di `AppServiceProvider`; employee dan project belum memiliki UI dokumen. Tabel dokumen menampilkan nama dan waktu unggah.
+
+Dokumen client disimpan secara private pada disk `local` di `documents/client/{client_id}`. Upload menerima PDF, JPEG, dan PNG maksimal 10 MB serta mengaktifkan `preventFilePathTampering()`. Action **Lihat Gambar** membuka gambar di modal; **Lihat PDF** membuka URL sementara di tab baru (berlaku 5 menit); **Unduh** mengirim file dari disk private. Action hanya muncul untuk file yang ada dan sesuai pemilik client. Menghapus baris memakai soft delete; file fisik tidak otomatis dihapus.
+
+Migration `ms_client_contact` dan `ms_document` sudah dibuat tetapi belum dijalankan, sehingga alur UI upload dan preview belum diuji terhadap database.
+
+### 17.2 MsItemResource → UnitsRelationManager
 
 Mengelola `MsItemUnit`.
 
@@ -934,7 +950,7 @@ Catatan:
 - Pasangan (`item_id`, `unit_id`) unik.
 - Tepat satu baris `is_base = true` per item; validasi di model observer atau form.
 
-### 17.2 TransQuotationHdResource → ItemsRelationManager
+### 17.3 TransQuotationHdResource → ItemsRelationManager
 
 Mengelola `TransQuotationDt`.
 
@@ -955,7 +971,7 @@ Catatan:
 - `total_price` dihitung di form berdasarkan `qty`, `unit_price`, dan `discount`.
 - Perubahan item menghitung ulang subtotal/grand_total di header.
 
-### 17.3 TransQuotationHdResource → TermsRelationManager
+### 17.4 TransQuotationHdResource → TermsRelationManager
 
 Mengelola `TransQuotationTerm`.
 
@@ -976,7 +992,7 @@ Catatan:
 - (`quotation_hd_id`, `sequence`) unik.
 - Total `percentage` harus 100 sebelum quotation bisa di-send (BR-01).
 
-### 17.4 TransProjectHdResource → StagesRelationManager
+### 17.5 TransProjectHdResource → StagesRelationManager
 
 Mengelola `TransProjectDt`.
 
@@ -998,7 +1014,7 @@ Catatan:
 - Perubahan `status_id` memicu pembuatan baris `TransProjectMonitoring` secara otomatis (BR-10).
 - Tahap dengan `editable = false` (karena sudah masuk invoice) hanya boleh diubah oleh role override, wajib dengan alasan (FR-25).
 
-### 17.5 TransProjectHdResource → MonitoringRelationManager
+### 17.6 TransProjectHdResource → MonitoringRelationManager
 
 Menampilkan `TransProjectMonitoring` — **read-only, append-only log**.
 
@@ -1010,7 +1026,7 @@ Catatan:
 - Log dibuat otomatis dari event perubahan tahap, bukan input manual.
 - Koreksi dibuat sebagai log baru (BR-10).
 
-### 17.6 TransInvoiceHdResource → TermsRelationManager
+### 17.7 TransInvoiceHdResource → TermsRelationManager
 
 Mengelola `TransInvoiceDt`.
 
@@ -1029,7 +1045,7 @@ Catatan:
 - Satu termin hanya boleh masuk satu invoice aktif.
 - Pembuatan baris memicu lock tahap Completed terkait termin tersebut.
 
-### 17.7 TransInvoiceHdResource → PaymentsRelationManager
+### 17.8 TransInvoiceHdResource → PaymentsRelationManager
 
 Menampilkan `TransPayment` terkait invoice. Read-write bila status invoice masih aktif.
 
@@ -1045,13 +1061,13 @@ Catatan:
 - Database mengikuti `docs/database.md`.
 - Nama tabel domain memakai prefix `ms_` dan `trans_` tanpa pluralisasi Laravel.
 - Model domain wajib menulis `protected $table` eksplisit.
-- Model domain memakai `protected $guarded = ['id'];`, bukan `$fillable`.
+- Model domain memakai `protected $guarded = ['id'];`, bukan `$fillable`; `MsDocument` juga melindungi `ref_type` dan `ref_id`.
 - Resource `User` mengarah ke tabel auth bawaan `users`, bukan `admin`.
 - Permission panel dikelola Spatie Permission.
 - Semua tabel domain memakai soft delete dari `$this->addAuditColumns($table);`.
 - Semua resource domain harus mengaktifkan query tanpa `SoftDeletingScope` agar data trashed bisa dikelola dari Filament.
 - Kolom `active` digunakan untuk status aktif/nonaktif data master (FR-07); data nonaktif tidak tersedia di transaksi baru tapi tetap terlihat di histori.
-- Field upload wajib memakai `FileUpload`, disk `public`, dan `directory()` sesuai mapping (§13).
+- Field upload wajib memakai `FileUpload` dan `directory()` sesuai mapping (§13). Dokumen klien memakai disk private `local`.
 - Kolom nominal Rupiah bertipe `decimal(20, 6)` di database dan di-cast `decimal:6` di model.
 
 ## 19. Catatan Aman Testing dan Database

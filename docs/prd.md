@@ -34,6 +34,7 @@ Hak akses berlaku per role, bukan per company. Satu user boleh tidak terhubung k
 
 - CRUD company beserta company induk dan PIC employee; semua company berbagi master client, item, bank account, dan unit. `company_id` pada dokumen transaksi menandai penerbit dokumen. (FR-01)
 - CRUD employee, client dengan kode unik dan PIC internal, tipe project dan template workflow. Total bobot tahap untuk setiap tipe project wajib 100 sebelum template dipakai. (FR-02–04)
+- Ekstensi yang disetujui: satu client dapat memiliki banyak kontak orang dan banyak dokumen. Email/telepon pada client tetap menjadi kontak umum, sedangkan PIC employee tetap PIC internal. Dokumen memakai tabel bersama `ms_document` agar kelak dapat dipakai employee dan project; UI dokumen saat ini hanya pada client. Nama dokumen berupa teks bebas, catatan opsional, dan file disimpan private. Referensi pemilik diisi otomatis oleh relasi aplikasi.
 - CRUD kategori item, item, unit, konversi unit per item, dan rekening bank penerima. Tiap item mempunyai satu unit dasar. (FR-05–06)
 - Master data dapat dinonaktifkan; data nonaktif tidak tersedia untuk transaksi baru, tetapi tetap terlihat pada histori. (FR-07)
 - Login, kelola user, role, dan permission; menu serta aksi mengikuti permission. (FR-40)
