@@ -55,11 +55,19 @@ Model yang **tidak** jadi resource standalone (dikelola lewat relation manager):
 | `TransProjectMonitoring` | `TransProjectHdResource` (read-only, append-only log) |
 | `TransInvoiceDt` | `TransInvoiceHdResource` |
 
+Resource infrastruktur (read-only, hanya View dan List):
+
+| Model | Keterangan |
+| --- | --- |
+| `ActivityLog` | Log aktivitas user dari paket `spatie/laravel-activitylog`. |
+| `ErrorLog` | Log exception aplikasi dari tabel `sys_error_log`. |
+
 Catatan:
 
 - Semua resource domain memakai pola soft delete dan audit user.
 - Model domain wajib menulis `protected $table` eksplisit karena nama tabel mengikuti ERD.
 - Model domain memakai `protected $guarded = ['id'];`, bukan `$fillable`; `MsDocument` juga menjaga `ref_type` dan `ref_id` dari mass assignment.
+- Resource infrastruktur meng-override `canCreate()`, `canEdit()`, dan `canDelete()` agar selalu return `false` — tidak ada action tulis sama sekali.
 
 ## 3. Dependency
 
@@ -324,10 +332,12 @@ Contoh pesan: **“Nama perusahaan wajib diisi.”**, **“Masukkan alamat email
 
 ## 8. Navigation Group
 
-Sidebar terdiri dari 5 navigation group. Group master data dipecah per domain — tidak semua disatukan di "Master Data" agar sidebar tidak terlalu panjang.
+Sidebar terdiri dari 6 navigation group. Group master data dipecah per domain — tidak semua disatukan di "Master Data" agar sidebar tidak terlalu panjang.
 
 | Resource | Group |
 | --- | --- |
+| `ActivityLog` | `Sistem` |
+| `ErrorLog` | `Sistem` |
 | `User` | `Pengguna` |
 | `MsCompany` | `Perusahaan` |
 | `MsEmployee` | `Perusahaan` |
@@ -348,6 +358,8 @@ Sidebar terdiri dari 5 navigation group. Group master data dipecah per domain �
 
 | Model | Navigation Label | Model Label | Plural Model Label | Slug | Group | Icon |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ActivityLog` | `Activity Log` | `Activity Log` | `Activity Log` | `activity-logs` | `Sistem` | `heroicon-o-clipboard-document-list` |
+| `ErrorLog` | `Log Error` | `Log Error` | `Log Error` | `error-logs` | `Sistem` | `heroicon-o-bug-ant` |
 | `User` | `Pengguna` | `Pengguna` | `Pengguna` | `users` | `Pengguna` | `heroicon-o-users` |
 | `MsCompany` | `Perusahaan` | `Perusahaan` | `Perusahaan` | `companies` | `Perusahaan` | `heroicon-o-building-office-2` |
 | `MsEmployee` | `Karyawan` | `Karyawan` | `Karyawan` | `employees` | `Perusahaan` | `heroicon-o-identification` |

@@ -1,10 +1,10 @@
 # Database Aplikasi Web Sanitra
 
-**Status:** Konsep awal untuk transaksi; ekstensi dokumen dan kontak klien sudah ditulis di kode, migration belum dijalankan · **Acuan:** [ERD Sanitra](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png), [SRS Sanitra](../../../Berkas/SRS_Aplikasi_Web_Sanitra.pdf) · **Terkait:** [PRD](prd.md)
+**Status:** Semua migration master dan infrastruktur sudah dijalankan; tabel transaksi belum dibuat · **Acuan:** [ERD Sanitra](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png), [SRS Sanitra](../../../Berkas/SRS_Aplikasi_Web_Sanitra.pdf) · **Terkait:** [PRD](prd.md)
 
 ## 1. Ringkasan
 
-Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. Aplikasi menambahkan `ms_client_contact` dan `ms_document` di luar ERD awal; migration keduanya sudah dibuat, tetapi belum dijalankan. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
+Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. Aplikasi menambahkan `ms_client_contact` dan `ms_document` di luar ERD awal, serta tiga tabel infrastruktur: `sys_code_sequence`, `sys_import_log`, dan `sys_error_log`. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
 
 Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Contoh kode menunjukkan pola; trait kolom migration sudah tersedia di `app/Traits`, sedangkan model dan migration domain belum dibuat dari dokumen ini.
 
@@ -35,6 +35,9 @@ Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada
 | Transaksi | `trans_invoice_hd` | `TransInvoiceHd` |
 | Transaksi | `trans_invoice_dt` | `TransInvoiceDt` |
 | Transaksi | `trans_payment` | `TransPayment` |
+| Infrastruktur | `sys_code_sequence` | — |
+| Infrastruktur | `sys_import_log` | `ImportLog` |
+| Infrastruktur | `sys_error_log` | `ErrorLog` |
 
 `hd` adalah header, `dt` adalah detail. Nama model di atas adalah pemetaan Laravel; nama tabel tetap mengikuti ERD. Karena tabel domain tidak mengikuti pluralisasi Laravel, setiap model domain perlu menetapkan `protected $table` secara eksplisit.
 
@@ -145,7 +148,7 @@ Data company penerbit dokumen dan struktur induk. Model: `MsCompany`.
 | `parent_id` | bigint unsigned | ya | FK ke `ms_company.id`. |
 | `pic_employee_id` | bigint unsigned | ya | FK ke `ms_employee.id`. |
 
-Perusahaan utama adalah PT Sanitra Sapta Utama dengan ID 1, aktif, tanpa induk, dan tidak dapat dihapus. Semua perusahaan lain memakai `parent_id = 1`; PIC, jika diisi, harus karyawan dari perusahaan yang sama. Kolom baru dan indeks unik `code` disiapkan lewat migration tambahan; migration belum dijalankan.
+Perusahaan utama adalah PT Sanitra Sapta Utama dengan ID 1, aktif, tanpa induk, dan tidak dapat dihapus. Semua perusahaan lain memakai `parent_id = 1`; PIC, jika diisi, harus karyawan dari perusahaan yang sama.
 
 ### 4.3 `ms_employee`
 
@@ -463,6 +466,42 @@ Pembayaran dan bukti transfer invoice. Model: `TransPayment`.
 
 Hanya payment berstatus Confirmed yang dihitung ke pelunasan invoice.
 
+### 4.22 `sys_import_log`
+
+Log hasil import Excel. Bersifat append-only — tidak ada `updated_at`, `deleted_at`, dan tidak memakai trait audit. Model: `ImportLog`.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `imported_by` | bigint unsigned | tidak | FK ke `users.id`. |
+| `entity` | varchar(64) | tidak | Nama entitas yang diimport (mis. `MsItem`, `MsEmployee`). |
+| `filename` | varchar(255) | tidak | Nama file yang diupload. |
+| `total_rows` | int unsigned | tidak | Total baris data pada file. |
+| `success_count` | int unsigned | tidak | Baris yang berhasil disimpan. |
+| `failed_count` | int unsigned | tidak | Baris yang gagal. |
+| `errors` | json | ya | Detail error per baris; null jika tidak ada error. |
+| `status` | varchar(16) | tidak | Status proses (`done`). Default `done`. |
+| `created_at` | timestamp | tidak | Waktu import selesai; default `CURRENT_TIMESTAMP`. |
+
+### 4.23 `sys_code_sequence`
+
+Sequence counter untuk generator kode otomatis. Tidak memiliki model Eloquent; diakses langsung via `DB::table`. Detail implementasi di `docs/architecture.md` §6.
+
+### 4.24 `sys_error_log`
+
+Log exception aplikasi. Bersifat append-only — tidak ada `updated_at`, `deleted_at`, dan tidak memakai trait audit. Model: `ErrorLog`. Detail implementasi di `docs/error-log.md`.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `level` | varchar(20) | tidak | Tingkat error (`error`, `critical`, `warning`). |
+| `message` | text | tidak | Pesan exception. |
+| `url` | varchar(500) | ya | URL saat exception terjadi. |
+| `method` | varchar(10) | ya | HTTP method (`GET`, `POST`, dst.). |
+| `user_id` | bigint unsigned | ya | FK ke `users.id`; null jika dari console/sistem. |
+| `ip_address` | varchar(45) | ya | IP address request. |
+| `trace` | json | ya | 10 frame stack trace pertama; tiap frame berisi `call`, `file`, `line`. |
+| `context` | json | ya | Metadata tambahan: `exception`, `file`, `line`, `http_code`. |
+| `created_at` | timestamp | tidak | Waktu exception terjadi. |
+
 ## 5. Relasi antar tabel
 
 | Induk | Anak / foreign key | Kardinalitas |
@@ -496,7 +535,7 @@ Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `
 8. `trans_project_hd`, `trans_project_dt`, `trans_project_monitoring`.
 9. `trans_invoice_hd`, `trans_invoice_dt`, `trans_payment`.
 
-Migration ekstensi `ms_client_contact` dan `ms_document` berjalan setelah `ms_client`. Keduanya sudah dibuat di repo, tetapi **belum dijalankan** sesuai keputusan saat implementasi.
+Migration ekstensi `ms_client_contact` dan `ms_document` berjalan setelah `ms_client`. Tabel infrastruktur `sys_code_sequence` dan `sys_import_log` berjalan setelah tabel master; `sys_error_log` berjalan setelah `users`. Semua migration sudah dijalankan.
 
 Migration `down()` menghapus foreign key tambahan dan tabel dalam urutan terbalik. Proyek memakai `users` dari bawaan Laravel; nama `user` pada ERD tidak dipakai.
 
