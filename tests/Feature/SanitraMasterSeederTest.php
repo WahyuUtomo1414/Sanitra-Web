@@ -15,6 +15,7 @@ use App\Models\MsProjectType;
 use App\Models\MsProjectWorkflow;
 use App\Models\MsStatus;
 use App\Models\MsUnit;
+use App\Models\User;
 use App\Services\Shared\GenerateCodeService;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\SanitraMasterSeeder;
@@ -32,8 +33,12 @@ class SanitraMasterSeederTest extends TestCase
         $this->assertSame(1, MsCompany::count());
         $this->assertSame(2, MsEmployee::count());
         $this->assertSame(7, MsClient::count());
-        $this->assertSame(5, MsProjectType::count());
-        $this->assertSame(22, MsProjectWorkflow::count());
+        $this->assertSame(3, MsProjectType::count());
+        $this->assertEqualsCanonicalizing(
+            ['Kontraktor', 'Konsultan', 'Service dan Maintenance'],
+            MsProjectType::pluck('name')->all(),
+        );
+        $this->assertSame(15, MsProjectWorkflow::count());
         $this->assertSame(6, MsItemCategory::count());
         $this->assertSame(7, MsUnit::count());
         $this->assertSame(8, MsItem::count());
@@ -58,6 +63,35 @@ class SanitraMasterSeederTest extends TestCase
         $this->assertSame(7, MsClient::count());
         $this->assertSame($before, CodeSequence::query()->orderBy('prefix')->pluck('last_number', 'prefix')->all());
         $this->assertSame('COM0002', app(GenerateCodeService::class)->next(AutoCodePrefix::MsCompany));
+    }
+
+    public function test_reseeding_removes_obsolete_project_type_and_its_workflow(): void
+    {
+        $this->seed(SanitraMasterSeeder::class);
+
+        $this->actingAs(User::firstOrFail());
+
+        $obsoleteType = MsProjectType::create([
+            'code' => 'PTY9999',
+            'name' => 'Instalasi Pengolahan Air Limbah (IPAL)',
+            'company_id' => MsCompany::firstOrFail()->id,
+            'active' => true,
+        ]);
+
+        MsProjectWorkflow::create([
+            'type_id' => $obsoleteType->id,
+            'name' => 'Tahap lama',
+            'sequence' => 1,
+            'progress_weight' => 100,
+            'active' => true,
+        ]);
+
+        $this->seed(SanitraMasterSeeder::class);
+
+        $this->assertSame(3, MsProjectType::count());
+        $this->assertSame(15, MsProjectWorkflow::count());
+        $this->assertFalse(MsProjectType::withTrashed()->whereKey($obsoleteType->id)->exists());
+        $this->assertFalse(MsProjectWorkflow::withTrashed()->where('type_id', $obsoleteType->id)->exists());
     }
 
     public function test_seed_resumes_after_an_existing_higher_master_code(): void

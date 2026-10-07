@@ -13,6 +13,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -66,6 +67,11 @@ class MsProjectWorkflowsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('type_id')
+                    ->label('Tipe Project')
+                    ->relationship('type', 'name')
+                    ->searchable()
+                    ->preload(),
                 TernaryFilter::make('active')
                     ->label('Status Aktif'),
                 TrashedFilter::make(),

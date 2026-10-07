@@ -443,7 +443,7 @@ Filter umum:
 Filter khusus:
 
 - Filter `company_id` untuk `MsEmployee`, `MsProjectType`, dan resource transaksi.
-- Filter `project_type_id` untuk `MsProjectWorkflow`, `TransQuotationHd`, dan `TransProjectHd`.
+- Filter `type_id` untuk `MsProjectWorkflow`; filter tipe project pada resource transaksi memakai foreign key masing-masing.
 - Filter `item_category_id` untuk `MsItem`.
 - Filter `type` untuk `MsStatus` (quotation, project, project_dt, term, invoice, payment).
 - Filter `client_id` untuk `TransQuotationHd`, `TransProjectHd`, dan `TransInvoiceHd`.
@@ -830,6 +830,8 @@ Kolom: `code`, `name`, `company.name`, `active`, audit.
 
 Kolom: `type.name`, `sequence`, `name`, `progress_weight`, `active`, audit.
 
+Filter list berdasarkan tipe project (`type_id`).
+
 ### 15.7 MsItemCategory
 
 Kolom: `code`, `name`, `active`, audit.
@@ -837,6 +839,8 @@ Kolom: `code`, `name`, `active`, audit.
 ### 15.8 MsItem
 
 Kolom: `code`, `name`, `category.name`, `image`, `active`, audit.
+
+Filter list berdasarkan kategori item (`item_category_id`).
 
 ### 15.9 MsUnit
 

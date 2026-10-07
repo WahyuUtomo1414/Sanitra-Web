@@ -141,12 +141,23 @@ class SanitraMasterSeeder extends Seeder
 
     private function seedProjectTypes(MsCompany $company): void
     {
+        $obsoleteTypes = [
+            'Instalasi Pengolahan Air Limbah (IPAL)',
+            'Perizinan Lingkungan',
+            'TPS Limbah B3',
+            'Pest Control Gedung',
+            'Pengadaan Bahan dan Peralatan IPAL',
+        ];
+
+        foreach (MsProjectType::withTrashed()->where('company_id', $company->id)->whereIn('name', $obsoleteTypes)->get() as $obsoleteType) {
+            $obsoleteType->workflows()->withTrashed()->forceDelete();
+            $obsoleteType->forceDelete();
+        }
+
         $types = [
-            'Instalasi Pengolahan Air Limbah (IPAL)' => [['Survei kebutuhan', 10], ['Desain teknis (DED)', 25], ['Konstruksi dan instalasi', 40], ['Uji fungsi', 15], ['Serah terima', 10]],
-            'Perizinan Lingkungan' => [['Pengumpulan dokumen', 20], ['Penyusunan dokumen', 40], ['Pengajuan izin', 20], ['Finalisasi', 20]],
-            'TPS Limbah B3' => [['Survei lokasi', 15], ['Desain TPS', 20], ['Konstruksi', 45], ['Pemeriksaan', 10], ['Serah terima', 10]],
-            'Pest Control Gedung' => [['Inspeksi lokasi', 20], ['Tindakan pengendalian', 50], ['Pemantauan', 20], ['Laporan', 10]],
-            'Pengadaan Bahan dan Peralatan IPAL' => [['Kebutuhan teknis', 20], ['Pengadaan', 40], ['Pengiriman', 30], ['Serah terima', 10]],
+            'Kontraktor' => [['Survei kebutuhan', 10], ['Perencanaan teknis', 20], ['Pelaksanaan pekerjaan', 50], ['Uji fungsi', 10], ['Serah terima', 10]],
+            'Konsultan' => [['Pengumpulan data', 20], ['Survei dan analisis', 30], ['Penyusunan dokumen', 30], ['Review', 10], ['Finalisasi', 10]],
+            'Service dan Maintenance' => [['Inspeksi awal', 20], ['Persiapan pekerjaan', 10], ['Pelaksanaan service', 50], ['Pengujian', 10], ['Laporan', 10]],
         ];
 
         foreach ($types as $name => $steps) {

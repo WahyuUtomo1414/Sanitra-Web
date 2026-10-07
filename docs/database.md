@@ -207,6 +207,8 @@ Tabel memakai `MasterTableColumns` dan index gabungan (`ref_type`, `ref_id`). Pa
 
 Jenis project yang menjadi dasar workflow tahap. Model: `MsProjectType`.
 
+Seeder contoh mengisi tiga tipe: Kontraktor, Konsultan, dan Service dan Maintenance, beserta contoh tahap workflow masing-masing.
+
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
 | `code` | varchar(50) | tidak | Kode tipe project. |
