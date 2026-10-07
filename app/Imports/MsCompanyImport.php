@@ -37,10 +37,18 @@ class MsCompanyImport implements ToCollection, WithHeadingRow, WithLimit
             $legalName = trim((string) ($row['nama_legal'] ?? ''));
             $email = trim((string) ($row['email'] ?? ''));
             $phone = trim((string) ($row['telepon'] ?? ''));
+            $address = trim((string) ($row['alamat'] ?? ''));
+            $postalCode = trim((string) ($row['kode_pos'] ?? ''));
             $description = trim((string) ($row['deskripsi'] ?? ''));
 
-            if ($name === '') {
-                $this->errors[] = "Baris {$rowNum}: kolom 'nama' wajib diisi.";
+            if ($name === '' || $legalName === '' || $email === '' || $phone === '' || $address === '' || $postalCode === '') {
+                $this->errors[] = "Baris {$rowNum}: nama, nama legal, email, telepon, alamat, dan kode pos wajib diisi.";
+
+                continue;
+            }
+
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($postalCode) > 10) {
+                $this->errors[] = "Baris {$rowNum}: format email atau panjang kode pos tidak valid.";
 
                 continue;
             }
@@ -56,9 +64,12 @@ class MsCompanyImport implements ToCollection, WithHeadingRow, WithLimit
             MsCompany::create([
                 'code' => $code,
                 'name' => $name,
-                'legal_name' => $legalName ?: null,
-                'email' => $email ?: null,
-                'phone' => $phone ?: null,
+                'legal_name' => $legalName,
+                'email' => $email,
+                'phone' => $phone,
+                'address' => $address,
+                'postal_code' => $postalCode,
+                'parent_id' => 1,
                 'description' => $description ?: null,
                 'active' => true,
             ]);

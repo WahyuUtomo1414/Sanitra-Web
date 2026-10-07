@@ -133,14 +133,19 @@ Data company penerbit dokumen dan struktur induk. Model: `MsCompany`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
-| `code` | varchar(50) | tidak | Kode company. |
+| `code` | varchar(50) | tidak | Kode company, unik. |
 | `name` | varchar(128) | tidak | Nama singkat. |
 | `legal_name` | varchar(128) | tidak | Nama legal. |
 | `email` | varchar(128) | tidak | Email company. |
 | `phone` | varchar(18) | tidak | Nomor telepon. |
+| `address` | text | ya | Alamat lengkap untuk identitas/kop surat; wajib saat membuat data baru. |
+| `postal_code` | varchar(10) | ya | Kode pos untuk identitas/kop surat; wajib saat membuat data baru. |
+| `logo` | varchar(255) | ya | Path logo pada disk `public`. |
 | `description` | text | ya | Keterangan. |
 | `parent_id` | bigint unsigned | ya | FK ke `ms_company.id`. |
 | `pic_employee_id` | bigint unsigned | ya | FK ke `ms_employee.id`. |
+
+Perusahaan utama adalah PT Sanitra Sapta Utama dengan ID 1, aktif, tanpa induk, dan tidak dapat dihapus. Semua perusahaan lain memakai `parent_id = 1`; PIC, jika diisi, harus karyawan dari perusahaan yang sama. Kolom baru dan indeks unik `code` disiapkan lewat migration tambahan; migration belum dijalankan.
 
 ### 4.3 `ms_employee`
 

@@ -252,7 +252,7 @@ Pengecualian:
 Aturan ini berlaku untuk **semua resource**, baik form Create/Edit maupun infolist halaman View. `columnSpanFull()` pada `Section` mengatur lebar section terhadap halaman; `->columns(2)` pada section mengatur field **di dalamnya**. Keduanya harus dipakai bersama. Filament menampilkan dua kolom mulai breakpoint `lg` dan satu kolom pada layar yang lebih kecil.
 
 - Setiap section yang berisi field memakai `->columnSpanFull()->columns(2)`. Ini mencakup `Informasi Utama`, `Relasi`, `Status`, `Audit Data`, dan section lain yang relevan.
-- Field pendek memakai lebar **satu kolom** agar dua field yang berkaitan tampil berdampingan. Pasangkan secara logis dan jaga urutan yang sama di form serta infolist: misalnya **Nama | Nama Legal**, **Email | Telepon**, **Perusahaan Induk | PIC Karyawan**, **Dibuat Oleh | Dibuat Pada**, dan seterusnya.
+- Field pendek memakai lebar **satu kolom** agar dua field yang berkaitan tampil berdampingan. Pasangkan secara logis dan jaga urutan yang sama di form serta infolist: misalnya **Nama | Nama Legal**, **Email | Telepon**, **Dibuat Oleh | Dibuat Pada**, dan seterusnya.
 - `Deskripsi` memakai `->columnSpanFull()`. Field teks panjang atau multiline lain, seperti alamat dan catatan, juga boleh selebar dua kolom agar mudah dibaca atau diisi.
 - Jangan memakai `->columnSpanFull()` pada semua input atau entry. Jika satu section memiliki jumlah field pendek ganjil, field terakhir boleh menempati satu kolom; jangan dipasangkan dengan field yang tidak berkaitan hanya untuk mengisi baris.
 - Pilihan relasi (`Select` pada form, nama relasi pada infolist) mengikuti grid yang sama. Bila ada dua relasi terkait, letakkan berdampingan di section `Relasi`.
@@ -269,6 +269,8 @@ Section::make('Informasi Utama')
         TextInput::make('legal_name')->label('Nama Legal'),
         TextInput::make('email')->label('Email'),
         TextInput::make('phone')->label('Telepon'),
+        Textarea::make('address')->label('Alamat')->columnSpanFull(),
+        TextInput::make('postal_code')->label('Kode Pos'),
         Textarea::make('description')->label('Deskripsi')->columnSpanFull(),
     ]),
 
@@ -276,7 +278,6 @@ Section::make('Relasi')
     ->columnSpanFull()
     ->columns(2)
     ->schema([
-        Select::make('parent_id')->label('Perusahaan Induk'),
         Select::make('pic_employee_id')->label('PIC Karyawan'),
     ]),
 ```
@@ -292,6 +293,8 @@ Section::make('Informasi Utama')
         TextEntry::make('legal_name')->label('Nama Legal'),
         TextEntry::make('email')->label('Email'),
         TextEntry::make('phone')->label('Telepon'),
+        TextEntry::make('address')->label('Alamat')->columnSpanFull(),
+        TextEntry::make('postal_code')->label('Kode Pos'),
         TextEntry::make('description')->label('Deskripsi')->columnSpanFull(),
     ]),
 
@@ -516,15 +519,19 @@ Field:
 - `legal_name`
 - `email`
 - `phone`
+- `address`
+- `postal_code`
+- `logo`
 - `description`
-- `parent_id`
 - `pic_employee_id`
 - `active`
 
 Catatan:
 
-- `parent_id` memakai select relasi self ke `MsCompany`; opsional.
-- `pic_employee_id` memakai select relasi ke `MsEmployee`; opsional.
+- `parent_id` tidak tampil di form; company baru otomatis berinduk ke ID 1. Company ID 1 adalah induk permanen tanpa parent.
+- `pic_employee_id` hanya tampil saat edit, berisi karyawan dari company tersebut dan divalidasi saat penyimpanan.
+- `address` dan `postal_code` wajib pada input baru. `logo` adalah upload gambar pada disk `public`, tidak termasuk import Excel. URL disk `public` memakai path `/storage` agar pratinjau FileUpload memuat dari host halaman yang sedang dibuka.
+- Company ID 1 wajib aktif dan tidak dapat dihapus.
 - `description` memakai textarea.
 - `active` memakai toggle.
 
@@ -803,7 +810,7 @@ Kolom: `name`, `email`, `employee.name`, role Spatie, `created_at`.
 
 ### 15.2 MsCompany
 
-Kolom: `code`, `name`, `legal_name`, `parent.name`, `picEmployee.name`, `active`, audit.
+Kolom: `logo`, `code`, `name`, `legal_name`, `parent.name`, `picEmployee.name`, `active`, audit.
 
 ### 15.3 MsEmployee
 
@@ -867,7 +874,7 @@ Tampilkan: nama, email, karyawan, avatar, role, tanggal dibuat.
 
 ### 16.2 MsCompany
 
-Tampilkan: kode, nama, nama legal, email, telepon, deskripsi, induk, PIC karyawan, status aktif, audit data.
+Tampilkan: kode, nama, nama legal, email, telepon, alamat, kode pos, logo, deskripsi, induk, PIC karyawan, status aktif, audit data.
 
 ### 16.3 MsEmployee
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MsCompanies\Schemas;
 
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -27,6 +28,13 @@ class MsCompanyInfolist
                         ->label('Email'),
                     TextEntry::make('phone')
                         ->label('Telepon'),
+                    TextEntry::make('address')
+                        ->label('Alamat')
+                        ->placeholder('-')
+                        ->columnSpanFull(),
+                    TextEntry::make('postal_code')
+                        ->label('Kode Pos')
+                        ->placeholder('-'),
                     TextEntry::make('description')
                         ->label('Deskripsi')
                         ->placeholder('-')
@@ -34,6 +42,15 @@ class MsCompanyInfolist
                     IconEntry::make('active')
                         ->label('Aktif')
                         ->boolean(),
+                ]),
+
+            Section::make('Identitas Visual')
+                ->columnSpanFull()
+                ->schema([
+                    ImageEntry::make('logo')
+                        ->label('Logo')
+                        ->disk('public')
+                        ->placeholder('-'),
                 ]),
 
             Section::make('Relasi')

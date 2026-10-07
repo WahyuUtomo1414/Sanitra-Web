@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\MsCompanies\Schemas;
 
-use App\Models\MsCompany;
 use App\Models\MsEmployee;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -49,6 +49,17 @@ class MsCompanyForm
                         ->required()
                         ->maxLength(18),
 
+                    Textarea::make('address')
+                        ->label('Alamat')
+                        ->required()
+                        ->rows(3)
+                        ->columnSpanFull(),
+
+                    TextInput::make('postal_code')
+                        ->label('Kode Pos')
+                        ->required()
+                        ->maxLength(10),
+
                     Textarea::make('description')
                         ->columnSpanFull()
                         ->label('Deskripsi')
@@ -60,21 +71,28 @@ class MsCompanyForm
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    Select::make('parent_id')
-                        ->label('Perusahaan Induk')
-                        ->options(fn ($record) => MsCompany::query()
-                            ->when($record, fn ($query) => $query->whereKeyNot($record->id))
-                            ->orderBy('name')
-                            ->pluck('name', 'id'))
-                        ->searchable()
-                        ->preload()
-                        ->nullable(),
-
                     Select::make('pic_employee_id')
                         ->label('PIC Karyawan')
-                        ->options(fn () => MsEmployee::query()->orderBy('name')->pluck('name', 'id'))
+                        ->options(fn ($record) => $record ? MsEmployee::query()
+                            ->where('company_id', $record->getKey())
+                            ->orderBy('name')
+                            ->pluck('name', 'id') : [])
                         ->searchable()
                         ->preload()
+                        ->visible(fn ($record) => $record !== null)
+                        ->nullable(),
+                ]),
+
+            Section::make('Identitas Visual')
+                ->columnSpanFull()
+                ->schema([
+                    FileUpload::make('logo')
+                        ->label('Logo')
+                        ->image()
+                        ->disk('public')
+                        ->directory('companies/logos')
+                        ->visibility('public')
+                        ->maxSize(2048)
                         ->nullable(),
                 ]),
 
@@ -84,7 +102,8 @@ class MsCompanyForm
                 ->schema([
                     Toggle::make('active')
                         ->label('Aktif')
-                        ->default(true),
+                        ->default(true)
+                        ->disabled(fn ($record) => $record?->getKey() === 1),
                 ]),
         ]);
     }

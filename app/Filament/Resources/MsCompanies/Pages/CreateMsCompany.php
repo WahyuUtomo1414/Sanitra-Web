@@ -14,6 +14,7 @@ class CreateMsCompany extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['code'] = app(GenerateCodeService::class)->next(AutoCodePrefix::MsCompany);
+        $data['parent_id'] = 1;
 
         return $data;
     }

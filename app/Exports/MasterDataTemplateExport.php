@@ -43,8 +43,8 @@ class MasterDataTemplateExport implements FromArray, WithHeadings, WithStyles
     {
         return match ($entity) {
             'company' => new self(
-                ['Nama', 'Nama Legal', 'Email', 'Telepon', 'Deskripsi'],
-                ['PT Contoh Jaya', 'PT Contoh Jaya Tbk', 'contoh@email.com', '08123456789', 'Deskripsi opsional'],
+                ['Nama', 'Nama Legal', 'Email', 'Telepon', 'Alamat', 'Kode Pos', 'Deskripsi'],
+                ['PT Contoh Jaya', 'PT Contoh Jaya Tbk', 'contoh@email.com', '08123456789', 'Jl. Contoh No. 1, Jakarta', '12345', 'Deskripsi opsional'],
             ),
             'employee' => new self(
                 ['Nama', 'Jabatan', 'Email', 'Telepon', 'Kode Perusahaan'],

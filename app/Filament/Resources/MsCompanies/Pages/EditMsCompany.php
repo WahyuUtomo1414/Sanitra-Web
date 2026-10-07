@@ -17,8 +17,8 @@ class EditMsCompany extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
-            ForceDeleteAction::make(),
+            DeleteAction::make()->visible(fn () => $this->record->getKey() !== 1),
+            ForceDeleteAction::make()->visible(fn () => $this->record->getKey() !== 1),
             RestoreAction::make(),
         ];
     }
