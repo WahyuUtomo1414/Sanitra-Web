@@ -21,9 +21,9 @@ class MsClientInfolist
                     TextEntry::make('name')
                         ->label('Nama Klien'),
                     TextEntry::make('email')
-                        ->label('Email'),
+                        ->label('Email Umum'),
                     TextEntry::make('phone')
-                        ->label('Telepon'),
+                        ->label('Telepon Umum'),
                     TextEntry::make('address')
                         ->label('Alamat')
                         ->columnSpanFull(),
@@ -41,7 +41,7 @@ class MsClientInfolist
                 ->columns(2)
                 ->schema([
                     TextEntry::make('picEmployee.name')
-                        ->label('PIC Karyawan')
+                        ->label('PIC Internal')
                         ->placeholder('-'),
                 ]),
 

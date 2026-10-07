@@ -31,13 +31,13 @@ class MsClientForm
                         ->maxLength(128),
 
                     TextInput::make('email')
-                        ->label('Email')
+                        ->label('Email Umum')
                         ->email()
                         ->required()
                         ->maxLength(128),
 
                     TextInput::make('phone')
-                        ->label('Telepon')
+                        ->label('Telepon Umum')
                         ->tel()
                         ->required()
                         ->maxLength(18),
@@ -61,7 +61,7 @@ class MsClientForm
                 ->columns(2)
                 ->schema([
                     Select::make('pic_employee_id')
-                        ->label('PIC Karyawan')
+                        ->label('PIC Internal')
                         ->options(fn () => MsEmployee::query()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->preload()

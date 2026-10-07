@@ -6,6 +6,8 @@ use App\Filament\Resources\MsClients\Pages\CreateMsClient;
 use App\Filament\Resources\MsClients\Pages\EditMsClient;
 use App\Filament\Resources\MsClients\Pages\ListMsClients;
 use App\Filament\Resources\MsClients\Pages\ViewMsClient;
+use App\Filament\Resources\MsClients\RelationManagers\ContactsRelationManager;
+use App\Filament\Resources\MsClients\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\MsClients\Schemas\MsClientForm;
 use App\Filament\Resources\MsClients\Schemas\MsClientInfolist;
 use App\Filament\Resources\MsClients\Tables\MsClientsTable;
@@ -52,7 +54,8 @@ class MsClientResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ContactsRelationManager::class,
+            DocumentsRelationManager::class,
         ];
     }
 

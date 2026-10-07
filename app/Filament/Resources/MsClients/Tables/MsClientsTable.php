@@ -32,15 +32,15 @@ class MsClientsTable
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('picEmployee.name')
-                    ->label('PIC')
+                    ->label('PIC Internal')
                     ->placeholder('-')
                     ->toggleable(),
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label('Email Umum')
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('phone')
-                    ->label('Telepon')
+                    ->label('Telepon Umum')
                     ->toggleable(),
 
                 IconColumn::make('active')
