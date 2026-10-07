@@ -28,7 +28,7 @@ class MsBankAccountsTable
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('name')
-                    ->label('Nama')
+                    ->label('Label Rekening')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('bank_name')

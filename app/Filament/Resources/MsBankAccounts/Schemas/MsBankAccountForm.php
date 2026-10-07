@@ -24,7 +24,7 @@ class MsBankAccountForm
                         ->placeholder('Akan di-generate otomatis saat disimpan'),
 
                     TextInput::make('name')
-                        ->label('Nama Referensi')
+                        ->label('Label Rekening')
                         ->required()
                         ->maxLength(128),
 

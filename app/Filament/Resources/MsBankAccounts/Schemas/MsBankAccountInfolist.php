@@ -19,7 +19,7 @@ class MsBankAccountInfolist
                     TextEntry::make('code')
                         ->label('Kode'),
                     TextEntry::make('name')
-                        ->label('Nama Referensi'),
+                        ->label('Label Rekening'),
                     TextEntry::make('bank_name')
                         ->label('Nama Bank'),
                     TextEntry::make('account_number')
