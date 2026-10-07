@@ -239,7 +239,7 @@ Kategori item. Model: `MsItemCategory`.
 
 ### 4.8 `ms_item`
 
-Master barang, jasa, atau paket yang dapat masuk quotation. Model: `MsItem`.
+Katalog jasa yang dapat masuk quotation. Model: `MsItem`. Kategori item sudah membedakan kelompok layanan, sehingga tidak ada kolom tipe Item tersendiri.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
@@ -262,16 +262,16 @@ Daftar satuan. Model: `MsUnit`.
 
 ### 4.10 `ms_item_unit`
 
-Unit yang tersedia untuk item beserta konversinya. Model: `MsItemUnit`.
+Unit yang tersedia untuk item. Model: `MsItemUnit`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
 | `item_id` | bigint unsigned | tidak | FK ke `ms_item.id`. |
 | `unit_id` | bigint unsigned | tidak | FK ke `ms_unit.id`. |
 | `is_base` | boolean | tidak | Menandai unit dasar item. |
-| `conversion` | integer | tidak | Faktor konversi sesuai ERD. |
+| `conversion` | integer | tidak | Faktor konversi; unit dasar selalu `1`, unit lain minimal `1`. |
 
-Pasangan (`item_id`, `unit_id`) unik. Setiap item harus mempunyai tepat satu baris `is_base = true` (FR-05).
+Pasangan (`item_id`, `unit_id`) unik. Unit pertama menjadi `is_base = true`; unit berikutnya `false`. Unit dasar tidak dapat diganti atau dihapus melalui UI. Item yang dibuat manual mendapat unit pertama dari halaman detail; import Item membuat Item dan unit dasarnya dalam satu transaksi. Baris unit yang soft deleted dipulihkan bila unit sama ditambahkan lagi agar tidak berbenturan dengan indeks unik.
 
 ### 4.11 `ms_bank_account`
 

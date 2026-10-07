@@ -632,7 +632,7 @@ Catatan:
 
 - `item_category_id` memakai select relasi ke `MsItemCategory`, wajib.
 - `image` memakai `FileUpload` disk `public` directory `items`, opsional.
-- Setiap item wajib punya tepat satu unit dasar (`is_base = true`); divalidasi di relation manager.
+- Unit pertama yang ditambahkan dari relation manager otomatis menjadi unit dasar. Unit berikutnya bukan unit dasar; unit dasar tidak bisa diganti atau dihapus dari UI.
 
 ### 14.9 MsUnit
 
@@ -946,18 +946,15 @@ Migration `ms_client_contact` dan `ms_document` sudah dibuat tetapi belum dijala
 
 Mengelola `MsItemUnit`.
 
-Form field:
+Form memilih `unit_id` dari Unit aktif yang belum terdaftar, lalu mengisi `conversion` (default `1`). Unit master dibuat manual. `is_base` dan `active` diisi oleh server. Konversi unit dasar selalu `1`; konversi unit tambahan dapat diedit.
 
-- `unit_id` (select relasi ke `MsUnit`)
-- `is_base` (toggle)
-- `conversion` (integer, faktor konversi)
-
-Table kolom: `unit.name`, `is_base`, `conversion`, audit.
+Table kolom: `unit.name`, `is_base`, `conversion`, `active`, audit. Aksi Edit mengubah konversi; aksi Hapus hanya tersedia pada unit alternatif.
 
 Catatan:
 
-- Pasangan (`item_id`, `unit_id`) unik.
-- Tepat satu baris `is_base = true` per item; validasi di model observer atau form.
+- Pasangan (`item_id`, `unit_id`) unik. Unit yang pernah dihapus sementara dipulihkan bila ditambahkan lagi.
+- Unit pertama otomatis menjadi dasar dan unit berikutnya tidak. Penambahan, perubahan konversi, dan penghapusan memakai `ManageItemUnitsService` agar aturan tetap berlaku pada aksi UI dan import.
+- Import Item mewajibkan `Kode Unit Dasar` yang merujuk Unit aktif dan membuat Item serta relasi unit dalam satu transaksi. Unit tambahan diatur di halaman Item.
 
 ### 17.3 TransQuotationHdResource → ItemsRelationManager
 

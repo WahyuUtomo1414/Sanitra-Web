@@ -37,7 +37,7 @@ class MasterDataTemplateExport implements FromArray, WithHeadings, WithStyles
     }
 
     /**
-     * @param  string  $entity  One of: company, employee, client, item_category, item, unit, bank_account
+     * @param  string  $entity  One of: company, employee, client, item_category, item, bank_account
      */
     public static function forEntity(string $entity): self
     {
@@ -59,12 +59,8 @@ class MasterDataTemplateExport implements FromArray, WithHeadings, WithStyles
                 ['Peralatan', 'Deskripsi opsional'],
             ),
             'item' => new self(
-                ['Nama', 'Deskripsi', 'Kategori'],
-                ['Laptop', 'Deskripsi opsional', 'Peralatan'],
-            ),
-            'unit' => new self(
-                ['Kode', 'Nama', 'Tipe', 'Deskripsi'],
-                ['JAM', 'Jam', 'waktu', 'Deskripsi opsional'],
+                ['Nama', 'Deskripsi', 'Kategori', 'Kode Unit Dasar'],
+                ['Jasa Survei IPAL', 'Deskripsi opsional', 'Jasa IPAL', 'HARI'],
             ),
             'bank_account' => new self(
                 ['Nama', 'Nama Bank', 'Nomor Rekening', 'Nama Pemilik', 'Deskripsi'],

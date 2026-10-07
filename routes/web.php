@@ -9,7 +9,7 @@ Route::redirect('/', '/dashboard/login');
 Route::get('/import/template/{entity}', function (string $entity) {
     abort_if(! auth()->check(), 401);
 
-    $allowed = ['company', 'employee', 'client', 'item_category', 'item', 'unit', 'bank_account'];
+    $allowed = ['company', 'employee', 'client', 'item_category', 'item', 'bank_account'];
     abort_if(! in_array($entity, $allowed, true), 404);
 
     $labels = [
@@ -18,7 +18,6 @@ Route::get('/import/template/{entity}', function (string $entity) {
         'client' => 'template-client',
         'item_category' => 'template-kategori-item',
         'item' => 'template-item',
-        'unit' => 'template-satuan',
         'bank_account' => 'template-rekening-bank',
     ];
 

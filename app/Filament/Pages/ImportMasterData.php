@@ -8,7 +8,6 @@ use App\Imports\MsCompanyImport;
 use App\Imports\MsEmployeeImport;
 use App\Imports\MsItemCategoryImport;
 use App\Imports\MsItemImport;
-use App\Imports\MsUnitImport;
 use App\Models\ImportLog;
 use BackedEnum;
 use Filament\Actions\Action as FilamentAction;
@@ -65,7 +64,6 @@ class ImportMasterData extends Page
                                 'client' => 'Client',
                                 'item_category' => 'Kategori Item',
                                 'item' => 'Item',
-                                'unit' => 'Satuan',
                                 'bank_account' => 'Rekening Bank',
                             ])
                             ->required()
@@ -120,7 +118,6 @@ class ImportMasterData extends Page
             'client' => new MsClientImport,
             'item_category' => new MsItemCategoryImport,
             'item' => new MsItemImport,
-            'unit' => new MsUnitImport,
             'bank_account' => new MsBankAccountImport,
         };
 

@@ -21,6 +21,7 @@ class MsItemUnit extends Model
         return [
             'active' => 'boolean',
             'is_base' => 'boolean',
+            'conversion' => 'integer',
         ];
     }
 

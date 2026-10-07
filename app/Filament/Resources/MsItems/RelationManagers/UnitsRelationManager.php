@@ -2,15 +2,14 @@
 
 namespace App\Filament\Resources\MsItems\RelationManagers;
 
+use App\Models\MsItemUnit;
 use App\Models\MsUnit;
-use Filament\Actions\BulkActionGroup;
+use App\Services\Item\ManageItemUnitsService;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -28,27 +27,22 @@ class UnitsRelationManager extends RelationManager
         return $schema->components([
             Select::make('unit_id')
                 ->label('Unit')
-                ->options(fn () => MsUnit::query()->where('active', true)->orderBy('name')->pluck('name', 'id'))
+                ->options(fn () => MsUnit::query()
+                    ->where('active', true)
+                    ->whereNotIn('id', $this->getOwnerRecord()->units()->pluck('unit_id'))
+                    ->orderBy('name')
+                    ->pluck('name', 'id'))
                 ->searchable()
                 ->preload()
                 ->required(),
-
-            Toggle::make('is_base')
-                ->label('Unit Dasar')
-                ->helperText('Setiap item wajib memiliki tepat satu unit dasar.')
-                ->default(false),
-
             TextInput::make('conversion')
-                ->label('Faktor Konversi')
+                ->label('Konversi')
                 ->integer()
                 ->minValue(1)
                 ->default(1)
                 ->required()
-                ->helperText('Konversi terhadap unit dasar (unit dasar = 1).'),
-
-            Toggle::make('active')
-                ->label('Aktif')
-                ->default(true),
+                ->readOnly(fn (): bool => ! $this->getOwnerRecord()->units()->where('is_base', true)->exists())
+                ->helperText('Unit dasar selalu 1. Untuk unit tambahan, isi nilainya sesuai kebutuhan.'),
         ]);
     }
 
@@ -56,6 +50,8 @@ class UnitsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('unit.name')
+            ->modelLabel('unit item')
+            ->pluralModelLabel('unit item')
             ->columns([
                 TextColumn::make('unit.name')->label('Unit')->sortable()->searchable(),
                 IconColumn::make('is_base')->label('Unit Dasar')->boolean()->sortable(),
@@ -70,16 +66,26 @@ class UnitsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->label('Tambah Unit')
+                    ->using(fn (array $data): MsItemUnit => app(ManageItemUnitsService::class)
+                        ->add($this->getOwnerRecord(), MsUnit::query()->findOrFail($data['unit_id']), (int) $data['conversion'])),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                EditAction::make()
+                    ->schema([
+                        TextInput::make('conversion')
+                            ->label('Konversi')
+                            ->integer()
+                            ->minValue(1)
+                            ->readOnly(fn (MsItemUnit $record): bool => $record->is_base)
+                            ->required(),
+                    ])
+                    ->using(fn (MsItemUnit $record, array $data): MsItemUnit => app(ManageItemUnitsService::class)
+                        ->updateConversion($record, (int) $data['conversion'])),
+                DeleteAction::make()
+                    ->using(fn (MsItemUnit $record): bool => app(ManageItemUnitsService::class)->remove($record))
+                    ->visible(fn (MsItemUnit $record): bool => ! $record->is_base),
             ]);
     }
 }
