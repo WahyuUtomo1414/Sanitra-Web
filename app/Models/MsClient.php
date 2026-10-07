@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MsClient extends Model
@@ -30,9 +31,9 @@ class MsClient extends Model
         return $this->belongsTo(MsEmployee::class, 'pic_employee_id');
     }
 
-    public function documents(): HasMany
+    public function documents(): MorphMany
     {
-        return $this->hasMany(MsClientDocument::class, 'client_id');
+        return $this->morphMany(MsDocument::class, 'reference', 'ref_type', 'ref_id');
     }
 
     public function contacts(): HasMany

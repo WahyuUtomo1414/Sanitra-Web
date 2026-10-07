@@ -3,13 +3,13 @@
 namespace Database\Factories;
 
 use App\Models\MsClient;
-use App\Models\MsClientDocument;
+use App\Models\MsDocument;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<MsClientDocument>
+ * @extends Factory<MsDocument>
  */
-class MsClientDocumentFactory extends Factory
+class MsDocumentFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -19,9 +19,11 @@ class MsClientDocumentFactory extends Factory
     public function definition(): array
     {
         return [
-            'client_id' => MsClient::factory(),
+            'ref_type' => 'client',
+            'ref_id' => MsClient::factory(),
             'name' => 'Akta Pendirian',
-            'file_path' => 'client-documents/'.fake()->uuid().'.pdf',
+            'file_path' => fn (array $attributes): string => 'documents/client/'.$attributes['ref_id'].'/'.fake()->uuid().'.pdf',
+            'notes' => null,
             'active' => true,
         ];
     }

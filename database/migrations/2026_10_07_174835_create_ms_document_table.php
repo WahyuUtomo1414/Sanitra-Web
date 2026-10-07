@@ -11,17 +11,20 @@ return new class extends Migration
 
     public function up(): void
     {
-        Schema::create('ms_client_document', function (Blueprint $table) {
+        Schema::create('ms_document', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('client_id')->constrained('ms_client');
+            $table->string('ref_type', 32);
+            $table->unsignedBigInteger('ref_id');
             $table->string('name', 128);
             $table->string('file_path');
+            $table->text('notes')->nullable();
             $this->addAuditColumns($table);
+            $table->index(['ref_type', 'ref_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('ms_client_document');
+        Schema::dropIfExists('ms_document');
     }
 };
