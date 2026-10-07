@@ -48,7 +48,7 @@ class MasterDataTemplateExport implements FromArray, WithHeadings, WithStyles
             ),
             'employee' => new self(
                 ['Nama', 'Jabatan', 'Email', 'Telepon', 'Kode Perusahaan'],
-                ['Budi Santoso', 'Manager', 'budi@email.com', '08123456789', 'COM0001'],
+                ['Budi Santoso', 'Marketing', 'budi@email.com', '08123456789', 'COM0001'],
             ),
             'client' => new self(
                 ['Nama', 'Email', 'Telepon', 'Alamat', 'Deskripsi', 'Kode PIC'],

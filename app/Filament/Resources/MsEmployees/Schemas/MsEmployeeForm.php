@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MsEmployees\Schemas;
 
+use App\Enums\EmployeePosition;
 use App\Models\MsCompany;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -30,10 +31,15 @@ class MsEmployeeForm
                         ->required()
                         ->maxLength(128),
 
-                    TextInput::make('position')
+                    Select::make('position')
                         ->label('Jabatan')
-                        ->required()
-                        ->maxLength(128),
+                        ->options(EmployeePosition::options())
+                        ->formatStateUsing(fn (?string $state): ?string => match ($state) {
+                            'Operasional' => EmployeePosition::Teknis->value,
+                            'Penjualan' => EmployeePosition::Marketing->value,
+                            default => $state,
+                        })
+                        ->required(),
 
                     TextInput::make('email')
                         ->label('Email')

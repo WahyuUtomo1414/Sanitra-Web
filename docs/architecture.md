@@ -609,7 +609,7 @@ Sequence table adalah standar untuk ERP. Overhead-nya minim.
 
 ### 7.1 Dokumen bersama dan kontak klien
 
-`MsDocument` menyimpan dokumen berbagai entitas di tabel `ms_document`. Relasi `MsClient::documents()` memakai `morphMany` dengan kolom `ref_type` dan `ref_id`; `MsDocument::reference()` memakai `morphTo`. `AppServiceProvider` mendaftarkan alias morph map `client` → `MsClient`, sehingga kode menyimpan alias stabil dan relasi mengisi referensi saat dokumen dibuat dari client. Alias employee atau project ditambahkan ketika relasi dan UI entitas tersebut diimplementasikan. Referensi tidak diminta dari pengguna dan tidak ditampilkan pada daftar dokumen.
+`MsDocument` menyimpan dokumen berbagai entitas di tabel `ms_document`. Relasi `MsClient::documents()` dan `MsEmployee::documents()` memakai `morphMany` dengan kolom `ref_type` dan `ref_id`; `MsDocument::reference()` memakai `morphTo`. `AppServiceProvider` mendaftarkan alias morph map `client` → `MsClient` dan `employee` → `MsEmployee`, sehingga kode menyimpan alias stabil dan relasi mengisi referensi saat dokumen dibuat dari pemiliknya. Alias project ditambahkan ketika relasi dan UI project diimplementasikan. Referensi tidak diminta dari pengguna dan tidak ditampilkan pada daftar dokumen. File disimpan private; dokumen employee mengikuti pola preview gambar, buka PDF, dan unduh dari dokumen client.
 
 Dokumen client disimpan di disk `local` yang private; detail upload, preview gambar, dan tautan PDF sementara ada di [filament-resource.md](filament-resource.md) §17.1. `MsClientContact` tetap tabel anak client dengan FK biasa. `SaveClientContactService` menjaga maksimal satu kontak utama dalam satu transaksi database. Migration untuk kedua tabel baru sudah ditulis, tetapi belum dijalankan.
 

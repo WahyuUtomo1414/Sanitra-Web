@@ -7,6 +7,7 @@ use App\Traits\LogsMasterActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MsEmployee extends Model
@@ -30,5 +31,10 @@ class MsEmployee extends Model
     public function user(): HasOne
     {
         return $this->hasOne(User::class, 'employee_id');
+    }
+
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(MsDocument::class, 'reference', 'ref_type', 'ref_id');
     }
 }

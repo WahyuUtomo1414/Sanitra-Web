@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\AutoCodePrefix;
+use App\Enums\EmployeePosition;
 use App\Enums\Status\InvoiceStatus;
 use App\Enums\Status\PaymentStatus;
 use App\Enums\Status\ProjectDtStatus;
@@ -116,10 +117,14 @@ class SanitraMasterSeeder extends Seeder
 
     private function seedEmployees(MsCompany $company): void
     {
-        foreach ([['Staf Operasional (Contoh)', 'Operasional', 'operasional@sanitra.invalid'],
-            ['Staf Penjualan (Contoh)', 'Penjualan', 'penjualan@sanitra.invalid']] as [$name, $position, $email]) {
-            $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee, ['email' => $email],
-                ['name' => $name, 'position' => $position, 'company_id' => $company->id, 'phone' => '-', 'active' => false]);
+        foreach ([['Staf Operasional (Contoh)', EmployeePosition::Teknis, 'Operasional', 'operasional@sanitra.invalid'],
+            ['Staf Penjualan (Contoh)', EmployeePosition::Marketing, 'Penjualan', 'penjualan@sanitra.invalid']] as [$name, $position, $legacyPosition, $email]) {
+            $employee = $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee, ['email' => $email],
+                ['name' => $name, 'position' => $position->value, 'company_id' => $company->id, 'phone' => '-', 'active' => false]);
+
+            if ($employee->position === $legacyPosition) {
+                $employee->update(['position' => $position->value]);
+            }
         }
     }
 

@@ -155,7 +155,7 @@ Karyawan dan PIC internal. Model: `MsEmployee`.
 | --- | --- | --- | --- |
 | `code` | varchar(50) | tidak | Kode employee. |
 | `name` | varchar(128) | tidak | Nama karyawan. |
-| `position` | varchar(128) | tidak | Jabatan. |
+| `position` | varchar(128) | tidak | Jabatan; input baru memilih Owner, Marketing, Teknis, atau Finance dari enum aplikasi. |
 | `company_id` | bigint unsigned | tidak | FK ke `ms_company.id`. |
 | `email` | varchar(128) | tidak | Email karyawan. |
 | `phone` | varchar(18) | tidak | Nomor telepon. |
@@ -191,11 +191,11 @@ Tabel memakai `MasterTableColumns`, termasuk `active`, audit user, timestamps, d
 
 ### 4.4b `ms_document` (ekstensi)
 
-Dokumen bersama untuk berbagai entitas. Model: `MsDocument`. Saat ini hanya relasi dan UI client yang diimplementasikan; employee dan project dapat memakai tabel yang sama setelah relasi serta alias masing-masing ditambahkan.
+Dokumen bersama untuk berbagai entitas. Model: `MsDocument`. Relasi dan UI client serta employee sudah diimplementasikan; project dapat memakai tabel yang sama setelah relasi serta aliasnya ditambahkan.
 
 | Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
-| `ref_type` | varchar(32) | tidak | Alias pemilik dari morph map; saat ini `client`. Diisi relasi aplikasi. |
+| `ref_type` | varchar(32) | tidak | Alias pemilik dari morph map: `client` atau `employee`. Diisi relasi aplikasi. |
 | `ref_id` | bigint unsigned | tidak | ID pemilik sesuai `ref_type`. Diisi relasi aplikasi. |
 | `name` | varchar(128) | tidak | Nama dokumen, teks bebas. |
 | `file_path` | varchar(255) | tidak | Path file pada disk private `local`. |
@@ -470,6 +470,7 @@ Hanya payment berstatus Confirmed yang dihitung ke pelunasan invoice.
 | `ms_employee` | `users.employee_id`, `ms_company.pic_employee_id`, `ms_client.pic_employee_id`, `trans_project_hd.pic_employee_id` | satu employee dapat menjadi PIC; relasi user maksimal satu |
 | `ms_client` | `ms_client_contact.client_id` | satu client memiliki banyak kontak |
 | `ms_client` (alias `client`) | `ms_document.ref_type` + `ms_document.ref_id` | satu client memiliki banyak dokumen lewat relasi polymorphic |
+| `ms_employee` (alias `employee`) | `ms_document.ref_type` + `ms_document.ref_id` | satu employee memiliki banyak dokumen lewat relasi polymorphic |
 | `ms_project_type` | `ms_project_workflow.type_id`, quotation/project `project_type_id` | satu tipe memiliki banyak template tahap dan transaksi |
 | `ms_item_category` | `ms_item.item_category_id` | satu kategori memiliki banyak item |
 | `ms_item`, `ms_unit` | `ms_item_unit.item_id`, `ms_item_unit.unit_id` | banyak-ke-banyak melalui konversi unit |

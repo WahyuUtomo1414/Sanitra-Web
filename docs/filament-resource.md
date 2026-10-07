@@ -550,6 +550,8 @@ Field:
 Catatan:
 
 - `company_id` memakai select relasi ke `MsCompany`, wajib.
+- `position` memakai select enum `EmployeePosition`: Owner, Marketing, Teknis, Finance. Nilai lama `Operasional` dan `Penjualan` ditampilkan sebagai Teknis dan Marketing saat form diedit; penyimpanan memperbarui nilainya.
+- Halaman view/edit memiliki relation manager Dokumen Karyawan yang memakai `ms_document`, mengisi referensi otomatis, menyimpan PDF/gambar secara private, serta menyediakan preview dan unduh.
 
 ### 14.4 MsClient
 
@@ -878,7 +880,7 @@ Tampilkan: kode, nama, nama legal, email, telepon, alamat, kode pos, logo, deskr
 
 ### 16.3 MsEmployee
 
-Tampilkan: kode, nama, jabatan, perusahaan, email, telepon, status aktif, audit data.
+Tampilkan: kode, nama, jabatan, perusahaan, email, telepon, status aktif, audit data, serta relation manager Dokumen Karyawan.
 
 ### 16.4 MsClient
 

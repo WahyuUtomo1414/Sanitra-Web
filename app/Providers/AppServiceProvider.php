@@ -30,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
 
         Relation::morphMap([
             'client' => MsClient::class,
+            'employee' => MsEmployee::class,
         ]);
     }
 }

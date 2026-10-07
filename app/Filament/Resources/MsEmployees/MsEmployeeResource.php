@@ -6,6 +6,7 @@ use App\Filament\Resources\MsEmployees\Pages\CreateMsEmployee;
 use App\Filament\Resources\MsEmployees\Pages\EditMsEmployee;
 use App\Filament\Resources\MsEmployees\Pages\ListMsEmployees;
 use App\Filament\Resources\MsEmployees\Pages\ViewMsEmployee;
+use App\Filament\Resources\MsEmployees\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\MsEmployees\Schemas\MsEmployeeForm;
 use App\Filament\Resources\MsEmployees\Schemas\MsEmployeeInfolist;
 use App\Filament\Resources\MsEmployees\Tables\MsEmployeesTable;
@@ -52,7 +53,7 @@ class MsEmployeeResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            DocumentsRelationManager::class,
         ];
     }
 

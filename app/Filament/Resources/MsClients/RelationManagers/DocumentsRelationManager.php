@@ -19,6 +19,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentsRelationManager extends RelationManager
@@ -93,8 +94,12 @@ class DocumentsRelationManager extends RelationManager
                     ->visible(fn (MsDocument $record): bool => $this->hasFileWithMimeType($record, 'image/')),
                 Action::make('viewPdf')
                     ->label('Lihat PDF')
-                    ->url(fn (MsDocument $record): string => Storage::disk('local')
-                        ->temporaryUrl($record->file_path, now()->addMinutes(5)))
+                    ->url(function (MsDocument $record): string {
+                        /** @var FilesystemAdapter $disk */
+                        $disk = Storage::disk('local');
+
+                        return $disk->temporaryUrl($record->file_path, now()->addMinutes(5));
+                    })
                     ->openUrlInNewTab()
                     ->visible(fn (MsDocument $record): bool => $this->hasFileWithMimeType($record, 'application/pdf')),
                 Action::make('download')
@@ -102,7 +107,10 @@ class DocumentsRelationManager extends RelationManager
                     ->action(function (MsDocument $record) {
                         abort_unless($this->hasClientFile($record), 404);
 
-                        return Storage::disk('local')->download($record->file_path);
+                        /** @var FilesystemAdapter $disk */
+                        $disk = Storage::disk('local');
+
+                        return $disk->download($record->file_path);
                     })
                     ->visible(fn (MsDocument $record): bool => $this->hasClientFile($record)),
                 EditAction::make(),
