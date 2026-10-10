@@ -1,11 +1,11 @@
 <style>
     :root {
-        --sanitra-primary-950: #052e16;
-        --sanitra-primary-900: #14532d;
-        --sanitra-primary-800: #166534;
-        --sanitra-primary-700: #15803d;
-        --sanitra-primary-600: #16a34a;
-        --sanitra-primary-500: #22c55e;
+        --sanitra-primary-950: #021a0c;
+        --sanitra-primary-900: #052e16;
+        --sanitra-primary-800: #14532d;
+        --sanitra-primary-700: #14532d;
+        --sanitra-primary-600: #166534;
+        --sanitra-primary-500: #15803d;
         --sanitra-accent-500: #f59e0b;
         --sanitra-accent-600: #d97706;
         --sanitra-slate-800: #1e293b;
@@ -127,7 +127,7 @@
     .fi-auth-layout input[type="email"]:focus,
     .fi-auth-layout input[type="password"]:focus {
         border-color: var(--sanitra-primary-600) !important;
-        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
+        box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.15) !important;
     }
 
     .fi-auth-layout button[type="submit"] {
@@ -139,13 +139,13 @@
         justify-content: center !important;
         margin-top: 1rem !important;
         background: var(--sanitra-primary-600) !important;
-        box-shadow: 0 2px 4px 0 rgba(22, 163, 74, 0.2) !important;
+        box-shadow: 0 2px 4px 0 rgba(22, 101, 52, 0.2) !important;
         transition: all 0.2s ease !important;
     }
 
     .fi-auth-layout button[type="submit"]:hover {
         background: var(--sanitra-primary-700) !important;
-        box-shadow: 0 4px 8px 0 rgba(22, 163, 74, 0.3) !important;
+        box-shadow: 0 4px 8px 0 rgba(22, 101, 52, 0.3) !important;
     }
 
     .fi-topbar-start .fi-logo,
@@ -261,7 +261,7 @@
     .fi-sidebar-item.fi-sidebar-item-has-active-child-items .fi-sidebar-item-btn {
         background-color: var(--sanitra-primary-600) !important;
         color: #ffffff !important;
-        box-shadow: inset 4px 0 0 var(--sanitra-accent-500), 0 2px 4px 0 rgba(22, 163, 74, 0.25) !important;
+        box-shadow: inset 4px 0 0 var(--sanitra-accent-500), 0 2px 4px 0 rgba(22, 101, 52, 0.25) !important;
     }
 
     .fi-sidebar-item.fi-active .fi-sidebar-item-btn .fi-sidebar-item-label,

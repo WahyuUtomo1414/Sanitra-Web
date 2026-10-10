@@ -34,7 +34,7 @@ class DashboardPanelProvider extends PanelProvider
             ->favicon(asset('assets/favicon.png'))
             ->darkMode(false)
             ->colors([
-                'primary' => Color::Green,
+                'primary' => Color::hex('#166534'),
                 'danger' => Color::Rose,
                 'warning' => Color::Amber,
                 'success' => Color::Green,
