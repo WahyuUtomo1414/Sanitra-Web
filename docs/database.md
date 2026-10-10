@@ -484,7 +484,27 @@ Log hasil import Excel. Bersifat append-only — tidak ada `updated_at`, `delete
 
 ### 4.23 `sys_code_sequence`
 
-Sequence counter untuk generator kode otomatis. Tidak memiliki model Eloquent; diakses langsung via `DB::table`. Detail implementasi di `docs/architecture.md` §6.
+Counter kode otomatis untuk semua entitas yang membutuhkan kode unik. Dikelola oleh `GenerateCodeService` menggunakan `SELECT ... FOR UPDATE` untuk mencegah race condition. Tidak memiliki model Eloquent; diakses langsung via `DB::table`. Detail implementasi di `docs/architecture.md` §6.
+
+Ada dua format kode yang ditentukan oleh `AutoCodePrefix::format()`:
+
+| Format | Contoh | `year` | `month` | Reset |
+| --- | --- | --- | --- | --- |
+| Master (`CodeFormat::Master`) | `COM0002`, `ITM0011` | NULL | NULL | Tidak pernah |
+| Transaksi (`CodeFormat::Transaction`) | `QUO/26/10/0001` | tahun | bulan | Tiap bulan |
+
+Prefix master (`COM`, `EMP`, `CLI`, `PTY`, `IC`, `ITM`, `BNK`) menyimpan `year = NULL` dan `month = NULL` karena nomornya berjalan terus tanpa reset. Prefix transaksi (`QUO`, `PRO`, `INV`, `PAY`) membuat baris baru tiap bulan sehingga penomoran mulai dari 1 setiap awal bulan.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `prefix` | varchar(10) | tidak | Prefix kode entitas (e.g. `COM`, `QUO`). |
+| `year` | smallint unsigned | ya | Tahun periode; NULL untuk master. |
+| `month` | tinyint unsigned | ya | Bulan periode; NULL untuk master. |
+| `last_number` | int unsigned | tidak | Nomor urut terakhir yang digunakan. Default `0`. |
+| `created_at` | timestamp | ya | Waktu baris pertama kali dibuat. |
+| `updated_at` | timestamp | ya | Waktu terakhir nomor di-increment. |
+
+Constraint unique `uniq_prefix_period` pada `(prefix, year, month)` menjamin satu counter per prefix per periode.
 
 ### 4.24 `sys_error_log`
 
