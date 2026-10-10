@@ -6,7 +6,7 @@
 
 Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. Aplikasi menambahkan `ms_client_contact` dan `ms_document` di luar ERD awal, serta tiga tabel infrastruktur: `sys_code_sequence`, `sys_import_log`, dan `sys_error_log`. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
 
-Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Contoh kode menunjukkan pola; trait kolom migration sudah tersedia di `app/Traits`, sedangkan model dan migration domain belum dibuat dari dokumen ini.
+Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Semua model dan migration master sudah dibuat dan dijalankan; migration tabel transaksi belum dibuat.
 
 ## 2. Daftar tabel dan model
 
