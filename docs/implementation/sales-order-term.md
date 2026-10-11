@@ -28,12 +28,12 @@
 
 Dipanggil dari `ApproveQuotationService` dalam satu `DB::transaction` (BR-17).
 
-- [ ] Guard: quotation status = `sent`; FK unique → lempar `DomainException` kalau SO sudah ada
-- [ ] Copy field finansial dari HD quotation → HD SO; generate `code` via `GenerateCodeService::next(AutoCodePrefix::TransSalesOrderHd)`
-- [ ] Copy semua `trans_sales_quotation_dt` → `trans_sales_order_dt` (dengan `quotation_dt_id` pointer)
-- [ ] Update `trans_sales_term`: set `order_hd_id`, hitung `amount = percentage × grand_total / 100` (BR-02); termin `progress_threshold = 0` → `ready_to_bill`, selain itu → `pending`
-- [ ] Set `status_id` SO = `waiting_dp`; Project belum dibuat sampai invoice DP Paid
-- [ ] Set `payment_status_id` SO = `unpaid`
+- [x] Guard: quotation status = `sent`; FK unique → lempar `DomainException` kalau SO sudah ada
+- [x] Copy field finansial dari HD quotation → HD SO; generate `code` via `GenerateCodeService::next(AutoCodePrefix::TransSalesOrderHd)`
+- [x] Copy semua `trans_sales_quotation_dt` → `trans_sales_order_dt` (dengan `quotation_dt_id` pointer)
+- [x] Update `trans_sales_term`: set `order_hd_id`, hitung `amount = percentage × grand_total / 100` (BR-02); termin `progress_threshold = 0` → `ready_to_bill`, selain itu → `pending`
+- [x] Set `status_id` SO = `waiting_dp`; Project belum dibuat sampai invoice DP Paid
+- [x] Set `payment_status_id` SO = `unpaid`
 
 ### 2.2 `app/Services/SalesOrder/CheckTermReadyToBillService`
 

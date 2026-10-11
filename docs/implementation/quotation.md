@@ -20,50 +20,50 @@
 
 ## 2. Service (`app/Services/Quotation/`)
 
-- [ ] `SendQuotationService` — Draft → Sent; validasi total `percentage` termin = 100 (BR-01), minimal 1 item, dan tepat satu termin DP threshold 0%
-- [ ] `ApproveQuotationService` — Sent → Approved; dalam `DB::transaction` panggil `CreateSalesOrderFromQuotationService` (BR-17)
-- [ ] `RejectQuotationService` — Sent → Rejected
-- [ ] `ReviseQuotationService` — Sent → Draft (histori status tetap tercatat, tanpa nomor revisi; BR-12)
+- [x] `SendQuotationService` — Draft → Sent; validasi total `percentage` termin = 100 (BR-01), minimal 1 item, dan tepat satu termin DP threshold 0%
+- [x] `ApproveQuotationService` — Sent → Approved; dalam `DB::transaction` panggil `CreateSalesOrderFromQuotationService` (BR-17)
+- [x] `RejectQuotationService` — Sent → Rejected
+- [x] `ReviseQuotationService` — Sent → Draft (histori status tetap tercatat, tanpa nomor revisi; BR-12)
 - [ ] `Shared/GeneratePdfService` (atau pakai facade `Pdf::loadView` dari `barryvdh/laravel-dompdf`)
 
 ## 3. Filament Resource `TransSalesQuotationHdResource`
 
 Group: **Penjualan**.
 
-- [ ] Properti: `$navigationLabel = 'Quotation'`, `$slug = 'quotations'`, icon
-- [ ] Form Section Informasi Utama + Relasi + PPN & Diskon + Catatan
-  - [ ] Field `code` `disabled()->dehydrated(false)`; di-generate di `mutateFormDataBeforeCreate` via `GenerateCodeService::next(AutoCodePrefix::TransSalesQuotationHd)`
-  - [ ] Field finansial dihitung otomatis: `total_price` detail sudah setelah diskon; `discount_total = Σ discount` hanya informasi; `subtotal = Σ total_price`; `grand_total` menerapkan PPN sesuai `vat_type` tanpa mengurangkan diskon dua kali
-- [ ] Table: `code`, `transaction_date`, `client.name`, `grand_total`, `status.name` badge; warna dari `QuotationStatus::from($record->status->code)->color()`, audit
-- [ ] Filter table: `status_id`, `client_id`, `company_id`, `transaction_date` range
-- [ ] Infolist: Informasi Utama + Nominal + Audit Data
-- [ ] Page: List, Create, View, Edit (Edit hanya saat status `draft`; BR-11)
-- [ ] Export Excel via `pxlrbt/filament-excel`
+- [x] Properti: `$navigationLabel = 'Quotation'`, `$slug = 'quotations'`, icon
+- [x] Form Section Informasi Utama + Relasi + PPN & Diskon + Catatan
+  - [x] Field `code` `disabled()->dehydrated(false)`; di-generate di `mutateFormDataBeforeCreate` via `GenerateCodeService::next(AutoCodePrefix::TransSalesQuotationHd)`
+  - [x] Field finansial dihitung otomatis: `total_price` detail sudah setelah diskon; `discount_total = Σ discount` hanya informasi; `subtotal = Σ total_price`; `grand_total` menerapkan PPN sesuai `vat_type` tanpa mengurangkan diskon dua kali. Tarif dibaca dari `SANITRA_VAT_RATE` dan perlu ditetapkan.
+- [x] Table: `code`, `transaction_date`, `client.name`, `grand_total`, `status.name` badge; warna dari `QuotationStatus::from($record->status->code)->color()`, audit
+- [x] Filter table: `status_id`, `client_id`, `company_id`, `transaction_date` range
+- [x] Infolist: Informasi Utama + Nominal + Audit Data
+- [x] Page: List, Create, View, Edit (Edit hanya saat status `draft`; BR-11)
+- [x] Export Excel via `pxlrbt/filament-excel`
 
 ### 3.1 Relation Manager
 
-- [ ] `ItemsRelationManager` → `trans_sales_quotation_dt`; editable hanya saat status `draft`
-- [ ] `TermsRelationManager` → `trans_sales_term` (filter `quotation_hd_id`); editable hanya saat status `draft`; validasi total `percentage` = 100 di submit
+- [x] `ItemsRelationManager` → `trans_sales_quotation_dt`; editable hanya saat status `draft`
+- [x] `TermsRelationManager` → `trans_sales_term` (filter `quotation_hd_id`); editable hanya saat status `draft`; validasi total `percentage` = 100 sebelum Send
 
 ### 3.2 Custom Action
 
-- [ ] `SendAction` — visible saat status `draft`; panggil `SendQuotationService`
-- [ ] `ApproveAction` — visible saat status `sent`; `requiresConfirmation` + modal deskripsi (SO akan dibuat, data terkunci)
-- [ ] `RejectAction` — visible saat status `sent`
-- [ ] `ReviseAction` — visible saat status `sent`
+- [x] `SendAction` — visible saat status `draft`; panggil `SendQuotationService`
+- [x] `ApproveAction` — visible saat status `sent`; `requiresConfirmation` + modal deskripsi (SO akan dibuat, data terkunci)
+- [x] `RejectAction` — visible saat status `sent`
+- [x] `ReviseAction` — visible saat status `sent`
 - [ ] `PrintPdfAction` — visible saat status `sent` / `approved`; stream PDF
 
 ## 4. PDF Quotation
 
 - [ ] `composer require barryvdh/laravel-dompdf`
-- [ ] Blade template `resources/views/pdf/quotation.blade.php`
-  - [ ] Header: logo + nama company penerbit + alamat + kontak
-  - [ ] Info client, nomor quotation, tanggal, PIC
-  - [ ] Tabel items (no, nama, qty, unit, harga, diskon, total)
-  - [ ] Subtotal, VAT, diskon, grand total
-  - [ ] Tabel termin (sequence, nama, persentase, threshold, nilai)
-  - [ ] Footer: syarat & ketentuan, tanda tangan
-  - [ ] Format Rupiah dan tanggal bahasa Indonesia
+- [x] Blade template `resources/views/pdf/quotation.blade.php`
+  - [x] Header: logo + nama company penerbit + alamat + kontak
+  - [x] Info client, nomor quotation, tanggal, PIC
+  - [x] Tabel items (no, nama, qty, unit, harga, diskon, total)
+  - [x] Subtotal, VAT, diskon, grand total
+  - [x] Tabel termin (sequence, nama, persentase, threshold, nilai)
+  - [x] Footer: syarat & ketentuan, tanda tangan
+  - [x] Format Rupiah dan tanggal bahasa Indonesia
 - [ ] Trigger via `PrintPdfAction`: `Pdf::loadView('pdf.quotation', ['quotation' => $record])->stream("quotation-{$record->code}.pdf")`
 
 ## 5. Notification

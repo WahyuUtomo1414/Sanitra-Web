@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VatType;
 use App\Traits\AuditedBySoftDelete;
+use App\Traits\LogsMasterActivity;
 use Database\Factories\TransSalesQuotationHdFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class TransSalesQuotationHd extends Model
 {
     /** @use HasFactory<TransSalesQuotationHdFactory> */
-    use AuditedBySoftDelete, HasFactory, SoftDeletes;
+    use AuditedBySoftDelete, HasFactory, LogsMasterActivity, SoftDeletes;
 
     protected $table = 'trans_sales_quotation_hd';
 
