@@ -1,71 +1,91 @@
-# Implementation Checklist — Full Flow
+# Implementation Map — Full Flow
 
-**Scope:** Full work Marketing + Finance (migration, model, enum, service, Filament resource, relation manager, custom action, notification, PDF). Project schema sebagai scaffolding.
+**Scope:** Peta fase, dependensi antar modul, dan ringkasan progres implementasi modul Sales (+ scaffolding Project). Detail checklist per modul ada di file terpisah.
 
-**Acuan:** [bisnis-flow/full-flow.md](../bisnis-flow/full-flow.md), [database.md](../database.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)
+**Acuan:** [bisnis-flow/full-flow.md](../bisnis-flow/full-flow.md), [database.md](../database.md), [architecture.md](../architecture.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)
 
-**Status audit 11 Oktober 2026:** Enum dan 31 status aktif sudah tersedia. Sebelas migration transaksi sudah dijalankan di MySQL; model, relasi, factory, dan seeder data contoh sudah ada. Service bisnis, resource transaksi Filament, PDF, notifikasi, dan pengujian flow end-to-end belum dibuat. `TransactionSchemaTest` lulus (4 test, 22 assertion); pengujian ini membuktikan schema/relasi dan seeder contoh, bukan flow bisnis.
+**Status audit 11 Oktober 2026:** Enum dan **31 status aktif** sudah tersedia (`active = true` pada `ms_status`). Sebelas migration transaksi sudah `Ran`; model, factory, relasi, trait audit, dan seeder data contoh sudah lengkap. Service bisnis, Filament resource transaksi, PDF, notifikasi, dan feature test flow end-to-end belum dibuat. `tests/Feature/TransactionSchemaTest.php` memverifikasi schema/relasi/seeder — **bukan** flow bisnis end-to-end.
 
-> **Reminder:** Tiap selesai item, update work log harian di `docs/work/YYYY-MM-DD.md` (ganti tanggal tiap hari, buat file baru untuk hari baru).
+> **Reminder:** Tiap selesai item di salah satu checklist modul, update `docs/work/YYYY-MM-DD.md` (file baru per hari).
 
-## Phase 0 — Prasyarat (enum + status)
+## 1. Peta Modul
 
-- [x] Update `AutoCodePrefix` (rename ke `TransSales*`, tambah `TransSalesOrderHd = 'SO'`)
-- [x] Update `StatusType` (tambah `Order`, `OrderPayment`)
-- [x] Buat `OrderStatus`, `OrderPaymentStatus` di `app/Enums/Status/`
-- [x] Update `ProjectStatus`, `ProjectStageStatus`, `TermStatus`, `InvoiceStatus`
-- [x] Buat `PaymentMethod` (cash/transfer/giro) di `app/Enums/`
-- [x] Update `StatusSeeder` untuk 8 enum → 31 status; dipanggil oleh `SanitraMasterSeeder`
-- [ ] Install `barryvdh/laravel-dompdf` untuk PDF
-- [x] Jalankan seeder dan verifikasi 31 status aktif di MySQL
+| Modul | File checklist | Entitas utama |
+| --- | --- | --- |
+| Quotation | [quotation.md](quotation.md) | `trans_sales_quotation_hd/dt` |
+| Sales Order & Term | [sales-order-term.md](sales-order-term.md) | `trans_sales_order_hd/dt`, `trans_sales_term` |
+| Invoice | [invoice.md](invoice.md) | `trans_sales_invoice_hd/dt` |
+| Payment | [payment.md](payment.md) | `trans_sales_payment` |
 
-## Phase 1 — Marketing (Quotation + Sales Order + Term)
+Modul **Project** (tahap pelaksanaan, override, log monitoring) belum masuk fase implementasi; schema-nya sudah ada sebagai scaffolding (lihat §4).
 
-Detail: [marketing.md](marketing.md)
+## 2. Dependensi antar Modul
 
-- [x] Migration + Model: `trans_sales_quotation_hd/dt`, `trans_sales_order_hd/dt`, `trans_sales_term`
-- [ ] Service: `SendQuotationService`, `ApproveQuotationService` (trigger `CreateSalesOrderFromQuotationService`), `RejectQuotationService`, `ReviseQuotationService`
-- [ ] Filament Resource `TransSalesQuotationHdResource` + Items/Terms Relation Manager
-- [ ] Custom Action quotation: Send, Approve, Reject, Revisi, **Print PDF**
-- [ ] Filament Resource `TransSalesOrderHdResource` (read-mostly) + Items/Terms/Invoices Relation Manager (read-only)
-- [ ] PDF template Blade `resources/views/pdf/quotation.blade.php`
-- [ ] Notification: `TermReadyToBillNotification` (ke Finance saat DP langsung ready to bill)
-- [ ] Test flow: Draft → Sent → Approved → SO terbentuk otomatis
+```
+Phase 0 (prasyarat) ──► Quotation ──Approved──► Sales Order & Term
+                                                      │
+                                                      ├─► Invoice ──► Payment
+                                                      │
+                                                      └─► Project (scaffolding; service belum)
+```
 
-## Phase 2 — Project schema (scaffolding, tanpa service/resource)
+Urutan implementasi yang disarankan:
 
-- [x] Migration + Model `trans_project_hd` (FK `order_hd_id` unique)
-- [x] Migration + Model `trans_project_dt`
-- [x] Migration + Model `trans_project_monitoring` (append-only)
+1. **Phase 0** — enum + status + dependency tambahan (dompdf). Lihat §3.
+2. **Quotation** — form input + revisi + PDF. Jadi blocker Sales Order karena `ApproveQuotationService` memicu pembuatan SO.
+3. **Sales Order & Term** — service pembentukan SO otomatis + relation manager; wajib ada sebelum Invoice karena Invoice selalu dari SO.
+4. **Invoice** — custom page pemilihan termin + kunci tahap Completed; boleh pakai stub project selama service pembuatan Project belum ada.
+5. **Payment** — Confirm payment memicu kaskade ke invoice, SO payment status, pembuatan Project (BR-15), dan penutupan SO (BR-13).
 
-Project resource dan service **ditunda** ke phase berikutnya di luar scope ini.
+## 3. Phase 0 — Prasyarat (enum + status + dependency)
 
-## Phase 3 — Finance (Invoice + Payment)
+| Item | Status | Catatan |
+| --- | --- | --- |
+| Enum `AutoCodePrefix` — rename ke `TransSales*` + tambah `TransSalesOrderHd = 'SO'` | [x] | 7 master + 5 transaksi (QUO/SO/PRO/INV/PAY) |
+| Enum `StatusType` — tambah `Order`, `OrderPayment` | [x] | 8 case |
+| Enum `OrderStatus`, `OrderPaymentStatus` di `app/Enums/Status/` | [x] | — |
+| Update `ProjectStatus`, `ProjectStageStatus` (`blocked`), `TermStatus`, `InvoiceStatus` | [x] | 8 enum status total |
+| Enum `PaymentMethod` di `app/Enums/` (`cash`, `transfer`, `giro`) | [x] | Terpasang pada cast model `TransSalesPayment` |
+| `StatusSeeder` loop 8 enum → `ms_status` (dipanggil `SanitraMasterSeeder`) | [x] | **31 status aktif terverifikasi** via `database-query` |
+| `SanitraTransactionSampleSeeder` sampel UAT (3 quotation, 1 SO, 1 invoice DP, 1 payment pending) | [x] | Idempoten; tidak dipanggil dari `DatabaseSeeder` production |
+| Install `barryvdh/laravel-dompdf` | [ ] | Belum ada di `composer show --direct` |
 
-Detail: [finance.md](finance.md)
+## 4. Phase Scaffolding Project (service/UI belum)
 
-- [x] Migration + Model: `trans_sales_invoice_hd/dt`, `trans_sales_payment`
-- [ ] Service: `CreateInvoiceFromTermsService`, `VoidInvoiceService`, `RecordPaymentService`, `ConfirmPaymentService`, `RejectPaymentService`
-- [ ] Custom Page: pemilihan termin Ready to Bill untuk pembuatan invoice
-- [ ] Filament Resource `TransSalesInvoiceHdResource` + Items/Payments Relation Manager
-- [ ] Custom Action invoice: Void, **Print PDF**
-- [ ] Filament Resource `TransSalesPaymentResource`
-- [ ] Custom Action payment: Confirm, Reject
-- [ ] PDF template Blade `resources/views/pdf/invoice.blade.php`
-- [ ] Dashboard Finance: widget outstanding, overdue, revenue bulan ini
-- [ ] Notification: `FirstTermPaidNotification` (ke Teknis + PIC saat DP Paid)
-- [ ] Test flow: Create Invoice DP → Payment Confirmed → trigger pembuatan project (stub)
+| Item | Status |
+| --- | --- |
+| Migration + Model `trans_project_hd` (unique `order_hd_id`) | [x] |
+| Migration + Model `trans_project_dt` (`editable` boolean; status `blocked` wajib catatan via `TransProjectDtObserver`) | [x] |
+| Migration + Model `trans_project_monitoring` (append-only via `booted()` throw `LogicException` saat update/delete) | [x] |
+| Factory `TransProjectHdFactory`, `TransProjectDtFactory`, `TransProjectMonitoringFactory` | [x] |
+| Service `CreateProjectFromSalesOrderService`, `CreateProjectStagesService`, `UpdateProjectStageService` | [ ] |
+| Filament resource untuk project | [ ] |
 
-## Phase 4 — Seeder data contoh (opsional, UAT)
+> Checklist modul (Quotation, Sales Order, Invoice, Payment) boleh dibangun sambil memakai stub Project selama service pembuatan Project belum ada.
 
-- [x] `SanitraTransactionSampleSeeder`: 1 quotation Draft + 1 Sent + 1 Approved (dengan SO + DP invoice + payment Pending)
-- [x] Jangan dipanggil dari `DatabaseSeeder` production
+## 5. Ringkasan Progres per Modul
 
-## Phase 5 — Verifikasi akhir
+| Modul | Schema & Model | Service | Filament | PDF | Notifikasi | Dashboard | Test flow |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Quotation | [x] | [ ] | [ ] | [ ] | [ ] | — | [ ] |
+| Sales Order & Term | [x] | [ ] | [ ] | — | [ ] | — | [ ] |
+| Invoice | [x] | [ ] | [ ] | [ ] | [ ] | — | [ ] |
+| Payment | [x] | [ ] | [ ] | — | [ ] | [ ] | [ ] |
 
-- [x] Semua migration up (`php artisan migrate:status`, MySQL lokal pada 11 Oktober 2026)
-- [ ] Semua resource bisa diakses dari panel Filament
-- [ ] Flow end-to-end: buat quotation → approve → SO otomatis → bikin invoice DP → confirm payment → termin Paid, SO payment_status update
+**Catatan status schema/model:** 11 migration transaksi (`trans_sales_quotation_hd/dt`, `trans_sales_order_hd/dt`, `trans_sales_term`, `trans_project_hd/dt/monitoring`, `trans_sales_invoice_hd/dt`, `trans_sales_payment`) sudah `Ran`; model, factory, cast, dan relasi lengkap. Lihat setiap checklist modul untuk breakdown yang spesifik.
+
+**Catatan test:** `tests/Feature/TransactionSchemaTest.php` memverifikasi schema, relasi, dan seeder (4 test, 22 assertion) — bukan flow end-to-end (Send → Approve → SO → Invoice → Payment). Flow bisnis tetap perlu feature test per transisi service.
+
+## 6. Verifikasi Akhir (setelah semua modul selesai)
+
+- [x] Semua migration up (`php artisan migrate:status`) — status saat ini: migration master + transaksi semuanya `Ran`
+- [ ] Semua resource transaksi bisa diakses dari panel Filament (group **Penjualan** + **Keuangan**)
+- [ ] Flow end-to-end: Quotation Draft → Sent → Approved → SO otomatis → Invoice DP → Payment Confirmed → Project dibuat → termin progress Ready to Bill → Invoice progress → … → SO Closed
 - [ ] Export Excel aktif di seluruh resource transaksi
 - [ ] Activity log mencatat perubahan domain transaksi
 - [ ] PDF quotation dan invoice bisa diunduh
+
+## 7. Phase Opsional (UAT & reminder)
+
+- [x] `SanitraTransactionSampleSeeder` — tidak dipanggil dari `DatabaseSeeder` production
+- [ ] Scheduler: notifikasi invoice H-3 jatuh tempo via Laravel Scheduler + cron (shared hosting, bukan queue worker)
