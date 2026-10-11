@@ -4,6 +4,8 @@
 **Acuan utama:** [SRS Aplikasi Web Sanitra](../../../Berkas/SRS_Aplikasi_Web_Sanitra.pdf), versi 1.0 (draft, 2 Oktober 2026)  
 **Acuan visual data/proses:** [ERD](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png) dan [flowchart](../../../Berkas/Sanitra_FlowChart_v2.drawio.png)
 
+> Dokumen ini masih draft berdasarkan SRS v1.0. Untuk alur transaksi yang sedang diimplementasikan (Sales Order, DP wajib, pembayaran invoice penuh, dan pemicu Project), gunakan [bisnis-flow/full-flow.md](bisnis-flow/full-flow.md) beserta dokumen modulnya sebagai acuan terbaru.
+
 Dokumen ini menerjemahkan SRS menjadi kebutuhan produk yang mudah dipakai untuk menyusun backlog dan UAT. SRS menjadi acuan utama untuk detail kebutuhan dan aturan bisnis.
 
 ## 1. Tujuan produk

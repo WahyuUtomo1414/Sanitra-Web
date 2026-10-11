@@ -2,7 +2,7 @@
 
 **Scope:** Entitas Quotation (`trans_sales_quotation_hd`, `trans_sales_quotation_dt`) termasuk form input, revisi, dan PDF. Pembentukan Sales Order saat Approved dilacak di [sales-order-term.md](sales-order-term.md).
 
-**Acuan:** [bisnis-flow/marketing.md](../bisnis-flow/marketing.md) §2, [filament-resource.md](../filament-resource.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md), [database.md](../database.md) §4.13–4.14
+**Acuan:** [bisnis-flow/quotation.md](../bisnis-flow/quotation.md), [filament-resource.md](../filament-resource.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md), [database.md](../database.md) §4.13–4.14
 
 > **Reminder:** Tiap selesai item, update `docs/work/YYYY-MM-DD.md` (ganti tanggal tiap hari, buat file baru per hari).
 
@@ -20,7 +20,7 @@
 
 ## 2. Service (`app/Services/Quotation/`)
 
-- [ ] `SendQuotationService` — Draft → Sent; validasi total `percentage` termin = 100 (BR-01); minimal 1 item dan 1 termin
+- [ ] `SendQuotationService` — Draft → Sent; validasi total `percentage` termin = 100 (BR-01), minimal 1 item, dan tepat satu termin DP threshold 0%
 - [ ] `ApproveQuotationService` — Sent → Approved; dalam `DB::transaction` panggil `CreateSalesOrderFromQuotationService` (BR-17)
 - [ ] `RejectQuotationService` — Sent → Rejected
 - [ ] `ReviseQuotationService` — Sent → Draft (histori status tetap tercatat, tanpa nomor revisi; BR-12)
@@ -33,8 +33,8 @@ Group: **Penjualan**.
 - [ ] Properti: `$navigationLabel = 'Quotation'`, `$slug = 'quotations'`, icon
 - [ ] Form Section Informasi Utama + Relasi + PPN & Diskon + Catatan
   - [ ] Field `code` `disabled()->dehydrated(false)`; di-generate di `mutateFormDataBeforeCreate` via `GenerateCodeService::next(AutoCodePrefix::TransSalesQuotationHd)`
-  - [ ] Field finansial (`subtotal`, `vat_amount`, `discount_total`, `grand_total`) dihitung otomatis dari items (reactive)
-- [ ] Table: `code`, `transaction_date`, `client.name`, `grand_total`, `status.name` badge (via `QuotationStatus::from($state)->label()/color()`), audit
+  - [ ] Field finansial dihitung otomatis: `total_price` detail sudah setelah diskon; `discount_total = Σ discount` hanya informasi; `subtotal = Σ total_price`; `grand_total` menerapkan PPN sesuai `vat_type` tanpa mengurangkan diskon dua kali
+- [ ] Table: `code`, `transaction_date`, `client.name`, `grand_total`, `status.name` badge; warna dari `QuotationStatus::from($record->status->code)->color()`, audit
 - [ ] Filter table: `status_id`, `client_id`, `company_id`, `transaction_date` range
 - [ ] Infolist: Informasi Utama + Nominal + Audit Data
 - [ ] Page: List, Create, View, Edit (Edit hanya saat status `draft`; BR-11)
@@ -78,7 +78,7 @@ Notifikasi `TermReadyToBillNotification` (DP langsung ready-to-bill setelah SO d
 
 - [x] `TransactionSchemaTest::test_transaction_tables_and_relationships_support_the_sales_flow` — relasi Quotation ↔ Items ↔ Terms ↔ Order
 - [x] `TransactionSchemaTest::test_transaction_sample_seeder_creates_an_idempotent_dp_flow` — seeder sampel Draft/Sent/Approved
-- [ ] Feature test flow **Send**: validasi total termin 100%, Draft → Sent
+- [ ] Feature test flow **Send**: total termin 100%, tepat satu DP threshold 0%, Draft → Sent; tanpa DP atau DP ganda ditolak
 - [ ] Feature test flow **Revisi**: Sent → Draft, histori status tercatat
 - [ ] Feature test flow **Reject**: Sent → Rejected
 - [ ] Unit test `ApproveQuotationService` memicu `CreateSalesOrderFromQuotationService` dalam satu transaction

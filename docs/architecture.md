@@ -86,36 +86,56 @@ app/
 ├── Enums/                          # Enum nilai tetap + metadata (§5)
 │   ├── AutoCodePrefix.php
 │   ├── CodeFormat.php
+│   ├── EmployeePosition.php
+│   ├── PaymentMethod.php
+│   ├── Status/                      # 8 status enum per entity type
+│   │   ├── InvoiceStatus.php
+│   │   ├── OrderPaymentStatus.php
+│   │   ├── OrderStatus.php
+│   │   ├── PaymentStatus.php
+│   │   ├── ProjectStageStatus.php
+│   │   ├── ProjectStatus.php
+│   │   ├── QuotationStatus.php
+│   │   └── TermStatus.php
 │   ├── StatusType.php
+│   ├── UnitType.php
 │   └── VatType.php
 │
 ├── Filament/                       # Panel admin (lihat filament-resource.md)
 │   └── Resources/
-│       ├── MsCompany/
-│       ├── TransQuotationHd/
-│       └── ...
+│       ├── MsCompanies/
+│       ├── MsEmployees/
+│       ├── MsClients/              # + RelationManagers/ContactsRelationManager, DocumentsRelationManager
+│       ├── MsItems/                # + RelationManagers/UnitsRelationManager
+│       └── ...                     # resource transaksi TransSales* belum dibuat
 │
 ├── Models/                         # Eloquent model (lihat database.md §8)
 │   ├── User.php
 │   ├── MsCompany.php
-│   ├── TransQuotationHd.php
+│   ├── TransSalesQuotationHd.php
+│   ├── TransSalesOrderHd.php
+│   ├── TransSalesInvoiceHd.php
+│   ├── TransSalesPayment.php
+│   ├── TransProjectHd.php
+│   ├── TransProjectMonitoring.php  # booted() throw di updating/deleting (append-only)
 │   └── ...
 │
-├── Notifications/                  # Email/notif ke user
-│   ├── QuotationApprovedNotification.php
-│   ├── TermReadyToBillNotification.php
-│   └── ...
+├── Notifications/                  # Email/notif ke user — belum dibuat
 │
 ├── Observers/                      # HANYA invariant guard (bukan business logic)
-│   └── TransProjectMonitoringObserver.php
+│   ├── MsCompanyObserver.php        # PT utama ID 1 wajib aktif, parent_id = 1 untuk anak, PIC se-company
+│   ├── MsEmployeeObserver.php       # cegah pindah company kalau masih jadi PIC
+│   └── TransProjectDtObserver.php   # status `blocked` wajib `notes`
+│   # TransProjectMonitoring append-only ditulis di model booted(), bukan file observer terpisah
 │
 ├── Services/                       # Business logic (§2.1 layer Service)
 │   ├── Shared/
 │   │   └── GenerateCodeService.php  # AutoCode generator (§6)
-│   ├── Quotation/
-│   ├── Project/
-│   ├── Invoice/
-│   └── Payment/
+│   ├── Client/
+│   │   └── SaveClientContactService.php  # maks 1 kontak utama per client (DB lock)
+│   ├── Item/
+│   │   └── ManageItemUnitsService.php    # add/update/remove unit per item (DB lock + validasi)
+│   └── (Quotation/, SalesOrder/, Project/, Invoice/, Payment/ — belum dibuat)
 │
 ├── Support/                        # Helper umum, formatter, dll.
 │   └── (TBD saat kebutuhan muncul)
@@ -143,6 +163,24 @@ database/
 | **Observer** | Guard invariant (reject update/delete log) | Throw exception | Business logic multi-step |
 
 Detail service pattern lihat [`filament-lifecycle-hook.md`](filament-lifecycle-hook.md).
+
+### 4.1 Cara Service Dipanggil dari Filament
+
+Service dipanggil **langsung** dari resource / page / relation manager / custom action — bukan via model event. Pola yang terbukti dipakai di repo:
+
+| Lokasi di Filament | Pola pemanggilan | Contoh di repo |
+| --- | --- | --- |
+| `Create*` page `mutateFormDataBeforeCreate()` | `$data['code'] = app(GenerateCodeService::class)->next(...)` | `CreateMsItem`, `CreateMsCompany`, `CreateMsBankAccount`, dll. (semua master) |
+| `Create*` page `handleRecordCreation()` | `DB::transaction(fn () => ... + app(Service::class)->execute(...))` | Direkomendasikan untuk entitas transaksi (lihat `filament-lifecycle-hook.md` §5.1) |
+| `Edit*` page `handleRecordUpdate()` | `return app(UpdateXxxService::class)->execute($record, $data)` | Direkomendasikan untuk edit transaksi |
+| Relation manager `CreateAction::using(...)` | `fn (array $data) => app(Service::class)->create($owner, $data)` | `ContactsRelationManager` → `SaveClientContactService`; `UnitsRelationManager` → `ManageItemUnitsService` |
+| Relation manager `EditAction::using(...)` | `fn ($record, array $data) => app(Service::class)->update($record, $data)` | `ContactsRelationManager`, `UnitsRelationManager` |
+| Relation manager `DeleteAction::using(...)` | `fn ($record) => app(Service::class)->remove($record)` | `UnitsRelationManager` |
+| Custom `Action::make()->action(...)` | `fn ($record) => app(Service::class)->execute($record)` | Untuk transisi status (Send, Approve, Void, Confirm) — belum dibangun |
+
+**Kenapa `->using(...)` di relation manager**: default Filament bikin child record pakai `->create($data)` tanpa transaction/validation custom. `->using(...)` menggantikan default itu dengan closure yang panggil service — jadi semua lock, guard, dan validasi service tetap jalan.
+
+**Kenapa `app(Service::class)` dan bukan constructor injection**: Filament page/action tidak selalu bisa inject lewat constructor. Pattern `app(Service::class)` dari container tetap pakai autowiring, konsisten, dan simpel.
 
 ## 5. Konvensi Enum
 
@@ -186,6 +224,8 @@ namespace App\Enums;
 enum StatusType: string
 {
     case Quotation = 'quotation';
+    case Order = 'order';
+    case OrderPayment = 'order_payment';
     case Project = 'project';
     case ProjectDt = 'project_dt';
     case Term = 'term';
@@ -209,7 +249,7 @@ Select::make('status_id')
 
 #### 5.3.2 `VatType`
 
-Jenis PPN di `trans_quotation_hd.vat_type` dan `trans_invoice_hd.vat_type`.
+Jenis PPN di `trans_sales_quotation_hd.vat_type`, `trans_sales_order_hd.vat_type`, dan `trans_sales_invoice_hd.vat_type`.
 
 ```php
 namespace App\Enums;
@@ -238,7 +278,7 @@ Select::make('vat_type')
     ->options(collect(VatType::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]));
 ```
 
-Cast di model `TransQuotationHd` dan `TransInvoiceHd`:
+Cast sudah terpasang di `TransSalesQuotationHd`, `TransSalesOrderHd`, dan `TransSalesInvoiceHd`:
 
 ```php
 protected function casts(): array
@@ -282,10 +322,11 @@ enum AutoCodePrefix: string
     case MsBankAccount = 'BNK';
 
     // Transaksi (format: PREFIX/YY/MM/4 digit, reset per bulan)
-    case TransQuotationHd = 'QUO';
+    case TransSalesQuotationHd = 'QUO';
+    case TransSalesOrderHd = 'SO';
     case TransProjectHd = 'PRO';
-    case TransInvoiceHd = 'INV';
-    case TransPayment = 'PAY';
+    case TransSalesInvoiceHd = 'INV';
+    case TransSalesPayment = 'PAY';
 
     public function format(): CodeFormat
     {
@@ -355,7 +396,7 @@ Tables\Columns\TextColumn::make('status.code')
     ->color(fn (string $state) => QuotationStatus::from($state)->color());
 ```
 
-**Seeder `MsStatus`** sudah dibuat di `SanitraMasterSeeder` — loop seluruh case dari 6 enum ini menghasilkan 25 row. Enum = sumber kebenaran untuk seed, tidak ada drift antara code dan DB.
+**Seeder `MsStatus`** dibuat di `database/seeders/StatusSeeder.php` (dipanggil oleh `SanitraMasterSeeder`) — loop seluruh case dari 8 enum di atas menghasilkan 31 row aktif (`active = true`). Status yang tidak lagi ada di enum di-mark `active = false` tanpa dihapus — menjaga histori transaksi lama tetap bisa menunjuk status lama. Enum = sumber kebenaran untuk seed; tidak ada drift antara kode aplikasi dan DB.
 
 #### 5.3.6 `UnitType`
 
@@ -405,12 +446,11 @@ Select::make('type')
 
 ### 5.4 Enum untuk Ditambahkan Nanti
 
-Ditangguhkan sampai implementasi transaksi:
+`PaymentMethod` (`cash`, `transfer`, `giro`) sudah dibuat dan terpasang pada cast model `TransSalesPayment`. Yang masih ditangguhkan:
 
-- `PaymentMethod` — metode pembayaran di `trans_payment` (misal `cash`, `transfer`, `giro`).
-- `LogType` — jenis log di `trans_project_monitoring` (misal `status_change`, `override`, `rework`).
+- `LogType` — jenis log di `trans_project_monitoring` (misal `status_change`, `override`, `rework`). Dibuat saat modul Project aktif dikerjakan.
 
-Konsep sama dengan `VatType`: backed enum, label method, cast di model.
+Konsep sama dengan `VatType`: backed enum, `label()` method, cast di model.
 
 ## 6. AutoCode — Generator Kode Otomatis
 
@@ -419,7 +459,7 @@ Konsep sama dengan `VatType`: backed enum, label method, cast di model.
 | Jenis | Pattern | Contoh | Reset |
 | --- | --- | --- | --- |
 | Master | `PREFIX` + 4 digit | `IC0001`, `PTY0002`, `COM0015` | Tidak — running terus |
-| Transaksi | `PREFIX/YY/MM/` + 4 digit | `QUO/26/10/0001`, `PRO/26/10/0002`, `INV/26/11/0001` | Per bulan |
+| Transaksi | `PREFIX/YY/MM/` + 4 digit | `QUO/26/10/0001`, `SO/26/10/0001`, `PRO/26/10/0002`, `INV/26/11/0001` | Per bulan |
 
 Digit padding:
 
@@ -604,7 +644,7 @@ Sequence table adalah standar untuk ERP. Overhead-nya minim.
 ## 7. Catatan
 
 - **Enum = sumber kebenaran untuk nilai tetap.** Hindari magic string di seluruh codebase. `MsStatus::where('type', StatusType::Quotation->value)` lebih aman dari `where('type', 'quotation')`.
-- **AutoCode selalu via service, bukan model event.** Model yang pakai AutoCode (misal `MsItemCategory`, `TransQuotationHd`) **tidak** punya boot method yang auto-generate code. Pembuatan kode adalah tanggung jawab Filament hook.
+- **AutoCode selalu via service, bukan model event.** Model yang pakai AutoCode (misal `MsItemCategory`, `TransSalesQuotationHd`) **tidak** punya boot method yang auto-generate code. Pembuatan kode adalah tanggung jawab Filament hook (`mutateFormDataBeforeCreate` / `handleRecordCreation`).
 - **Jangan pindah logic ke Model observer** meski terlihat lebih "ringkas". Observer bikin side effect yang gak kelihatan di call site; lebih sulit test dan skip.
 - **Enum helper method harus pure.** Boleh `match` statement, boleh `return label string`, tapi **tidak** boleh akses DB atau panggil service.
 - Enum, service, dan migration sequence table AutoCode sudah dibuat; status per file ada di lampiran.
@@ -613,23 +653,25 @@ Sequence table adalah standar untuk ERP. Overhead-nya minim.
 
 `MsDocument` menyimpan dokumen berbagai entitas di tabel `ms_document`. Relasi `MsClient::documents()` dan `MsEmployee::documents()` memakai `morphMany` dengan kolom `ref_type` dan `ref_id`; `MsDocument::reference()` memakai `morphTo`. `AppServiceProvider` mendaftarkan alias morph map `client` → `MsClient` dan `employee` → `MsEmployee`, sehingga kode menyimpan alias stabil dan relasi mengisi referensi saat dokumen dibuat dari pemiliknya. Alias project ditambahkan ketika relasi dan UI project diimplementasikan. Referensi tidak diminta dari pengguna dan tidak ditampilkan pada daftar dokumen. File disimpan private; dokumen employee mengikuti pola preview gambar, buka PDF, dan unduh dari dokumen client.
 
-Dokumen client disimpan di disk `local` yang private; detail upload, preview gambar, dan tautan PDF sementara ada di [filament-resource.md](filament-resource.md) §17.1. `MsClientContact` tetap tabel anak client dengan FK biasa. `SaveClientContactService` menjaga maksimal satu kontak utama dalam satu transaksi database. Migration untuk kedua tabel baru sudah ditulis, tetapi belum dijalankan.
+Dokumen client disimpan di disk `local` yang private; detail upload, preview gambar, dan tautan PDF sementara ada di [filament-resource.md](filament-resource.md) §17.1. `MsClientContact` tetap tabel anak client dengan FK biasa. `SaveClientContactService` menjaga maksimal satu kontak utama dalam satu transaksi database (lock baris client dengan `lockForUpdate`). Migration `ms_document` dan `ms_client_contact` sudah dijalankan; relation manager (`ContactsRelationManager`, `DocumentsRelationManager` di `MsClients/` dan `DocumentsRelationManager` di `MsEmployees/`) sudah aktif di panel.
 
 ---
 
-## Lampiran: File yang Perlu Dibuat untuk Implementasi AutoCode
+## Lampiran: Status Implementasi
 
-Daftar file konkret saat implementasi (tidak di tahap ini):
+Status audit 11 Oktober 2026 — mayoritas item sudah selesai. Pelacakan implementasi fitur transaksi ada di [docs/implementation/](implementation/full-flow.md).
 
 1. ~~`app/Enums/CodeFormat.php`~~ ✓ dibuat.
-2. ~~`app/Enums/AutoCodePrefix.php`~~ ✓ dibuat.
-3. ~~`app/Enums/StatusType.php`~~ ✓ dibuat.
+2. ~~`app/Enums/AutoCodePrefix.php`~~ ✓ dibuat (`TransSalesOrderHd = 'SO'` sudah masuk).
+3. ~~`app/Enums/StatusType.php`~~ ✓ dibuat (8 case termasuk `Order`, `OrderPayment`).
 4. ~~`app/Enums/VatType.php`~~ ✓ dibuat.
-5. ~~`app/Enums/Status/{Quotation,Project,ProjectDt,Term,Invoice,Payment}Status.php`~~ ✓ 6 file dibuat.
-6. ~~`database/migrations/2026_10_03_140014_create_sys_code_sequence_table.php`~~ ✓ dibuat.
-7. ~~`app/Models/CodeSequence.php`~~ ✓ dibuat.
-8. ~~`app/Services/Shared/GenerateCodeService.php`~~ ✓ dibuat.
-9. **TODO** Update model `TransQuotationHd` dan `TransInvoiceHd` untuk cast `vat_type` ke `VatType::class` dan `status_id` relation (tunggu transaksi model dibuat).
-10. **TODO** Update Filament `CreateXxx` page untuk entity yang pakai AutoCode (`mutateFormDataBeforeCreate` → panggil service).
-11. **TODO** Update Filament form schema untuk entity yang pakai AutoCode (`TextInput::make('code')->disabled()->dehydrated(false)`).
-12. **TODO** Seeder `MsStatus` yang loop seluruh case dari 6 status enum → generate 25 row ke `ms_status`.
+5. ~~`app/Enums/Status/{Quotation,Order,OrderPayment,Project,ProjectDt,Term,Invoice,Payment}Status.php`~~ ✓ 8 file dibuat (total 31 case).
+6. ~~`app/Enums/PaymentMethod.php`~~ ✓ dibuat (`cash`, `transfer`, `giro`); terpasang pada cast `TransSalesPayment`.
+7. ~~`database/migrations/2026_10_03_140014_create_sys_code_sequence_table.php`~~ ✓ dibuat.
+8. ~~`app/Models/CodeSequence.php`~~ ✓ dibuat.
+9. ~~`app/Services/Shared/GenerateCodeService.php`~~ ✓ dibuat.
+10. ~~Model transaksi `TransSalesQuotationHd`, `TransSalesOrderHd`, `TransSalesInvoiceHd` cast `vat_type` → `VatType::class` + relasi `status()`.~~ ✓ selesai.
+11. ~~Filament `CreateXxx` page master yang pakai AutoCode (`mutateFormDataBeforeCreate` → `GenerateCodeService`).~~ ✓ seluruh master (`CreateMsCompany`, `CreateMsEmployee`, `CreateMsClient`, `CreateMsProjectType`, `CreateMsItemCategory`, `CreateMsItem`, `CreateMsBankAccount`) selesai.
+12. ~~Filament form schema master `TextInput::make('code')->disabled()->dehydrated(false)`.~~ ✓ seluruh master selesai.
+13. ~~`database/seeders/StatusSeeder.php` loop 8 status enum → 31 row aktif di `ms_status`.~~ ✓ dipanggil `SanitraMasterSeeder`; verified lewat `database-query`.
+14. **TODO** Create/Edit page dan form schema untuk entitas transaksi (`TransSalesQuotationHdResource`, `TransSalesOrderHdResource`, `TransSalesInvoiceHdResource`, `TransSalesPaymentResource`) — resource transaksi belum dibangun, lacak di [docs/implementation/](implementation/full-flow.md).

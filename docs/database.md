@@ -351,7 +351,7 @@ Daftar lengkap:
 | payment | confirmed | Confirmed |
 | payment | rejected | Rejected |
 
-**Catatan:** `Overdue` pada invoice adalah hasil perhitungan (`due_date < now()` + status `unpaid`/`partial`), bukan status tersimpan.
+**Catatan:** Alur pembayaran saat ini mensyaratkan satu payment penuh per invoice. Status invoice `partial` tetap tersedia di schema dan seeder, tetapi belum dipakai dalam alur tersebut. Status `order_payment.partial` tetap dipakai ketika baru sebagian termin SO yang lunas. `Overdue` pada invoice adalah hasil perhitungan (`due_date < today()` dan status `unpaid`), bukan status tersimpan.
 
 ### 4.13 `trans_sales_quotation_hd`
 
@@ -367,10 +367,10 @@ Header quotation. Model: `TransSalesQuotationHd`.
 | `payment_type` | varchar(50) | tidak | Jenis/skema pembayaran. |
 | `notes` | text | ya | Catatan. |
 | `vat_type` | varchar(50) | tidak | Jenis PPN. |
-| `vat_amount` | decimal(20,6) | tidak | Nilai PPN. |
-| `discount_total` | decimal(20,6) | tidak | Total diskon. |
-| `subtotal` | decimal(20,6) | tidak | Subtotal. |
-| `grand_total` | decimal(20,6) | tidak | Total akhir. |
+| `vat_amount` | decimal(20,6) | tidak | `none`: 0; `include`: porsi PPN dalam subtotal; `exclude`: PPN di atas subtotal. |
+| `discount_total` | decimal(20,6) | tidak | Jumlah diskon detail; tidak dikurangkan ulang dari subtotal. |
+| `subtotal` | decimal(20,6) | tidak | Jumlah `total_price` detail setelah diskon baris. |
+| `grand_total` | decimal(20,6) | tidak | `none` / `include`: subtotal; `exclude`: subtotal + `vat_amount`. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `quotation`. |
 
 Detail item ada di `trans_sales_quotation_dt`, skema termin di `trans_sales_term`. Siklus revisi dikelola lewat `status_id` (`Draft` → `Sent` → `Approved`/`Rejected`; revisi `Sent` → `Draft`); tidak ada kolom nomor revisi di tabel (BR-12).
@@ -388,7 +388,7 @@ Detail item quotation. Model: `TransSalesQuotationDt`.
 | `qty` | integer | tidak | Jumlah. |
 | `unit_price` | decimal(20,6) | tidak | Harga per unit saat quotation dibuat. |
 | `discount` | decimal(20,6) | tidak | Diskon baris. |
-| `total_price` | decimal(20,6) | tidak | Total baris. |
+| `total_price` | decimal(20,6) | tidak | `qty × unit_price − discount`; sudah setelah diskon baris. |
 
 ### 4.15 `trans_sales_order_hd`
 
@@ -470,7 +470,7 @@ Header project yang berasal dari Sales Order (BR-15). Model: `TransProjectHd`.
 | `notes` | text | ya | Catatan project. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `project`. |
 
-Project dibuat setelah invoice DP Paid (jika ada DP) atau bersamaan dengan SO (jika tidak ada DP). Status awal `open`.
+Dalam alur implementasi saat ini, tepat satu termin DP threshold 0% wajib ada. Setelah invoice DP Paid, user berwenang membuat Project manual lewat form yang mengisi PIC, nama, dan tanggal; nilai client/company/tipe project disalin dari SO. Status awal Project `open`; SO menjadi `on_progress` setelah Project tersimpan. Opsi SRS v1.3 untuk SO tanpa DP ditunda.
 
 ### 4.19 `trans_project_dt`
 
@@ -523,10 +523,10 @@ Header invoice/tagihan. Model: `TransSalesInvoiceHd`.
 | `company_id` | bigint unsigned | tidak | Disalin dari SO. |
 | `bank_account_id` | bigint unsigned | tidak | FK ke `ms_bank_account.id`. |
 | `due_date` | date | tidak | Jatuh tempo. |
-| `subtotal` | decimal(20,6) | tidak | Σ amount termin yang ditagih. |
+| `subtotal` | decimal(20,6) | tidak | `none` / `include`: Σ amount termin; `exclude`: Σ amount termin dikurangi porsi PPN SO. |
 | `vat_type` | varchar(50) | tidak | Disalin dari SO. |
-| `vat_amount` | decimal(20,6) | tidak | Dihitung dari subtotal + vat_type. |
-| `grand_total` | decimal(20,6) | tidak | subtotal + vat_amount. |
+| `vat_amount` | decimal(20,6) | tidak | Alokasi PPN dari SO untuk termin yang ditagih; bukan PPN tambahan. |
+| `grand_total` | decimal(20,6) | tidak | Σ amount termin; `include` tidak menambah PPN, `exclude` = subtotal + vat_amount. |
 | `notes` | text | ya | Catatan. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `invoice`. |
 

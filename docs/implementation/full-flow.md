@@ -17,16 +17,20 @@
 | Invoice | [invoice.md](invoice.md) | `trans_sales_invoice_hd/dt` |
 | Payment | [payment.md](payment.md) | `trans_sales_payment` |
 
-Modul **Project** (tahap pelaksanaan, override, log monitoring) belum masuk fase implementasi; schema-nya sudah ada sebagai scaffolding (lihat §4).
+Schema **Project** sudah ada. Form Create Project manual serta service yang menyimpan Project dan tahapnya wajib tersedia sebelum flow setelah DP dinyatakan selesai; fitur Project lainnya (override dan monitoring lengkap) tetap fase berikutnya (lihat §4).
 
 ## 2. Dependensi antar Modul
 
 ```
 Phase 0 (prasyarat) ──► Quotation ──Approved──► Sales Order & Term
                                                       │
-                                                      ├─► Invoice ──► Payment
-                                                      │
-                                                      └─► Project (scaffolding; service belum)
+                                                      └─► Invoice DP ──► Payment penuh Confirmed
+                                                                                 │
+                                                                                 ▼
+                                                                      Project dibuat manual
+                                                                                 │
+                                                                                 ▼
+                                                                      Termin progress ──► Invoice
 ```
 
 Urutan implementasi yang disarankan:
@@ -34,8 +38,9 @@ Urutan implementasi yang disarankan:
 1. **Phase 0** — enum + status + dependency tambahan (dompdf). Lihat §3.
 2. **Quotation** — form input + revisi + PDF. Jadi blocker Sales Order karena `ApproveQuotationService` memicu pembuatan SO.
 3. **Sales Order & Term** — service pembentukan SO otomatis + relation manager; wajib ada sebelum Invoice karena Invoice selalu dari SO.
-4. **Invoice** — custom page pemilihan termin + kunci tahap Completed; boleh pakai stub project selama service pembuatan Project belum ada.
-5. **Payment** — Confirm payment memicu kaskade ke invoice, SO payment status, pembuatan Project (BR-15), dan penutupan SO (BR-13).
+4. **Invoice** — custom page pemilihan termin DP + kunci tahap Completed untuk invoice berikutnya.
+5. **Project minimal** — form Create Project dari SO yang DP-nya Paid; service menyimpan Project dan menyalin tahap dari workflow.
+6. **Payment** — Confirm payment penuh memicu invoice Paid dan SO payment status; DP Paid membuka akses Create Project manual. Penutupan SO mengikuti progress dan seluruh termin Paid (BR-13).
 
 ## 3. Phase 0 — Prasyarat (enum + status + dependency)
 
@@ -50,7 +55,7 @@ Urutan implementasi yang disarankan:
 | `SanitraTransactionSampleSeeder` sampel UAT (3 quotation, 1 SO, 1 invoice DP, 1 payment pending) | [x] | Idempoten; tidak dipanggil dari `DatabaseSeeder` production |
 | Install `barryvdh/laravel-dompdf` | [ ] | Belum ada di `composer show --direct` |
 
-## 4. Phase Scaffolding Project (service/UI belum)
+## 4. Project (schema selesai; service minimal diperlukan)
 
 | Item | Status |
 | --- | --- |
@@ -58,19 +63,21 @@ Urutan implementasi yang disarankan:
 | Migration + Model `trans_project_dt` (`editable` boolean; status `blocked` wajib catatan via `TransProjectDtObserver`) | [x] |
 | Migration + Model `trans_project_monitoring` (append-only via `booted()` throw `LogicException` saat update/delete) | [x] |
 | Factory `TransProjectHdFactory`, `TransProjectDtFactory`, `TransProjectMonitoringFactory` | [x] |
-| Service `CreateProjectFromSalesOrderService`, `CreateProjectStagesService`, `UpdateProjectStageService` | [ ] |
-| Filament resource untuk project | [ ] |
+| Form Create Project dari SO dengan invoice DP Paid; isi PIC, nama, tanggal mulai/selesai | [ ] |
+| Service `CreateProjectFromSalesOrderService` dan `CreateProjectStagesService` dipanggil dari form; cegah Project ganda per SO | [ ] |
+| `UpdateProjectStageService` untuk progress dan termin berikutnya | [ ] |
+| Halaman/form Create Project dari SO yang DP-nya Paid | [ ] |
 
-> Checklist modul (Quotation, Sales Order, Invoice, Payment) boleh dibangun sambil memakai stub Project selama service pembuatan Project belum ada.
+> Alur yang membuat Project harus memakai service Project yang benar-benar menyimpan Project dan tahapnya. Checklist modul boleh dikerjakan bertahap, tetapi flow end-to-end belum selesai sebelum integrasi Project nyata tersedia.
 
 ## 5. Ringkasan Progres per Modul
 
-| Modul | Schema & Model | Service | Filament | PDF | Notifikasi | Dashboard | Test flow |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Quotation | [x] | [ ] | [ ] | [ ] | [ ] | — | [ ] |
-| Sales Order & Term | [x] | [ ] | [ ] | — | [ ] | — | [ ] |
-| Invoice | [x] | [ ] | [ ] | [ ] | [ ] | — | [ ] |
-| Payment | [x] | [ ] | [ ] | — | [ ] | [ ] | [ ] |
+| Modul | Schema & Model | Service | Filament | PDF | Notifikasi | Test flow |
+| --- | --- | --- | --- | --- | --- | --- |
+| Quotation | [x] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Sales Order & Term | [x] | [ ] | [ ] | — | [ ] | [ ] |
+| Invoice | [x] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Payment | [x] | [ ] | [ ] | — | [ ] | [ ] |
 
 **Catatan status schema/model:** 11 migration transaksi (`trans_sales_quotation_hd/dt`, `trans_sales_order_hd/dt`, `trans_sales_term`, `trans_project_hd/dt/monitoring`, `trans_sales_invoice_hd/dt`, `trans_sales_payment`) sudah `Ran`; model, factory, cast, dan relasi lengkap. Lihat setiap checklist modul untuk breakdown yang spesifik.
 
@@ -80,12 +87,13 @@ Urutan implementasi yang disarankan:
 
 - [x] Semua migration up (`php artisan migrate:status`) — status saat ini: migration master + transaksi semuanya `Ran`
 - [ ] Semua resource transaksi bisa diakses dari panel Filament (group **Penjualan** + **Keuangan**)
-- [ ] Flow end-to-end: Quotation Draft → Sent → Approved → SO otomatis → Invoice DP → Payment Confirmed → Project dibuat → termin progress Ready to Bill → Invoice progress → … → SO Closed
+- [ ] Flow end-to-end: Quotation Draft → Sent → Approved → SO otomatis → Invoice DP → Payment penuh Confirmed → user buat Project → termin progress Ready to Bill → Invoice progress → … → SO Closed
 - [ ] Export Excel aktif di seluruh resource transaksi
 - [ ] Activity log mencatat perubahan domain transaksi
 - [ ] PDF quotation dan invoice bisa diunduh
 
-## 7. Phase Opsional (UAT & reminder)
+## 7. Fase Berikutnya (dashboard, UAT & reminder)
 
 - [x] `SanitraTransactionSampleSeeder` — tidak dipanggil dari `DatabaseSeeder` production
+- [ ] Dashboard Finance (FR-41): statistik outstanding, overdue, revenue, dan chart
 - [ ] Scheduler: notifikasi invoice H-3 jatuh tempo via Laravel Scheduler + cron (shared hosting, bukan queue worker)

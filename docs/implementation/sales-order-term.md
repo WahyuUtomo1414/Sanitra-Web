@@ -2,7 +2,7 @@
 
 **Scope:** Entitas Sales Order (`trans_sales_order_hd`, `trans_sales_order_dt`) dan Term (`trans_sales_term`), termasuk pembentukan SO otomatis saat Quotation Approved (BR-17) dan transisi status termin (BR-04).
 
-**Acuan:** [bisnis-flow/marketing.md](../bisnis-flow/marketing.md) §3–4, [filament-resource.md](../filament-resource.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md), [database.md](../database.md) §4.15–4.17
+**Acuan:** [bisnis-flow/sales-order-term.md](../bisnis-flow/sales-order-term.md), [filament-resource.md](../filament-resource.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md), [database.md](../database.md) §4.15–4.17
 
 > **Reminder:** Tiap selesai item, update `docs/work/YYYY-MM-DD.md`.
 
@@ -32,7 +32,7 @@ Dipanggil dari `ApproveQuotationService` dalam satu `DB::transaction` (BR-17).
 - [ ] Copy field finansial dari HD quotation → HD SO; generate `code` via `GenerateCodeService::next(AutoCodePrefix::TransSalesOrderHd)`
 - [ ] Copy semua `trans_sales_quotation_dt` → `trans_sales_order_dt` (dengan `quotation_dt_id` pointer)
 - [ ] Update `trans_sales_term`: set `order_hd_id`, hitung `amount = percentage × grand_total / 100` (BR-02); termin `progress_threshold = 0` → `ready_to_bill`, selain itu → `pending`
-- [ ] Set `status_id` SO: `waiting_dp` jika ada termin DP, selain itu `on_progress` (dan panggil `CreateProjectFromSalesOrderService` — stub boleh)
+- [ ] Set `status_id` SO = `waiting_dp`; Project belum dibuat sampai invoice DP Paid
 - [ ] Set `payment_status_id` SO = `unpaid`
 
 ### 2.2 `app/Services/SalesOrder/CheckTermReadyToBillService`
@@ -67,7 +67,8 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 
 ### 3.2 Custom Action di Sales Order
 
-- [ ] `BuatInvoiceAction` → arahkan ke custom page pembuatan invoice (lihat [invoice.md](invoice.md) §4.2); visible saat ada termin `ready_to_bill`
+- [ ] `BuatInvoiceAction` → arahkan ke custom page pembuatan invoice (lihat [invoice.md](invoice.md) §3.1); visible saat ada termin `ready_to_bill`
+- [ ] `BuatProjectAction` → arahkan ke form Create Project; visible hanya jika invoice DP Paid dan SO belum punya Project; setelah Project tersimpan SO → `on_progress`
 
 ## 4. Notification
 
@@ -79,7 +80,7 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 - [x] `TransactionSchemaTest::test_transaction_tables_and_relationships_support_the_sales_flow` — relasi SO ↔ Items ↔ Terms ↔ Project ↔ Invoice
 - [x] `TransactionSchemaTest::test_transaction_sample_seeder_creates_an_idempotent_dp_flow` — seeder sampel sudah menghasilkan 1 SO + termin terikat `order_hd_id` dengan status `invoiced`
 - [ ] Feature test **Approve → SO otomatis**: item disalin, termin bind ke `order_hd_id`, `amount` terhitung (BR-02), status termin set
-- [ ] Feature test **SO tanpa DP langsung On Progress**: project di-trigger di service
+- [ ] Feature test **Quotation tanpa DP ditolak saat Send**; SO selalu mempunyai satu termin DP threshold 0%
 - [ ] Feature test **SO dengan DP → Waiting DP**: `payment_status = unpaid`
 - [ ] Unit test guard `CreateSalesOrderFromQuotationService` menolak duplikat SO (FK unique)
 - [ ] Unit test `CheckTermReadyToBillService` menolak termin yang sedang ada di invoice aktif
