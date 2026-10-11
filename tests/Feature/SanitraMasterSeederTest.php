@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\AutoCodePrefix;
+use App\Enums\EmployeePosition;
 use App\Models\CodeSequence;
 use App\Models\MsBankAccount;
 use App\Models\MsClient;
@@ -31,7 +32,7 @@ class SanitraMasterSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertSame(1, MsCompany::count());
-        $this->assertSame(2, MsEmployee::count());
+        $this->assertSame(5, MsEmployee::count());
         $this->assertSame(7, MsClient::count());
         $this->assertSame(3, MsProjectType::count());
         $this->assertEqualsCanonicalizing(
@@ -49,6 +50,19 @@ class SanitraMasterSeederTest extends TestCase
             ['super@gmail.com', 'marketing@gmail.com', 'finance@gmail.com', 'master-seeder@sanitra.invalid'],
             User::query()->pluck('email')->all(),
         );
+        foreach ([
+            'super@gmail.com' => EmployeePosition::Owner,
+            'marketing@gmail.com' => EmployeePosition::Marketing,
+            'finance@gmail.com' => EmployeePosition::Finance,
+        ] as $email => $position) {
+            $user = User::query()->where('email', $email)->firstOrFail();
+
+            $this->assertSame($email, $user->employee->email);
+            $this->assertSame($position->value, $user->employee->position);
+            $this->assertTrue($user->employee->active);
+            $this->assertSame(1, $user->employee->company_id);
+            $this->assertTrue($user->employee->user->is($user));
+        }
         $this->assertSame('info@sanitra.co.id', MsCompany::firstOrFail()->email);
         $this->assertFalse(MsBankAccount::firstOrFail()->active);
         $this->assertSame(0, MsClient::where('active', true)->count());
@@ -64,6 +78,7 @@ class SanitraMasterSeederTest extends TestCase
         $this->seed(SanitraMasterSeeder::class);
 
         $this->assertSame($companyId, MsCompany::firstOrFail()->id);
+        $this->assertSame(5, MsEmployee::count());
         $this->assertSame(7, MsClient::count());
         $this->assertSame($before, CodeSequence::query()->orderBy('prefix')->pluck('last_number', 'prefix')->all());
         $this->assertSame('COM0002', app(GenerateCodeService::class)->next(AutoCodePrefix::MsCompany));

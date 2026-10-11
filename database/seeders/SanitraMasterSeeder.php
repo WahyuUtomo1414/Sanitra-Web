@@ -33,9 +33,9 @@ class SanitraMasterSeeder extends Seeder
                 $this->synchronizeSequences();
 
                 $this->call([
-                    UserSeeder::class,
                     CompanySeeder::class,
                     EmployeeSeeder::class,
+                    UserSeeder::class,
                     ClientSeeder::class,
                     ProjectSeeder::class,
                     ItemSeeder::class,
