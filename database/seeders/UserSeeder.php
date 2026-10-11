@@ -9,9 +9,15 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate(
-            ['email' => 'super@gmail.com'],
-            ['name' => 'Super Admin', 'password' => '12345678'],
-        );
+        foreach ([
+            ['super@gmail.com', 'Super Admin'],
+            ['marketing@gmail.com', 'Marketing'],
+            ['finance@gmail.com', 'Finance'],
+        ] as [$email, $name]) {
+            User::firstOrCreate(
+                ['email' => $email],
+                ['name' => $name, 'password' => '12345678'],
+            );
+        }
     }
 }

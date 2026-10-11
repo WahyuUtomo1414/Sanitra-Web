@@ -289,7 +289,7 @@ Pada `TransSalesOrderHdResource`:
 - [ ] Migration `trans_sales_term` dengan FK `quotation_hd_id` wajib dan `order_hd_id` nullable.
 - [ ] Model Eloquent: `TransSalesQuotationHd/Dt`, `TransSalesOrderHd/Dt`, `TransSalesTerm`.
 - [ ] Update seeder `MsStatus`: 31 status total; tambah `order`, `order_payment`, update `project`, `project_dt`, `term`, `invoice`.
-- [ ] Enum PHP di `app/Enums/Status/`: `OrderStatus`, `OrderPaymentStatus`; update `ProjectStatus`, `ProjectDtStatus`, `TermStatus`, `InvoiceStatus`.
+- [ ] Enum PHP di `app/Enums/Status/`: `OrderStatus`, `OrderPaymentStatus`; update `ProjectStatus`, `ProjectStageStatus`, `TermStatus`, `InvoiceStatus`.
 - [ ] Tambah case di `AutoCodePrefix`: `TransSalesOrderHd = 'SO'` (atau `ORD`).
 - [ ] Service: `SendQuotationService`, `ApproveQuotationService`, `RejectQuotationService`, `ReviseQuotationService`, `CreateSalesOrderFromQuotationService`.
 - [ ] Resource Filament + relation manager + custom action.

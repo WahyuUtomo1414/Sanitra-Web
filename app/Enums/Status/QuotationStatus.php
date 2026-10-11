@@ -10,7 +10,6 @@ enum QuotationStatus: string
     case Sent = 'sent';
     case Approved = 'approved';
     case Rejected = 'rejected';
-    case Revised = 'revised';
 
     public static function type(): StatusType
     {
@@ -24,7 +23,6 @@ enum QuotationStatus: string
             self::Sent => 'Dikirim',
             self::Approved => 'Disetujui',
             self::Rejected => 'Ditolak',
-            self::Revised => 'Direvisi',
         };
     }
 
@@ -35,7 +33,6 @@ enum QuotationStatus: string
             self::Sent => 'info',
             self::Approved => 'success',
             self::Rejected => 'danger',
-            self::Revised => 'warning',
         };
     }
 }

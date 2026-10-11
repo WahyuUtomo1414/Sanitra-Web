@@ -334,10 +334,10 @@ Daftar lengkap:
 | project | on_progress | On Progress |
 | project | completed | Completed |
 | project | cancelled | Cancelled |
-| project_dt | draft | Draft |
-| project_dt | on_progress | On Progress |
-| project_dt | completed | Completed |
-| project_dt | terkendala | Terkendala |
+| project_dt | draft | Belum Dimulai |
+| project_dt | on_progress | Sedang Dikerjakan |
+| project_dt | completed | Selesai |
+| project_dt | blocked | Terkendala |
 | term | draft | Draft |
 | term | pending | Pending |
 | term | ready_to_bill | Ready to Bill |
@@ -488,6 +488,8 @@ Snapshot tahap project yang dibuat dari master workflow. Model: `TransProjectDt`
 | `end_date` | date | ya | Tanggal selesai tahap. |
 | `notes` | text | ya | Catatan. |
 | `editable` | boolean | tidak | Penanda tahap tidak terkunci. |
+
+Saat status tahap `blocked` (label **Terkendala**), `notes` wajib berisi penjelasan kendala.
 
 ### 4.20 `trans_project_monitoring`
 

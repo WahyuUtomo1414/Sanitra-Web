@@ -44,7 +44,11 @@ class SanitraMasterSeederTest extends TestCase
         $this->assertSame(8, MsItem::count());
         $this->assertSame(8, MsItemUnit::count());
         $this->assertSame(1, MsBankAccount::count());
-        $this->assertSame(25, MsStatus::count());
+        $this->assertSame(31, MsStatus::count());
+        $this->assertEqualsCanonicalizing(
+            ['super@gmail.com', 'marketing@gmail.com', 'finance@gmail.com', 'master-seeder@sanitra.invalid'],
+            User::query()->pluck('email')->all(),
+        );
         $this->assertSame('info@sanitra.co.id', MsCompany::firstOrFail()->email);
         $this->assertFalse(MsBankAccount::firstOrFail()->active);
         $this->assertSame(0, MsClient::where('active', true)->count());
@@ -102,5 +106,24 @@ class SanitraMasterSeederTest extends TestCase
         $this->seed(SanitraMasterSeeder::class);
 
         $this->assertSame('COM0043', app(GenerateCodeService::class)->next(AutoCodePrefix::MsCompany));
+    }
+
+    public function test_reseeding_deactivates_obsolete_status_codes_without_erasing_history(): void
+    {
+        $this->seed(SanitraMasterSeeder::class);
+        $this->actingAs(User::query()->where('email', 'super@gmail.com')->firstOrFail());
+
+        $legacyStatus = MsStatus::create([
+            'type' => 'invoice',
+            'code' => 'issued',
+            'name' => 'Diterbitkan',
+            'active' => true,
+        ]);
+
+        $this->seed(SanitraMasterSeeder::class);
+
+        $this->assertFalse($legacyStatus->fresh()->active);
+        $this->assertSame(31, MsStatus::query()->where('active', true)->count());
+        $this->assertSame(32, MsStatus::query()->count());
     }
 }

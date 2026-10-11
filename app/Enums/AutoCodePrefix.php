@@ -14,10 +14,11 @@ enum AutoCodePrefix: string
     case MsBankAccount = 'BNK';
 
     // Transaksi (format: PREFIX/YY/MM/4 digit, reset per bulan)
-    case TransQuotationHd = 'QUO';
+    case TransSalesQuotationHd = 'QUO';
+    case TransSalesOrderHd = 'SO';
     case TransProjectHd = 'PRO';
-    case TransInvoiceHd = 'INV';
-    case TransPayment = 'PAY';
+    case TransSalesInvoiceHd = 'INV';
+    case TransSalesPayment = 'PAY';
 
     public function format(): CodeFormat
     {

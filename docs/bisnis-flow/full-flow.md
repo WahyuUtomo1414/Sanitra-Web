@@ -122,7 +122,7 @@ Status disimpan di `ms_status` per `type`. SRS v1.3 memakai **31 status** untuk 
 | Payment SO | Unpaid | Partial → Paid | Diperbarui otomatis dari invoice & payment Confirmed |
 | Project | Open | On Progress | Tahap pertama dimulai |
 | Project | On Progress | Completed | Progress 100% (otomatis) |
-| Tahap | Draft/On Progress | Completed / Terkendala | Teknis update; Terkendala wajib notes |
+| Tahap | Belum Dimulai/Sedang Dikerjakan | Selesai / Terkendala | Teknis update; Terkendala (`blocked`) wajib notes |
 | Tahap | Completed | On Progress | Hanya jika belum terkunci, wajib alasan |
 | Termin | Draft | Pending | Quotation Approved, SO dibuat |
 | Termin | Pending | Ready to Bill | Progress ≥ threshold |

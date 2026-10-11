@@ -4,11 +4,12 @@ namespace App\Enums\Status;
 
 use App\Enums\StatusType;
 
-enum ProjectDtStatus: string
+enum ProjectStageStatus: string
 {
-    case Pending = 'pending';
-    case InProgress = 'in_progress';
+    case Draft = 'draft';
+    case OnProgress = 'on_progress';
     case Completed = 'completed';
+    case Blocked = 'blocked';
 
     public static function type(): StatusType
     {
@@ -18,18 +19,20 @@ enum ProjectDtStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'Belum Mulai',
-            self::InProgress => 'Sedang Berjalan',
+            self::Draft => 'Belum Dimulai',
+            self::OnProgress => 'Sedang Dikerjakan',
             self::Completed => 'Selesai',
+            self::Blocked => 'Terkendala',
         };
     }
 
     public function color(): string
     {
         return match ($this) {
-            self::Pending => 'gray',
-            self::InProgress => 'info',
+            self::Draft => 'gray',
+            self::OnProgress => 'info',
             self::Completed => 'success',
+            self::Blocked => 'warning',
         };
     }
 }

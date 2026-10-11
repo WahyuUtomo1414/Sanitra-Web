@@ -6,12 +6,10 @@ use App\Enums\StatusType;
 
 enum InvoiceStatus: string
 {
-    case Draft = 'draft';
-    case Issued = 'issued';
-    case PartiallyPaid = 'partially_paid';
+    case Unpaid = 'unpaid';
+    case Partial = 'partial';
     case Paid = 'paid';
     case Void = 'void';
-    case Overdue = 'overdue';
 
     public static function type(): StatusType
     {
@@ -21,24 +19,20 @@ enum InvoiceStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Draft => 'Draft',
-            self::Issued => 'Diterbitkan',
-            self::PartiallyPaid => 'Dibayar Sebagian',
+            self::Unpaid => 'Belum Dibayar',
+            self::Partial => 'Dibayar Sebagian',
             self::Paid => 'Lunas',
             self::Void => 'Dibatalkan',
-            self::Overdue => 'Jatuh Tempo',
         };
     }
 
     public function color(): string
     {
         return match ($this) {
-            self::Draft => 'gray',
-            self::Issued => 'info',
-            self::PartiallyPaid => 'warning',
+            self::Unpaid => 'gray',
+            self::Partial => 'warning',
             self::Paid => 'success',
             self::Void => 'gray',
-            self::Overdue => 'danger',
         };
     }
 }

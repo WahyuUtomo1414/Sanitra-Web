@@ -316,18 +316,20 @@ Pattern setiap enum:
 - Instance method `label(): string` → label bahasa Indonesia untuk UI.
 - Instance method `color(): string` → warna semantik Filament (`gray`, `info`, `warning`, `success`, `danger`) untuk badge.
 
-**Daftar enum (6 file di `app/Enums/Status/`, total 25 case — sesuai SRS §6.1):**
+**Daftar enum (8 file di `app/Enums/Status/`, total 31 case — sesuai SRS v1.3 §6.1):**
 
 | Enum | Case | Jumlah |
 | --- | --- | --- |
-| `QuotationStatus` | `draft`, `sent`, `approved`, `rejected`, `revised` | 5 |
-| `ProjectStatus` | `ongoing`, `on_hold`, `closed`, `cancelled` | 4 |
-| `ProjectDtStatus` | `pending`, `in_progress`, `completed` | 3 |
-| `TermStatus` | `not_ready`, `ready_to_bill`, `invoiced`, `paid` | 4 |
-| `InvoiceStatus` | `draft`, `issued`, `partially_paid`, `paid`, `void`, `overdue` | 6 |
+| `QuotationStatus` | `draft`, `sent`, `approved`, `rejected` | 4 |
+| `OrderStatus` | `waiting_dp`, `on_progress`, `closed`, `cancelled` | 4 |
+| `OrderPaymentStatus` | `unpaid`, `partial`, `paid` | 3 |
+| `ProjectStatus` | `open`, `on_progress`, `completed`, `cancelled` | 4 |
+| `ProjectStageStatus` | `draft`, `on_progress`, `completed`, `blocked` | 4 |
+| `TermStatus` | `draft`, `pending`, `ready_to_bill`, `invoiced`, `paid` | 5 |
+| `InvoiceStatus` | `unpaid`, `partial`, `paid`, `void` | 4 |
 | `PaymentStatus` | `pending`, `confirmed`, `rejected` | 3 |
 
-**Catatan verifikasi:** daftar case di atas berdasarkan interpretasi alur bisnis di PRD. Verifikasi final terhadap SRS §6.1 saat PDF tersedia — kalau ada beda nama atau tambahan status, update enum + seeder `MsStatus` sekaligus.
+`ProjectStageStatus::Blocked` disimpan sebagai kode `blocked` pada tipe `project_dt`, sementara label UI tetap **Terkendala**. Tahap dengan status ini wajib memiliki catatan kendala.
 
 **Pemakaian di service:**
 

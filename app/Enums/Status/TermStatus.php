@@ -6,7 +6,8 @@ use App\Enums\StatusType;
 
 enum TermStatus: string
 {
-    case NotReady = 'not_ready';
+    case Draft = 'draft';
+    case Pending = 'pending';
     case ReadyToBill = 'ready_to_bill';
     case Invoiced = 'invoiced';
     case Paid = 'paid';
@@ -19,7 +20,8 @@ enum TermStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::NotReady => 'Belum Siap',
+            self::Draft => 'Draft',
+            self::Pending => 'Menunggu',
             self::ReadyToBill => 'Siap Ditagih',
             self::Invoiced => 'Sudah Ditagih',
             self::Paid => 'Lunas',
@@ -29,7 +31,8 @@ enum TermStatus: string
     public function color(): string
     {
         return match ($this) {
-            self::NotReady => 'gray',
+            self::Draft => 'gray',
+            self::Pending => 'gray',
             self::ReadyToBill => 'warning',
             self::Invoiced => 'info',
             self::Paid => 'success',

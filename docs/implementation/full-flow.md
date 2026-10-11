@@ -11,7 +11,7 @@
 - [ ] Update `AutoCodePrefix` (rename ke `TransSales*`, tambah `TransSalesOrderHd = 'SO'`)
 - [ ] Update `StatusType` (tambah `Order`, `OrderPayment`)
 - [ ] Buat `OrderStatus`, `OrderPaymentStatus` di `app/Enums/Status/`
-- [ ] Update `ProjectStatus`, `ProjectDtStatus`, `TermStatus`, `InvoiceStatus`
+- [ ] Update `ProjectStatus`, `ProjectStageStatus`, `TermStatus`, `InvoiceStatus`
 - [ ] Buat `PaymentMethod` (cash/transfer/giro) di `app/Enums/`
 - [ ] Update `SanitraMasterSeeder` loop 8 enum → 31 status
 - [ ] Install `barryvdh/laravel-dompdf` untuk PDF
