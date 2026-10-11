@@ -37,4 +37,4 @@ Panduan bersama untuk layout form, input, tabel, detail, dan format data di apli
 
 - Gunakan komponen atau formatter bersama untuk pola yang berulang, seperti input Rupiah. Hindari menyalin mask dan format angka ke setiap resource.
 - Layout tetap mengikuti kebutuhan alur bisnis tiap modul. Buat komponen layout reusable hanya ketika struktur dan perilakunya memang berulang.
-- Saat mengubah UI, pertahankan test fokus pada hasil bisnis dan perilaku penting. Hindari mengunci test pada judul atau teks presentasi yang mudah berubah.
+- Jangan membuat atau menjalankan test saat membuat code kecuali pengguna memintanya. Jika diminta, fokuskan test pada hasil bisnis dan perilaku penting, bukan teks presentasi yang mudah berubah.

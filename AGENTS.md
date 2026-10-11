@@ -120,9 +120,9 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Testing
 
-- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
-- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
-- When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+- Do not create or run tests by default. The user must explicitly request testing before adding or executing tests.
+- Before tests are enabled again, harden the test database configuration so test execution cannot connect to the application or production database. Require a dedicated test environment and isolated database, and fail fast if the environment or connection is unsafe.
+- If the user requests tests, use factories and existing factory states, follow the existing Faker conventions, and create tests with `php artisan make:test [options] {name}`.
 
 === pint/core rules ===
 
@@ -141,8 +141,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Running Tests
 
-- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
-- Rerun a test after each change to it.
-- Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+- Do not execute PHPUnit or Artisan test commands unless the user explicitly asks.
+- If the user asks to run tests, run only the narrowest relevant set after confirming the database safety guard is in place. Never run tests against production or the application database.
 
 </laravel-boost-guidelines>
