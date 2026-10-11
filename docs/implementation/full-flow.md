@@ -4,24 +4,26 @@
 
 **Acuan:** [bisnis-flow/full-flow.md](../bisnis-flow/full-flow.md), [database.md](../database.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)
 
+**Status audit 11 Oktober 2026:** Enum dan 31 status aktif sudah tersedia. Sebelas migration transaksi sudah dijalankan di MySQL; model, relasi, factory, dan seeder data contoh sudah ada. Service bisnis, resource transaksi Filament, PDF, notifikasi, dan pengujian flow end-to-end belum dibuat. `TransactionSchemaTest` lulus (4 test, 22 assertion); pengujian ini membuktikan schema/relasi dan seeder contoh, bukan flow bisnis.
+
 > **Reminder:** Tiap selesai item, update work log harian di `docs/work/YYYY-MM-DD.md` (ganti tanggal tiap hari, buat file baru untuk hari baru).
 
 ## Phase 0 — Prasyarat (enum + status)
 
-- [ ] Update `AutoCodePrefix` (rename ke `TransSales*`, tambah `TransSalesOrderHd = 'SO'`)
-- [ ] Update `StatusType` (tambah `Order`, `OrderPayment`)
-- [ ] Buat `OrderStatus`, `OrderPaymentStatus` di `app/Enums/Status/`
-- [ ] Update `ProjectStatus`, `ProjectStageStatus`, `TermStatus`, `InvoiceStatus`
-- [ ] Buat `PaymentMethod` (cash/transfer/giro) di `app/Enums/`
-- [ ] Update `SanitraMasterSeeder` loop 8 enum → 31 status
+- [x] Update `AutoCodePrefix` (rename ke `TransSales*`, tambah `TransSalesOrderHd = 'SO'`)
+- [x] Update `StatusType` (tambah `Order`, `OrderPayment`)
+- [x] Buat `OrderStatus`, `OrderPaymentStatus` di `app/Enums/Status/`
+- [x] Update `ProjectStatus`, `ProjectStageStatus`, `TermStatus`, `InvoiceStatus`
+- [x] Buat `PaymentMethod` (cash/transfer/giro) di `app/Enums/`
+- [x] Update `StatusSeeder` untuk 8 enum → 31 status; dipanggil oleh `SanitraMasterSeeder`
 - [ ] Install `barryvdh/laravel-dompdf` untuk PDF
-- [ ] Jalankan seeder dan verifikasi 31 status
+- [x] Jalankan seeder dan verifikasi 31 status aktif di MySQL
 
 ## Phase 1 — Marketing (Quotation + Sales Order + Term)
 
 Detail: [marketing.md](marketing.md)
 
-- [ ] Migration + Model: `trans_sales_quotation_hd/dt`, `trans_sales_order_hd/dt`, `trans_sales_term`
+- [x] Migration + Model: `trans_sales_quotation_hd/dt`, `trans_sales_order_hd/dt`, `trans_sales_term`
 - [ ] Service: `SendQuotationService`, `ApproveQuotationService` (trigger `CreateSalesOrderFromQuotationService`), `RejectQuotationService`, `ReviseQuotationService`
 - [ ] Filament Resource `TransSalesQuotationHdResource` + Items/Terms Relation Manager
 - [ ] Custom Action quotation: Send, Approve, Reject, Revisi, **Print PDF**
@@ -32,9 +34,9 @@ Detail: [marketing.md](marketing.md)
 
 ## Phase 2 — Project schema (scaffolding, tanpa service/resource)
 
-- [ ] Migration + Model `trans_project_hd` (FK `order_hd_id` unique)
-- [ ] Migration + Model `trans_project_dt`
-- [ ] Migration + Model `trans_project_monitoring` (append-only)
+- [x] Migration + Model `trans_project_hd` (FK `order_hd_id` unique)
+- [x] Migration + Model `trans_project_dt`
+- [x] Migration + Model `trans_project_monitoring` (append-only)
 
 Project resource dan service **ditunda** ke phase berikutnya di luar scope ini.
 
@@ -42,7 +44,7 @@ Project resource dan service **ditunda** ke phase berikutnya di luar scope ini.
 
 Detail: [finance.md](finance.md)
 
-- [ ] Migration + Model: `trans_sales_invoice_hd/dt`, `trans_sales_payment`
+- [x] Migration + Model: `trans_sales_invoice_hd/dt`, `trans_sales_payment`
 - [ ] Service: `CreateInvoiceFromTermsService`, `VoidInvoiceService`, `RecordPaymentService`, `ConfirmPaymentService`, `RejectPaymentService`
 - [ ] Custom Page: pemilihan termin Ready to Bill untuk pembuatan invoice
 - [ ] Filament Resource `TransSalesInvoiceHdResource` + Items/Payments Relation Manager
@@ -56,12 +58,12 @@ Detail: [finance.md](finance.md)
 
 ## Phase 4 — Seeder data contoh (opsional, UAT)
 
-- [ ] `SanitraTransactionSampleSeeder`: 1 quotation Draft + 1 Sent + 1 Approved (dengan SO + DP invoice + payment Pending)
-- [ ] Jangan dipanggil dari `DatabaseSeeder` production
+- [x] `SanitraTransactionSampleSeeder`: 1 quotation Draft + 1 Sent + 1 Approved (dengan SO + DP invoice + payment Pending)
+- [x] Jangan dipanggil dari `DatabaseSeeder` production
 
 ## Phase 5 — Verifikasi akhir
 
-- [ ] Semua migration up (`php artisan migrate:status`)
+- [x] Semua migration up (`php artisan migrate:status`, MySQL lokal pada 11 Oktober 2026)
 - [ ] Semua resource bisa diakses dari panel Filament
 - [ ] Flow end-to-end: buat quotation → approve → SO otomatis → bikin invoice DP → confirm payment → termin Paid, SO payment_status update
 - [ ] Export Excel aktif di seluruh resource transaksi

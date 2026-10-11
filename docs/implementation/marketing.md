@@ -4,26 +4,28 @@
 
 **Acuan:** [bisnis-flow/marketing.md](../bisnis-flow/marketing.md), [filament-resource.md](../filament-resource.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)
 
+**Status audit 11 Oktober 2026:** Schema dan model Quotation, Sales Order, serta Term sudah tersedia; seluruh migration terkait sudah `Ran`. Service transisi, resource Filament transaksi, PDF, dan notifikasi belum dibuat. Test yang ada baru menguji schema/relasi dan seeder contoh, belum flow Marketing.
+
 > **Reminder:** Tiap selesai item, update `docs/work/YYYY-MM-DD.md` (ganti tanggal tiap hari, buat file baru per hari).
 
 ## 1. Migration
 
-- [ ] `trans_sales_quotation_hd`
-- [ ] `trans_sales_quotation_dt`
-- [ ] `trans_sales_order_hd` (unique `quotation_hd_id`, kolom tambahan `payment_status_id`)
-- [ ] `trans_sales_order_dt`
-- [ ] `trans_sales_term` (FK `quotation_hd_id` wajib, `order_hd_id` nullable)
-- [ ] Jalankan `php artisan migrate` dan cek `migrate:status`
+- [x] `trans_sales_quotation_hd`
+- [x] `trans_sales_quotation_dt`
+- [x] `trans_sales_order_hd` (unique `quotation_hd_id`, kolom tambahan `payment_status_id`)
+- [x] `trans_sales_order_dt`
+- [x] `trans_sales_term` (FK `quotation_hd_id` wajib, `order_hd_id` nullable)
+- [x] Jalankan `php artisan migrate` dan cek `migrate:status` (terverifikasi `Ran` di MySQL lokal)
 
 ## 2. Model Eloquent
 
-- [ ] `TransSalesQuotationHd` + relasi `items`, `terms`, `order`, `client`, `projectType`, `company`, `status`
-- [ ] `TransSalesQuotationDt` + relasi `quotation`, `item`, `unit`
-- [ ] `TransSalesOrderHd` + relasi `quotation`, `items`, `terms`, `project`, `invoices`, `status`, `paymentStatus`
-- [ ] `TransSalesOrderDt` + relasi `order`, `quotationDetail`, `item`, `unit`
-- [ ] `TransSalesTerm` + relasi `quotation`, `order`, `status`, `invoiceDetails`
-- [ ] Cast `vat_type` (VatType), nominal (`decimal:6`), tanggal (`date`)
-- [ ] Pasang `AuditedBySoftDelete` + `SoftDeletes` + (opsional) `LogsMasterActivity`
+- [x] `TransSalesQuotationHd` + relasi `items`, `terms`, `order`, `client`, `projectType`, `company`, `status`
+- [x] `TransSalesQuotationDt` + relasi `quotation`, `item`, `unit`
+- [x] `TransSalesOrderHd` + relasi `quotation`, `items`, `terms`, `project`, `invoices`, `status`, `paymentStatus`
+- [x] `TransSalesOrderDt` + relasi `order`, `quotationDetail`, `item`, `unit`
+- [x] `TransSalesTerm` + relasi `quotation`, `order`, `status`, `invoiceDetails`
+- [x] Cast `vat_type` (VatType), nominal (`decimal:6`), tanggal (`date`)
+- [x] Pasang `AuditedBySoftDelete` + `SoftDeletes` pada model transaksi; `LogsMasterActivity` tetap opsional dan belum dipasang
 
 ## 3. Service (`app/Services/`)
 

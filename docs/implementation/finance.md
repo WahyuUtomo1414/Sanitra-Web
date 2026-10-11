@@ -4,27 +4,29 @@
 
 **Acuan:** [bisnis-flow/finance.md](../bisnis-flow/finance.md), [filament-resource.md](../filament-resource.md), [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)
 
+**Status audit 11 Oktober 2026:** Schema dan model Invoice serta Payment sudah tersedia; migration terkait sudah `Ran`. Phase Marketing belum selesai, sehingga service, UI transaksi, PDF, dashboard Finance, dan notifikasi masih menunggu implementasi. Test yang ada baru menguji schema/relasi dan seeder contoh, belum flow Finance.
+
 > **Reminder:** Tiap selesai item, update `docs/work/YYYY-MM-DD.md` (ganti tanggal tiap hari, buat file baru per hari).
 
 ## Prasyarat
 
 - [ ] Phase 1 Marketing selesai (SO + termin sudah ada)
-- [ ] Phase 2 Project schema selesai (`trans_project_hd` ada supaya FK invoice valid)
+- [x] Phase 2 Project schema selesai (`trans_project_hd` ada supaya FK invoice valid)
 
 ## 1. Migration
 
-- [ ] `trans_sales_invoice_hd` (FK `order_hd_id` wajib, `project_hd_id` nullable, index `due_date`)
-- [ ] `trans_sales_invoice_dt` (FK `sales_term_id`)
-- [ ] `trans_sales_payment` (FK `invoice_hd_id`)
-- [ ] Jalankan `php artisan migrate`
+- [x] `trans_sales_invoice_hd` (FK `order_hd_id` wajib, `project_hd_id` nullable, index `due_date`)
+- [x] `trans_sales_invoice_dt` (FK `sales_term_id`)
+- [x] `trans_sales_payment` (FK `invoice_hd_id`)
+- [x] Jalankan `php artisan migrate` (terverifikasi `Ran` di MySQL lokal)
 
 ## 2. Model Eloquent
 
-- [ ] `TransSalesInvoiceHd` + relasi `order`, `project`, `quotation`, `client`, `company`, `bankAccount`, `status`, `items`, `payments`
-- [ ] `TransSalesInvoiceDt` + relasi `invoice`, `salesTerm`
-- [ ] `TransSalesPayment` + relasi `invoice`, `status`
-- [ ] Cast `vat_type` (VatType), nominal `decimal:6`, tanggal `date`
-- [ ] Cast `payment_method` → `PaymentMethod::class`
+- [x] `TransSalesInvoiceHd` + relasi `order`, `project`, `quotation`, `client`, `company`, `bankAccount`, `status`, `items`, `payments`
+- [x] `TransSalesInvoiceDt` + relasi `invoice`, `salesTerm`
+- [x] `TransSalesPayment` + relasi `invoice`, `status`
+- [x] Cast `vat_type` (VatType), nominal `decimal:6`, tanggal `date`
+- [x] Cast `payment_method` → `PaymentMethod::class`
 - [ ] Accessor opsional: `remainingAmount()`, `isOverdue()` di invoice
 
 ## 3. Service (`app/Services/`)
