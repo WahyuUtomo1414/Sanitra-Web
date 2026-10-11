@@ -22,7 +22,7 @@ class ManageQuotationItemsService
             'unit_id' => ['required', 'integer', 'exists:ms_unit,id'],
             'qty' => ['required', 'integer', 'min:1'],
             'unit_price' => ['required', 'numeric', 'min:0'],
-            'discount' => ['required', 'numeric', 'min:0'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ])->validate();
 
@@ -38,9 +38,10 @@ class ManageQuotationItemsService
                 throw ValidationException::withMessages(['unit_id' => 'Unit tidak tersedia untuk item ini.']);
             }
 
+            $discount = (string) ($data['discount'] ?? '0');
             $gross = bcmul((string) $data['qty'], (string) $data['unit_price'], 6);
 
-            if (bccomp((string) $data['discount'], $gross, 6) > 0) {
+            if (bccomp($discount, $gross, 6) > 0) {
                 throw ValidationException::withMessages(['discount' => 'Diskon tidak boleh melebihi harga baris.']);
             }
 
@@ -49,8 +50,8 @@ class ManageQuotationItemsService
                 'unit_id' => $data['unit_id'],
                 'qty' => $data['qty'],
                 'unit_price' => $data['unit_price'],
-                'discount' => $data['discount'],
-                'total_price' => bcsub($gross, (string) $data['discount'], 6),
+                'discount' => $discount,
+                'total_price' => bcsub($gross, $discount, 6),
                 'notes' => $data['notes'] ?? null,
             ];
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TransSalesQuotationHds\Schemas;
 
 use App\Enums\VatType;
+use App\Support\Formatting\IndonesianMoneyFormatter;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -25,10 +26,14 @@ class TransSalesQuotationHdInfolist
             Section::make('Nominal')->columnSpanFull()->columns(2)->schema([
                 TextEntry::make('vat_type')->label('Jenis PPN')
                     ->formatStateUsing(fn (VatType $state): string => $state->label()),
-                TextEntry::make('discount_total')->label('Total Diskon')->money('IDR'),
-                TextEntry::make('subtotal')->label('Subtotal')->money('IDR'),
-                TextEntry::make('vat_amount')->label('PPN')->money('IDR'),
-                TextEntry::make('grand_total')->label('Grand Total')->money('IDR'),
+                TextEntry::make('discount_total')->label('Total Diskon')
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                TextEntry::make('subtotal')->label('Subtotal')
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                TextEntry::make('vat_amount')->label('PPN')
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                TextEntry::make('grand_total')->label('Grand Total')
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
             ]),
             Section::make('Audit Data')->columnSpanFull()->columns(2)->collapsible()->schema([
                 TextEntry::make('createdBy.name')->label('Dibuat Oleh')->placeholder('-'),

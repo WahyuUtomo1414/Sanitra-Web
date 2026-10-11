@@ -13,11 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class ManageQuotationTermsService
 {
+    public function __construct(public RecalculateQuotationTermAmountsService $recalculateTermAmounts) {}
+
     /** @param array<string, mixed> $data */
     public function save(TransSalesQuotationHd $quotation, array $data, ?TransSalesTerm $term = null): TransSalesTerm
     {
         $data = Validator::make($data, [
-            'sequence' => ['required', 'integer', 'min:1'],
             'term_name' => ['required', 'string', 'max:128'],
             'percentage' => ['required', 'integer', 'between:1,100'],
             'progress_threshold' => ['required', 'integer', 'between:0,100'],
@@ -31,11 +32,8 @@ class ManageQuotationTermsService
                 throw ValidationException::withMessages(['term_name' => 'Termin tidak termasuk quotation ini.']);
             }
 
+            $sequence = $term?->sequence ?? ((int) $quotation->terms()->max('sequence') + 1);
             $siblings = $quotation->terms()->when($term, fn ($query) => $query->whereKeyNot($term->id));
-
-            if ((clone $siblings)->where('sequence', $data['sequence'])->exists()) {
-                throw ValidationException::withMessages(['sequence' => 'Urutan termin sudah digunakan.']);
-            }
 
             if ((int) $data['progress_threshold'] === 0
                 && (clone $siblings)->where('progress_threshold', 0)->exists()) {
@@ -47,7 +45,7 @@ class ManageQuotationTermsService
             }
 
             $attributes = [
-                'sequence' => $data['sequence'],
+                'sequence' => $sequence,
                 'term_name' => $data['term_name'],
                 'percentage' => $data['percentage'],
                 'progress_threshold' => $data['progress_threshold'],
@@ -56,31 +54,34 @@ class ManageQuotationTermsService
 
             if ($term) {
                 $term->update($attributes);
+                $this->recalculateTermAmounts->execute($quotation);
 
                 return $term;
             }
 
             $deletedTerm = $quotation->terms()->withTrashed()
-                ->where('sequence', $data['sequence'])->whereNotNull('deleted_at')->first();
+                ->where('sequence', $sequence)->whereNotNull('deleted_at')->first();
 
             if ($deletedTerm) {
                 $deletedTerm->restore();
                 $deletedTerm->update([
                     ...$attributes,
-                    'amount' => 0,
                     'status_id' => MsStatus::query()->where('type', TermStatus::type()->value)
                         ->where('code', TermStatus::Draft->value)->where('active', true)->firstOrFail()->id,
                 ]);
+                $this->recalculateTermAmounts->execute($quotation);
 
                 return $deletedTerm;
             }
 
-            return $quotation->terms()->create([
+            $createdTerm = $quotation->terms()->create([
                 ...$attributes,
-                'amount' => 0,
                 'status_id' => MsStatus::query()->where('type', TermStatus::type()->value)
                     ->where('code', TermStatus::Draft->value)->where('active', true)->firstOrFail()->id,
             ]);
+            $this->recalculateTermAmounts->execute($quotation);
+
+            return $createdTerm;
         });
     }
 
@@ -93,7 +94,10 @@ class ManageQuotationTermsService
                 throw ValidationException::withMessages(['term_name' => 'Termin tidak termasuk quotation ini.']);
             }
 
-            return $term->delete();
+            $deleted = $term->delete();
+            $this->recalculateTermAmounts->execute($quotation);
+
+            return $deleted;
         });
     }
 

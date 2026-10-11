@@ -69,18 +69,9 @@ class CreateSalesOrderFromQuotationService
             ]);
         }
 
-        $allocated = '0.000000';
-        $lastTermId = $quotation->terms->sortBy('sequence')->last()->id;
-
         foreach ($quotation->terms->sortBy('sequence') as $term) {
-            $amount = $term->id === $lastTermId
-                ? bcsub((string) $quotation->grand_total, $allocated, 6)
-                : bcdiv(bcmul((string) $quotation->grand_total, (string) $term->percentage, 6), '100', 6);
-            $allocated = bcadd($allocated, $amount, 6);
-
             $term->update([
                 'order_hd_id' => $order->id,
-                'amount' => $amount,
                 'status_id' => $this->statusId(
                     TermStatus::type()->value,
                     (int) $term->progress_threshold === 0 ? TermStatus::ReadyToBill->value : TermStatus::Pending->value,

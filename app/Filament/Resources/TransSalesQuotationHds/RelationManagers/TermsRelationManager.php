@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TransSalesQuotationHds\RelationManagers;
 use App\Enums\Status\QuotationStatus;
 use App\Models\TransSalesTerm;
 use App\Services\Quotation\ManageQuotationTermsService;
+use App\Support\Formatting\IndonesianMoneyFormatter;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -24,7 +25,6 @@ class TermsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('sequence')->label('Urutan')->integer()->minValue(1)->required(),
             TextInput::make('term_name')->label('Nama Termin')->required()->maxLength(128),
             TextInput::make('percentage')->label('Persentase')->integer()->minValue(1)->maxValue(100)->required()->suffix('%'),
             TextInput::make('progress_threshold')->label('Threshold Progres')
@@ -43,7 +43,8 @@ class TermsRelationManager extends RelationManager
                 TextColumn::make('term_name')->label('Termin')->searchable(),
                 TextColumn::make('percentage')->label('Persentase')->suffix('%'),
                 TextColumn::make('progress_threshold')->label('Threshold')->suffix('%'),
-                TextColumn::make('amount')->label('Nilai')->money('IDR'),
+                TextColumn::make('amount')->label('Nilai')
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
                 TextColumn::make('status.name')->label('Status')->badge(),
             ])
             ->headerActions([

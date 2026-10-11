@@ -27,6 +27,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class QuotationFlowTest extends TestCase
@@ -36,17 +37,22 @@ class QuotationFlowTest extends TestCase
     public function test_marketing_can_create_draft_quotation_from_form(): void
     {
         $this->seed(SanitraMasterSeeder::class);
-        $this->actingAs(User::query()->where('email', 'marketing@gmail.com')->firstOrFail());
+        $marketing = User::query()->where('email', 'marketing@gmail.com')->firstOrFail();
+        $marketing->givePermissionTo(
+            Permission::findOrCreate('ViewAny:TransSalesQuotationHd', 'web'),
+            Permission::findOrCreate('Create:TransSalesQuotationHd', 'web'),
+        );
+        $this->actingAs($marketing);
         Filament::setCurrentPanel(Filament::getPanel('dashboard'));
         $projectType = MsProjectType::query()->firstOrFail();
         $client = MsClient::query()->firstOrFail();
         $client->update(['active' => true]);
 
         Livewire::test(CreateTransSalesQuotationHd::class)
+            ->set('data.project_type_id', $projectType->id)
+            ->assertFormSet(['company_id' => $projectType->company_id])
             ->fillForm([
                 'transaction_date' => '2026-10-11',
-                'payment_type' => 'Termin',
-                'company_id' => $projectType->company_id,
                 'project_type_id' => $projectType->id,
                 'client_id' => $client->id,
                 'vat_type' => 'none',
@@ -57,16 +63,49 @@ class QuotationFlowTest extends TestCase
         $quotation = TransSalesQuotationHd::query()->firstOrFail();
         $this->assertSame('draft', $quotation->status->code);
         $this->assertStringStartsWith('QUO/', $quotation->code);
+        $this->assertSame('Termin', $quotation->payment_type);
+        $this->assertSame($projectType->company_id, $quotation->company_id);
     }
 
     public function test_quotation_pages_show_form_and_existing_record(): void
     {
         $this->seed(SanitraMasterSeeder::class);
-        $this->actingAs(User::query()->where('email', 'marketing@gmail.com')->firstOrFail());
+        $marketing = User::query()->where('email', 'marketing@gmail.com')->firstOrFail();
+        $marketing->givePermissionTo(
+            Permission::findOrCreate('ViewAny:TransSalesQuotationHd', 'web'),
+            Permission::findOrCreate('Create:TransSalesQuotationHd', 'web'),
+            Permission::findOrCreate('View:TransSalesQuotationHd', 'web'),
+        );
+        $this->actingAs($marketing);
         $quotation = TransSalesQuotationHd::factory()->create();
 
-        $this->get('/dashboard/quotations/create')->assertSee('Skema Pembayaran');
+        $this->get('/dashboard/quotations/create')->assertOk();
         $this->get('/dashboard/quotations/'.$quotation->id)->assertSee($quotation->code);
+    }
+
+    public function test_client_can_be_created_from_quotation_form(): void
+    {
+        $this->seed(SanitraMasterSeeder::class);
+        $marketing = User::query()->where('email', 'marketing@gmail.com')->firstOrFail();
+        $marketing->givePermissionTo(
+            Permission::findOrCreate('ViewAny:TransSalesQuotationHd', 'web'),
+            Permission::findOrCreate('Create:TransSalesQuotationHd', 'web'),
+        );
+        $this->actingAs($marketing);
+        Filament::setCurrentPanel(Filament::getPanel('dashboard'));
+
+        Livewire::test(CreateTransSalesQuotationHd::class)
+            ->callFormComponentAction('client_id', 'createOption', [
+                'name' => 'Klien Baru',
+                'email' => 'klien-baru@example.com',
+                'phone' => '08123456789',
+                'address' => 'Jakarta',
+                'active' => true,
+            ])
+            ->assertHasNoFormErrors();
+
+        $client = MsClient::query()->where('email', 'klien-baru@example.com')->firstOrFail();
+        $this->assertSame('Klien Baru', $client->name);
     }
 
     public function test_pdf_template_renders_item_and_term_amounts(): void
@@ -104,7 +143,6 @@ class QuotationFlowTest extends TestCase
             'discount' => 100000,
         ]);
         $term = app(ManageQuotationTermsService::class)->save($quotation, [
-            'sequence' => 1,
             'term_name' => 'DP',
             'percentage' => 100,
             'progress_threshold' => 0,
@@ -127,7 +165,6 @@ class QuotationFlowTest extends TestCase
         $quotation = TransSalesQuotationHd::factory()->create();
         $service = app(ManageQuotationTermsService::class);
         $term = $service->save($quotation, [
-            'sequence' => 1,
             'term_name' => 'DP Lama',
             'percentage' => 100,
             'progress_threshold' => 0,
@@ -135,7 +172,6 @@ class QuotationFlowTest extends TestCase
         $service->delete($quotation, $term);
 
         $replacement = $service->save($quotation, [
-            'sequence' => 1,
             'term_name' => 'DP Baru',
             'percentage' => 100,
             'progress_threshold' => 0,

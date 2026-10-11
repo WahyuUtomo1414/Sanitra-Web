@@ -5,9 +5,11 @@ namespace App\Filament\Resources\TransSalesQuotationHds\Pages;
 use App\Enums\Status\QuotationStatus;
 use App\Filament\Resources\TransSalesQuotationHds\TransSalesQuotationHdResource;
 use App\Services\Quotation\ApproveQuotationService;
+use App\Services\Quotation\QuotationPdfDataService;
 use App\Services\Quotation\RejectQuotationService;
 use App\Services\Quotation\ReviseQuotationService;
 use App\Services\Quotation\SendQuotationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -20,6 +22,12 @@ class ViewTransSalesQuotationHd extends ViewRecord
     {
         return [
             EditAction::make()->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value),
+            Action::make('generatePdf')->label('Generate PDF')->icon('heroicon-o-document-arrow-down')
+                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value)
+                ->action(fn () => Pdf::loadView(
+                    'pdf.quotation',
+                    app(QuotationPdfDataService::class)->execute($this->record),
+                )->download(str_replace('/', '-', $this->record->code).'.pdf')),
             Action::make('send')->label('Kirim')->color('info')
                 ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value)
                 ->requiresConfirmation()

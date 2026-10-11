@@ -4,6 +4,8 @@ namespace App\Filament\Resources\TransSalesQuotationHds\Tables;
 
 use App\Enums\Status\QuotationStatus;
 use App\Models\TransSalesQuotationHd;
+use App\Support\Formatting\IndonesianMoneyFormatter;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
@@ -23,7 +25,9 @@ class TransSalesQuotationHdsTable
                 TextColumn::make('code')->label('Nomor')->searchable()->sortable(),
                 TextColumn::make('transaction_date')->label('Tanggal')->date('d M Y')->sortable(),
                 TextColumn::make('client.name')->label('Klien')->searchable(),
-                TextColumn::make('grand_total')->label('Grand Total')->money('IDR')->sortable(),
+                TextColumn::make('grand_total')->label('Grand Total')
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state))
+                    ->sortable(),
                 TextColumn::make('status.name')->label('Status')->badge()
                     ->color(fn (TransSalesQuotationHd $record): string => QuotationStatus::from($record->status->code)->color()),
                 TextColumn::make('createdBy.name')->label('Dibuat Oleh')->toggleable(),
@@ -47,6 +51,7 @@ class TransSalesQuotationHdsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make()->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value),
+                DeleteAction::make()->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value),
             ]);
     }
 }

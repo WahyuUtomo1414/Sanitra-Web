@@ -8,6 +8,8 @@ use DomainException;
 
 class RecalculateQuotationTotalsService
 {
+    public function __construct(public RecalculateQuotationTermAmountsService $recalculateTermAmounts) {}
+
     public function execute(TransSalesQuotationHd $quotation): TransSalesQuotationHd
     {
         $subtotal = $quotation->items()->sum('total_price');
@@ -35,6 +37,9 @@ class RecalculateQuotationTotalsService
                 : $subtotal,
         ]);
 
-        return $quotation->refresh();
+        $quotation->refresh();
+        $this->recalculateTermAmounts->execute($quotation);
+
+        return $quotation;
     }
 }

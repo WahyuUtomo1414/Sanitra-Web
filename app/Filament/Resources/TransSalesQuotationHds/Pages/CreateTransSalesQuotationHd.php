@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TransSalesQuotationHds\Pages;
 use App\Enums\AutoCodePrefix;
 use App\Enums\Status\QuotationStatus;
 use App\Filament\Resources\TransSalesQuotationHds\TransSalesQuotationHdResource;
+use App\Models\MsProjectType;
 use App\Models\MsStatus;
 use App\Services\Shared\GenerateCodeService;
 use Filament\Resources\Pages\CreateRecord;
@@ -13,9 +14,16 @@ class CreateTransSalesQuotationHd extends CreateRecord
 {
     protected static string $resource = TransSalesQuotationHdResource::class;
 
+    protected function getRedirectUrl(): string
+    {
+        return EditTransSalesQuotationHd::getUrl(['record' => $this->getRecord()]);
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['code'] = app(GenerateCodeService::class)->next(AutoCodePrefix::TransSalesQuotationHd);
+        $data['payment_type'] = 'Termin';
+        $data['company_id'] = MsProjectType::query()->findOrFail($data['project_type_id'])->company_id;
         $data['status_id'] = MsStatus::query()->where('type', QuotationStatus::type()->value)
             ->where('code', QuotationStatus::Draft->value)->where('active', true)->firstOrFail()->id;
         $data['vat_amount'] = 0;
