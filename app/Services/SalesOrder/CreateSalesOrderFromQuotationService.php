@@ -12,12 +12,18 @@ use App\Models\TransSalesOrderHd;
 use App\Models\TransSalesQuotationHd;
 use App\Services\Shared\GenerateCodeService;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 class CreateSalesOrderFromQuotationService
 {
     public function __construct(public GenerateCodeService $generateCode) {}
 
     public function execute(TransSalesQuotationHd $quotation): TransSalesOrderHd
+    {
+        return DB::transaction(fn (): TransSalesOrderHd => $this->run($quotation));
+    }
+
+    private function run(TransSalesQuotationHd $quotation): TransSalesOrderHd
     {
         if ($quotation->status?->code !== QuotationStatus::Sent->value) {
             throw new DomainException('Sales Order hanya dapat dibuat dari quotation Terkirim.');

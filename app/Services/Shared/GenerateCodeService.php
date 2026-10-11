@@ -25,6 +25,63 @@ class GenerateCodeService
         });
     }
 
+    /**
+     * Turunkan `last_number` di `sys_code_sequence` **hanya** kalau nomor di `$code`
+     * benar-benar nomor terakhir untuk (prefix, year, month). Dipakai saat Draft
+     * di-discard (force-delete) supaya kodenya bisa dipakai ulang. Tidak memaksa
+     * decrement kalau kode yang dihapus bukan nomor terakhir — mencegah tabrakan
+     * dengan record lain di periode yang sama.
+     */
+    public function releaseIfLatest(AutoCodePrefix $prefix, string $code): bool
+    {
+        return DB::transaction(function () use ($prefix, $code): bool {
+            $parsed = $this->parseCode($prefix, $code);
+
+            $sequence = CodeSequence::where('prefix', $prefix->value)
+                ->where('year', $parsed['year'])
+                ->where('month', $parsed['month'])
+                ->lockForUpdate()
+                ->first();
+
+            if (! $sequence || $sequence->last_number !== $parsed['number']) {
+                return false;
+            }
+
+            $sequence->decrement('last_number');
+
+            return true;
+        });
+    }
+
+    /**
+     * @return array{year: ?int, month: ?int, number: int}
+     */
+    private function parseCode(AutoCodePrefix $prefix, string $code): array
+    {
+        $format = $prefix->format();
+        $prefixValue = preg_quote($prefix->value, '#');
+
+        if ($format === CodeFormat::Transaction
+            && preg_match('#^'.$prefixValue.'/(\d{2})/(\d{2})/(\d{4})$#', $code, $m)) {
+            return [
+                'year' => 2000 + (int) $m[1],
+                'month' => (int) $m[2],
+                'number' => (int) $m[3],
+            ];
+        }
+
+        if ($format === CodeFormat::Master
+            && preg_match('#^'.$prefixValue.'(\d{4})$#', $code, $m)) {
+            return [
+                'year' => null,
+                'month' => null,
+                'number' => (int) $m[1],
+            ];
+        }
+
+        throw new \DomainException("Format kode tidak dikenal untuk prefix {$prefix->value}: {$code}");
+    }
+
     protected function lockOrCreateSequence(string $prefix, ?int $year, ?int $month): CodeSequence
     {
         $sequence = CodeSequence::where('prefix', $prefix)

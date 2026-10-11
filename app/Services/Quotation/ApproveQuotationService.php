@@ -22,6 +22,8 @@ class ApproveQuotationService
                 throw new DomainException('Hanya quotation Terkirim yang dapat disetujui.');
             }
 
+            // Panggil pembuatan Sales Order sebelum flip status ke `approved` karena
+            // CreateSalesOrderFromQuotationService memakai status `sent` sebagai guard.
             $this->createSalesOrder->execute($quotation);
 
             $quotation->update([

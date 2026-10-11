@@ -20,11 +20,23 @@ class IndonesianMoneyFormatter
             return null;
         }
 
-        return number_format((float) $amount, 0, '.', '');
+        $value = (string) $amount;
+
+        if (preg_match('/\.\d{6}$/', $value)) {
+            $value = substr($value, 0, strrpos($value, '.'));
+        }
+
+        return preg_replace('/\D/', '', $value) ?: '0';
     }
 
     public static function parseInput(int|float|string|null $amount): string
     {
-        return preg_replace('/\D/', '', (string) $amount) ?: '0';
+        $value = (string) $amount;
+
+        if (preg_match('/\.\d{6}$/', $value)) {
+            $value = substr($value, 0, strrpos($value, '.'));
+        }
+
+        return preg_replace('/\D/', '', $value) ?: '0';
     }
 }

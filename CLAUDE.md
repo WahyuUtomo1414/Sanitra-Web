@@ -146,3 +146,23 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+
+# Project safety rules — WAJIB DIBACA (Sanitra)
+
+## Tests + MySQL safety
+
+Pernah terjadi: `php artisan test` memicu `migrate:fresh` di MySQL `sanitra` live
+dan menghapus semua row domain. Penyebab: `bootstrap/cache/config.php` ada
+(hasil `php artisan config:cache`) → `env()` override dari `phpunit.xml` diabaikan
+→ `LazilyRefreshDatabase` jalan di MySQL, bukan SQLite in-memory.
+
+**Aturan mutlak sebelum menjalankan test apa pun:**
+
+1. **Jangan menjalankan `php artisan test` kecuali pengguna meminta secara eksplisit.**
+2. Kalau pengguna meminta test, jalankan preflight:
+   - Cek `ls bootstrap/cache/config.php`. Kalau ada → `php artisan config:clear` dulu.
+   - Verifikasi `config('database.default')` return `sqlite` saat `APP_ENV=testing`.
+   - Baru jalankan test. Kalau database default masih `mysql`, **berhenti**, lapor pengguna.
+3. **Jangan jalankan** `migrate:fresh`, `migrate:refresh`, `db:wipe`, atau
+   `migrate:rollback` di koneksi default lokal tanpa izin pengguna.
+4. Prosedur lengkap + recovery ada di [`docs/testing-safety.md`](docs/testing-safety.md).

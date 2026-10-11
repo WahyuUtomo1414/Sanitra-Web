@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\TransSalesQuotationHds\Tables;
 
+use App\Enums\AutoCodePrefix;
 use App\Enums\Status\QuotationStatus;
 use App\Models\TransSalesQuotationHd;
+use App\Services\Shared\GenerateCodeService;
 use App\Support\Formatting\IndonesianMoneyFormatter;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class TransSalesQuotationHdsTable
 {
@@ -51,7 +54,26 @@ class TransSalesQuotationHdsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make()->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value),
-                DeleteAction::make()->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value),
+                DeleteAction::make()
+                    ->label('Buang Draft')
+                    ->modalDescription('Draft dan seluruh item/termin-nya akan dihapus permanen; nomor quotation akan dirilis.')
+                    ->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value)
+                    ->using(fn (TransSalesQuotationHd $record): bool => self::discardDraft($record)),
             ]);
+    }
+
+    public static function discardDraft(TransSalesQuotationHd $record): bool
+    {
+        return DB::transaction(function () use ($record): bool {
+            $code = $record->code;
+            $record->items()->forceDelete();
+            $record->terms()->forceDelete();
+            $deleted = (bool) $record->forceDelete();
+
+            app(GenerateCodeService::class)
+                ->releaseIfLatest(AutoCodePrefix::TransSalesQuotationHd, $code);
+
+            return $deleted;
+        });
     }
 }

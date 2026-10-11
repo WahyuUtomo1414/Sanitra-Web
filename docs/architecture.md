@@ -627,7 +627,8 @@ TextInput::make('code')
 | 2 user create bareng (race) | `lockForUpdate()` → request kedua antre, dapat nomor berikutnya. Aman. |
 | Create di awal bulan baru | Service cek sequence (year, month) tidak ketemu → create row baru dengan `last_number = 1`. |
 | Transaction gagal/rollback setelah kode di-generate | Sequence `last_number` juga rollback (satu `DB::transaction`). Nomor tidak terlewat. |
-| User hapus/soft-delete record | Running number **tidak** di-decrement. Nomor di sequence terus naik. Soft-deleted record tetap pakai kodenya. |
+| Soft-delete record domain | Running number **tidak** di-decrement. Nomor di sequence terus naik. Soft-deleted record tetap pakai kodenya. |
+| Discard Draft (force-delete) | Panggil `GenerateCodeService::releaseIfLatest($prefix, $code)` setelah `forceDelete()`. Service hanya menurunkan `last_number` kalau nomor di `$code` memang nomor terakhir untuk (prefix, year, month) — mencegah tabrakan dengan record lain di periode yang sama. Dipakai di `TransSalesQuotationHdsTable::discardDraft()` untuk Draft Quotation. |
 | Nomor >= 9999 (overflow 4 digit) | **Perlu attention manual.** Service akan tetap jalan tapi format `%04d` menghasilkan `10000` (5 digit) — bisa breaking kalau ada validasi length di tempat lain. Rencana mitigasi: migrate ke 5 digit. |
 | Backdating transaksi (tanggal masa lalu) | Sequence tetap pakai `now()` (bulan saat ini), **bukan** `transaction_date`. Kalau user set `transaction_date` September tapi dibuat di Oktober, kode tetap `QUO/26/10/...`. Catat ini di user training. |
 
