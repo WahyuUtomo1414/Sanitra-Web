@@ -1,10 +1,19 @@
 # Database Aplikasi Web Sanitra
 
-**Status:** Semua migration master dan infrastruktur sudah dijalankan; tabel transaksi belum dibuat · **Acuan:** [ERD Sanitra](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png), [SRS Sanitra](../../../Berkas/SRS_Aplikasi_Web_Sanitra.pdf) · **Terkait:** [PRD](prd.md)
+**Status:** Semua migration master dan infrastruktur sudah dijalankan; tabel transaksi belum dibuat · **Acuan:** [SRS v1.3](https://drive.google.com/file/d/1UPHenlYyMfJjUuIgG9wFn3pJP2gAAPq0/view), [ERD Sanitra](../../../Berkas/Sanitra-ERD.drawio%20%282%29.png) · **Terkait:** [PRD](prd.md), [bisnis-flow/](bisnis-flow/full-flow.md)
 
 ## 1. Ringkasan
 
-Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. ERD memuat 21 tabel domain: 12 master (termasuk `users`) dan 9 transaksi. Aplikasi menambahkan `ms_client_contact` dan `ms_document` di luar ERD awal, serta tiga tabel infrastruktur: `sys_code_sequence`, `sys_import_log`, dan `sys_error_log`. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
+Dokumen ini menjabarkan struktur database pada ERD Sanitra menjadi panduan awal untuk model Eloquent dan migration Laravel 13. SRS v1.3 (11 Oktober 2026) menambahkan modul **Sales Order** sebagai jembatan antara Quotation dan Project. Total 25 tabel domain: 14 master (termasuk `users`, `ms_client_contact`, `ms_document`) dan 11 transaksi, ditambah tiga tabel infrastruktur: `sys_code_sequence`, `sys_import_log`, dan `sys_error_log`. `basemodel` pada ERD adalah kumpulan kolom umum, bukan tabel yang dibuat di database.
+
+Perubahan penting dari ERD awal (SRS v1.0 → v1.3):
+
+- Tabel transaksi mengikuti prefix `trans_sales_*` untuk entitas modul sales (quotation, order, term, invoice, payment). Project tetap `trans_project_*`.
+- Entitas baru: `trans_sales_order_hd/dt` sebagai salinan kontrak dari quotation Approved.
+- `trans_sales_term` memiliki FK `quotation_hd_id` (wajib, lokasi penyusunan) dan `order_hd_id` (nullable awalnya, diisi saat SO dibuat).
+- `trans_project_hd` sekarang punya FK `order_hd_id` (bukan langsung `quotation_hd_id`).
+- `trans_sales_invoice_hd.project_hd_id` **nullable** karena invoice DP dibuat sebelum project ada.
+- `ms_status` berisi 31 status untuk 8 tipe (bertambah dari 25 di versi 1.0): tipe baru `order` dan `order_payment`; status `project`, `project_dt`, `term`, dan `invoice` diperbarui.
 
 Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Semua model dan migration master sudah dibuat dan dijalankan; migration tabel transaksi belum dibuat.
 
@@ -26,15 +35,17 @@ Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada
 | Master | `ms_item_unit` | `MsItemUnit` |
 | Master | `ms_bank_account` | `MsBankAccount` |
 | Master | `ms_status` | `MsStatus` |
-| Transaksi | `trans_quotation_hd` | `TransQuotationHd` |
-| Transaksi | `trans_quotation_dt` | `TransQuotationDt` |
-| Transaksi | `trans_quotation_term` | `TransQuotationTerm` |
+| Transaksi | `trans_sales_quotation_hd` | `TransSalesQuotationHd` |
+| Transaksi | `trans_sales_quotation_dt` | `TransSalesQuotationDt` |
+| Transaksi | `trans_sales_order_hd` | `TransSalesOrderHd` |
+| Transaksi | `trans_sales_order_dt` | `TransSalesOrderDt` |
+| Transaksi | `trans_sales_term` | `TransSalesTerm` |
 | Transaksi | `trans_project_hd` | `TransProjectHd` |
 | Transaksi | `trans_project_dt` | `TransProjectDt` |
 | Transaksi | `trans_project_monitoring` | `TransProjectMonitoring` |
-| Transaksi | `trans_invoice_hd` | `TransInvoiceHd` |
-| Transaksi | `trans_invoice_dt` | `TransInvoiceDt` |
-| Transaksi | `trans_payment` | `TransPayment` |
+| Transaksi | `trans_sales_invoice_hd` | `TransSalesInvoiceHd` |
+| Transaksi | `trans_sales_invoice_dt` | `TransSalesInvoiceDt` |
+| Transaksi | `trans_sales_payment` | `TransSalesPayment` |
 | Infrastruktur | `sys_code_sequence` | — |
 | Infrastruktur | `sys_import_log` | `ImportLog` |
 | Infrastruktur | `sys_error_log` | `ErrorLog` |
@@ -89,15 +100,15 @@ return new class extends Migration
 
 Gunakan `TransactionTableColumns` pada tabel transaksi. `$this->addAuditColumns($table)` otomatis menambahkan `status_id` dengan foreign key ke `ms_status.id`, selain kolom audit, timestamps, dan soft delete. Jangan deklarasikan `status_id` dua kali. `id` dan kolom domain tetap ditulis pada migration masing-masing.
 
-Tabel `trans_quotation_dt`, `trans_invoice_dt`, dan tabel detail transaksi lain tanpa `status_id` memakai `$this->addAuditColumns($table, withStatus: false)`. Jangan memakai trait ini untuk `trans_project_monitoring`: buat hanya `created_by` dan `created_at` secara eksplisit sesuai aturan log append-only. Trait migration mengatur struktur kolom; validasi bahwa `ms_status.type` sesuai entitas tetap harus dilakukan di aplikasi.
+Tabel `trans_sales_quotation_dt`, `trans_sales_order_dt`, `trans_sales_invoice_dt`, dan tabel detail transaksi lain tanpa `status_id` memakai `$this->addAuditColumns($table, withStatus: false)`. Jangan memakai trait ini untuk `trans_project_monitoring`: buat hanya `created_by` dan `created_at` secara eksplisit sesuai aturan log append-only. Trait migration mengatur struktur kolom; validasi bahwa `ms_status.type` sesuai entitas tetap harus dilakukan di aplikasi.
 
 Contoh untuk detail transaksi tanpa status dan untuk log monitoring:
 
 ```php
-// Di migration trans_quotation_dt yang memakai TransactionTableColumns:
-Schema::create('trans_quotation_dt', function (Blueprint $table) {
+// Di migration trans_sales_quotation_dt yang memakai TransactionTableColumns:
+Schema::create('trans_sales_quotation_dt', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('quotation_hd_id')->constrained('trans_quotation_hd');
+    $table->foreignId('quotation_hd_id')->constrained('trans_sales_quotation_hd');
     // Tambahkan kolom detail lainnya.
     $this->addAuditColumns($table, withStatus: false);
 });
@@ -297,20 +308,58 @@ Status proses per tipe entitas. Model: `MsStatus`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
-| `type` | varchar(128) | tidak | Tipe entitas: quotation, project, project_dt, term, invoice, payment. |
+| `type` | varchar(128) | tidak | Tipe entitas: `quotation`, `order`, `order_payment`, `project`, `project_dt`, `term`, `invoice`, `payment`. |
 | `code` | varchar(128) | tidak | Kode status stabil untuk logika aplikasi. |
 | `name` | varchar(128) | tidak | Label status. |
 | `description` | text | ya | Keterangan. |
 
-Kombinasi (`type`, `code`) unik. Data awal berisi 25 status sesuai SRS bagian 6.1.
+Kombinasi (`type`, `code`) unik. Data awal berisi **31 status** sesuai SRS v1.3 bagian 6.1 (bertambah dari 25 di SRS v1.0 karena penambahan tipe `order`, `order_payment` dan perubahan status `project`, `project_dt`, `term`, `invoice`).
 
-### 4.13 `trans_quotation_hd`
+Daftar lengkap:
 
-Header quotation. Model: `TransQuotationHd`.
+| type | code | name |
+| --- | --- | --- |
+| quotation | draft | Draft |
+| quotation | sent | Sent |
+| quotation | approved | Approved |
+| quotation | rejected | Rejected |
+| order | waiting_dp | Waiting DP |
+| order | on_progress | On Progress |
+| order | closed | Closed |
+| order | cancelled | Cancelled |
+| order_payment | unpaid | Unpaid |
+| order_payment | partial | Partial |
+| order_payment | paid | Paid |
+| project | open | Open |
+| project | on_progress | On Progress |
+| project | completed | Completed |
+| project | cancelled | Cancelled |
+| project_dt | draft | Draft |
+| project_dt | on_progress | On Progress |
+| project_dt | completed | Completed |
+| project_dt | terkendala | Terkendala |
+| term | draft | Draft |
+| term | pending | Pending |
+| term | ready_to_bill | Ready to Bill |
+| term | invoiced | Invoiced |
+| term | paid | Paid |
+| invoice | unpaid | Unpaid |
+| invoice | partial | Partial |
+| invoice | paid | Paid |
+| invoice | void | Void |
+| payment | pending | Pending |
+| payment | confirmed | Confirmed |
+| payment | rejected | Rejected |
+
+**Catatan:** `Overdue` pada invoice adalah hasil perhitungan (`due_date < now()` + status `unpaid`/`partial`), bukan status tersimpan.
+
+### 4.13 `trans_sales_quotation_hd`
+
+Header quotation. Model: `TransSalesQuotationHd`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
-| `code` | varchar(50) | tidak | Nomor/kode quotation. |
+| `code` | varchar(50) | tidak | Nomor/kode quotation, format `QUO/YY/MM/0001`. |
 | `transaction_date` | date | tidak | Tanggal quotation. |
 | `client_id` | bigint unsigned | tidak | FK ke `ms_client.id`. |
 | `project_type_id` | bigint unsigned | tidak | FK ke `ms_project_type.id`. |
@@ -324,15 +373,15 @@ Header quotation. Model: `TransQuotationHd`.
 | `grand_total` | decimal(20,6) | tidak | Total akhir. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `quotation`. |
 
-Detail item ada di `trans_quotation_dt`, skema termin di `trans_quotation_term`. Siklus revisi dikelola lewat `status_id` (`Draft` → `Sent` → `Approved`/`Rejected`); tidak ada kolom nomor revisi di tabel.
+Detail item ada di `trans_sales_quotation_dt`, skema termin di `trans_sales_term`. Siklus revisi dikelola lewat `status_id` (`Draft` → `Sent` → `Approved`/`Rejected`; revisi `Sent` → `Draft`); tidak ada kolom nomor revisi di tabel (BR-12).
 
-### 4.14 `trans_quotation_dt`
+### 4.14 `trans_sales_quotation_dt`
 
-Detail item quotation. Model: `TransQuotationDt`.
+Detail item quotation. Model: `TransSalesQuotationDt`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
-| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_quotation_hd.id`. |
+| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_quotation_hd.id`. |
 | `item_id` | bigint unsigned | tidak | FK ke `ms_item.id`. |
 | `unit_id` | bigint unsigned | tidak | FK ke `ms_unit.id`. |
 | `notes` | text | ya | Catatan item. |
@@ -341,44 +390,89 @@ Detail item quotation. Model: `TransQuotationDt`.
 | `discount` | decimal(20,6) | tidak | Diskon baris. |
 | `total_price` | decimal(20,6) | tidak | Total baris. |
 
-### 4.15 `trans_quotation_term`
+### 4.15 `trans_sales_order_hd`
 
-Termin yang disepakati dalam quotation. Model: `TransQuotationTerm`.
+Header Sales Order. Dibuat otomatis saat quotation Approved (BR-17). Model: `TransSalesOrderHd`.
 
-| Kolom | Tipe ERD | Null | Keterangan |
+| Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
-| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_quotation_hd.id`. |
+| `code` | varchar(50) | tidak | Format `SO/YY/MM/0001`. |
+| `transaction_date` | date | tidak | Tanggal SO = tanggal quotation Approved. |
+| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_quotation_hd.id`; **unique** (satu quotation → satu SO). |
+| `client_id` | bigint unsigned | tidak | Disalin dari quotation. |
+| `project_type_id` | bigint unsigned | tidak | Disalin dari quotation. |
+| `company_id` | bigint unsigned | tidak | Disalin dari quotation. |
+| `payment_type` | varchar(50) | tidak | Disalin dari quotation. |
+| `vat_type` | varchar(50) | tidak | Disalin dari quotation. |
+| `vat_amount` | decimal(20,6) | tidak | Disalin dari quotation. |
+| `discount_total` | decimal(20,6) | tidak | Disalin dari quotation. |
+| `subtotal` | decimal(20,6) | tidak | Disalin dari quotation. |
+| `grand_total` | decimal(20,6) | tidak | Disalin dari quotation. |
+| `notes` | text | ya | Catatan tambahan. |
+| `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `order`. |
+| `payment_status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `order_payment`. |
+
+**Catatan migration:** `TransactionTableColumns::addAuditColumns($table)` menambahkan `status_id` otomatis. Kolom `payment_status_id` ditambah manual setelah trait: `$table->foreignId('payment_status_id')->constrained('ms_status');`.
+
+### 4.16 `trans_sales_order_dt`
+
+Snapshot item dari `trans_sales_quotation_dt`. Model: `TransSalesOrderDt`.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `order_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_order_hd.id`. |
+| `quotation_dt_id` | bigint unsigned | tidak | FK ke `trans_sales_quotation_dt.id` (sumber salinan). |
+| `item_id` | bigint unsigned | tidak | FK ke `ms_item.id`. |
+| `unit_id` | bigint unsigned | tidak | FK ke `ms_unit.id`. |
+| `qty` | integer | tidak | Disalin. |
+| `unit_price` | decimal(20,6) | tidak | Disalin. |
+| `discount` | decimal(20,6) | tidak | Disalin. |
+| `total_price` | decimal(20,6) | tidak | Disalin. |
+| `notes` | text | ya | Disalin. |
+
+Memakai `addAuditColumns($table, withStatus: false)`.
+
+### 4.17 `trans_sales_term`
+
+Termin yang disepakati. Disusun di quotation, dikelola di Sales Order setelah Approved (BR-16). Model: `TransSalesTerm`.
+
+| Kolom | Tipe | Null | Keterangan |
+| --- | --- | --- | --- |
+| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_quotation_hd.id` (lokasi penyusunan termin). |
+| `order_hd_id` | bigint unsigned | **ya** | FK ke `trans_sales_order_hd.id`; **nullable** sampai SO dibuat (BR-16). |
 | `sequence` | integer | tidak | Urutan termin. |
 | `term_name` | varchar(128) | tidak | Nama termin. |
 | `percentage` | integer | tidak | Persentase nilai quotation. |
-| `amount` | decimal(20,6) | tidak | Nilai termin; dibekukan saat Approved. |
-| `progress_threshold` | integer | tidak | Minimal progress agar siap tagih. |
+| `amount` | decimal(20,6) | tidak | Nilai termin; `0` saat Draft, dihitung dan dikunci saat SO dibuat (BR-02). |
+| `progress_threshold` | integer | tidak | Minimal progress agar siap tagih. Threshold `0` = DP (BR-04). |
 | `notes` | text | ya | Catatan termin. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `term`. |
 
-Total `percentage` setiap quotation harus 100; (`quotation_hd_id`, `sequence`) unik.
+Total `percentage` setiap quotation harus 100 (BR-01); (`quotation_hd_id`, `sequence`) unik.
 
-### 4.16 `trans_project_hd`
+### 4.18 `trans_project_hd`
 
-Header project yang berasal dari quotation Approved. Model: `TransProjectHd`.
+Header project yang berasal dari Sales Order (BR-15). Model: `TransProjectHd`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
-| `code` | varchar(50) | tidak | Kode project. |
-| `transaction_date` | date | tidak | Tanggal transaksi. |
-| `quotation_hd_id` | bigint unsigned | tidak | FK ke quotation; unik untuk satu project per quotation. |
-| `client_id` | bigint unsigned | tidak | FK ke `ms_client.id`. |
-| `company_id` | bigint unsigned | tidak | FK ke `ms_company.id`. |
-| `project_type_id` | bigint unsigned | tidak | FK ke `ms_project_type.id`. |
-| `pic_employee_id` | bigint unsigned | tidak | FK ke `ms_employee.id`. |
+| `code` | varchar(50) | tidak | Kode project, format `PRO/YY/MM/0001`. |
+| `transaction_date` | date | tidak | Tanggal transaksi (= tanggal project dibuat). |
+| `order_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_order_hd.id`; **unique** (satu SO → satu Project, BR-17). |
+| `client_id` | bigint unsigned | tidak | Disalin dari SO. |
+| `company_id` | bigint unsigned | tidak | Disalin dari SO. |
+| `project_type_id` | bigint unsigned | tidak | Disalin dari SO. |
+| `pic_employee_id` | bigint unsigned | tidak | FK ke `ms_employee.id` (PIC project). |
 | `project_name` | varchar(128) | tidak | Nama project. |
 | `start_date` | date | tidak | Tanggal mulai. |
-| `end_date` | date | tidak | Tanggal selesai/rencana selesai pada ERD. |
-| `progress_percentage` | integer | tidak | Progress dari bobot tahap Completed. |
+| `end_date` | date | tidak | Tanggal selesai / rencana selesai. |
+| `progress_percentage` | integer | tidak | Progress dari bobot tahap Completed (BR-03). |
 | `notes` | text | ya | Catatan project. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `project`. |
 
-### 4.17 `trans_project_dt`
+Project dibuat setelah invoice DP Paid (jika ada DP) atau bersamaan dengan SO (jika tidak ada DP). Status awal `open`.
+
+### 4.19 `trans_project_dt`
 
 Snapshot tahap project yang dibuat dari master workflow. Model: `TransProjectDt`.
 
@@ -395,7 +489,7 @@ Snapshot tahap project yang dibuat dari master workflow. Model: `TransProjectDt`
 | `notes` | text | ya | Catatan. |
 | `editable` | boolean | tidak | Penanda tahap tidak terkunci. |
 
-### 4.18 `trans_project_monitoring`
+### 4.20 `trans_project_monitoring`
 
 Log perubahan status/progress tahap project. Model: `TransProjectMonitoring`.
 
@@ -412,61 +506,62 @@ Log perubahan status/progress tahap project. Model: `TransProjectMonitoring`.
 
 Log tidak diedit atau dihapus; koreksi dibuat sebagai log baru (BR-10). Kolom audit khusus: `created_by` dan `created_at`.
 
-### 4.19 `trans_invoice_hd`
+### 4.21 `trans_sales_invoice_hd`
 
-Header invoice/tagihan. Model: `TransInvoiceHd`.
+Header invoice/tagihan. Model: `TransSalesInvoiceHd`.
 
-| Kolom | Tipe ERD | Null | Keterangan |
+| Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
-| `code` | varchar(50) | tidak | Nomor invoice. |
+| `code` | varchar(50) | tidak | Nomor invoice, format `INV/YY/MM/0001`. |
 | `transaction_date` | date | tidak | Tanggal invoice. |
-| `project_hd_id` | bigint unsigned | tidak | FK ke `trans_project_hd.id`. |
-| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_quotation_hd.id`. |
-| `client_id` | bigint unsigned | tidak | FK ke `ms_client.id`. |
-| `company_id` | bigint unsigned | tidak | FK ke `ms_company.id`; penerbit. |
+| `order_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_order_hd.id`; **wajib** (invoice selalu dari SO). |
+| `project_hd_id` | bigint unsigned | **ya** | FK ke `trans_project_hd.id`; **nullable** untuk invoice DP yang dibuat sebelum project ada. |
+| `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_quotation_hd.id`; disalin dari SO untuk referensi. |
+| `client_id` | bigint unsigned | tidak | Disalin dari SO. |
+| `company_id` | bigint unsigned | tidak | Disalin dari SO. |
 | `bank_account_id` | bigint unsigned | tidak | FK ke `ms_bank_account.id`. |
 | `due_date` | date | tidak | Jatuh tempo. |
-| `subtotal` | decimal(20,6) | tidak | Subtotal tagihan. |
-| `vat_type` | varchar(50) | tidak | Jenis PPN. |
-| `vat_amount` | decimal(20,6) | tidak | Nilai PPN. |
-| `grand_total` | decimal(20,6) | tidak | Total tagihan. |
+| `subtotal` | decimal(20,6) | tidak | Σ amount termin yang ditagih. |
+| `vat_type` | varchar(50) | tidak | Disalin dari SO. |
+| `vat_amount` | decimal(20,6) | tidak | Dihitung dari subtotal + vat_type. |
+| `grand_total` | decimal(20,6) | tidak | subtotal + vat_amount. |
 | `notes` | text | ya | Catatan. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `invoice`. |
 
-### 4.20 `trans_invoice_dt`
+### 4.22 `trans_sales_invoice_dt`
 
-Termin yang dimasukkan ke invoice. Model: `TransInvoiceDt`.
+Termin yang dimasukkan ke invoice. Model: `TransSalesInvoiceDt`.
 
-| Kolom | Tipe ERD | Null | Keterangan |
+| Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
-| `invoice_hd_id` | bigint unsigned | tidak | FK ke `trans_invoice_hd.id`. |
-| `quotation_term_id` | bigint unsigned | tidak | FK ke `trans_quotation_term.id`. |
+| `invoice_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_invoice_hd.id`. |
+| `sales_term_id` | bigint unsigned | tidak | FK ke `trans_sales_term.id`. |
 | `sequence` | integer | tidak | Urutan baris. |
-| `description` | text | ya | Keterangan. |
-| `percentage` | integer | tidak | Persentase termin saat invoice dibuat. |
-| `amount` | decimal(20,6) | tidak | Nilai termin saat invoice dibuat. |
+| `description` | text | ya | Keterangan tambahan. |
+| `percentage` | integer | tidak | Snapshot `percentage` termin saat invoice dibuat. |
+| `amount` | decimal(20,6) | tidak | Snapshot `amount` termin saat invoice dibuat. |
 
-Satu termin hanya boleh masuk satu invoice **aktif**. Invoice Void tetap tersimpan dalam histori dan termin dapat masuk invoice baru (FR-31, FR-34).
+Satu termin hanya boleh masuk satu invoice **aktif** (status ≠ `void`). Validasi dilakukan di `CreateInvoiceFromTermsService` dengan `lockForUpdate()`; unique constraint parsial sulit di-enforce di MySQL/MariaDB (FR-31, FR-34, BR-09).
 
-### 4.21 `trans_payment`
+### 4.23 `trans_sales_payment`
 
-Pembayaran dan bukti transfer invoice. Model: `TransPayment`.
+Pembayaran dan bukti transfer invoice. Model: `TransSalesPayment`.
 
-| Kolom | Tipe ERD | Null | Keterangan |
+| Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
-| `code` | varchar(50) | tidak | Kode pembayaran. |
+| `code` | varchar(50) | tidak | Kode pembayaran, format `PAY/YY/MM/0001`. |
 | `transaction_date` | date | tidak | Tanggal pembayaran. |
-| `invoice_hd_id` | bigint unsigned | tidak | FK ke `trans_invoice_hd.id`. |
+| `invoice_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_invoice_hd.id`. |
 | `amount` | decimal(20,6) | tidak | Nominal pembayaran. |
-| `payment_method` | varchar(128) | tidak | Metode pembayaran. |
+| `payment_method` | varchar(128) | tidak | Metode pembayaran (enum PHP `PaymentMethod`: `cash`, `transfer`, `giro`, dll.). |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `payment`. |
 | `notes` | text | ya | Catatan. |
-| `reference_no` | varchar(50) | ya | Nomor referensi; nullable karena tidak semua metode punya (mis. cash). |
+| `reference_no` | varchar(50) | ya | Nomor referensi/transaksi bank; nullable (mis. cash). |
 | `payment_proof` | varchar(255) | ya | Path file bukti transfer; nullable saat payment belum di-upload buktinya. |
 
 Hanya payment berstatus Confirmed yang dihitung ke pelunasan invoice.
 
-### 4.22 `sys_import_log`
+### 4.24 `sys_import_log`
 
 Log hasil import Excel. Bersifat append-only — tidak ada `updated_at`, `deleted_at`, dan tidak memakai trait audit. Model: `ImportLog`.
 
@@ -482,7 +577,7 @@ Log hasil import Excel. Bersifat append-only — tidak ada `updated_at`, `delete
 | `status` | varchar(16) | tidak | Status proses (`done`). Default `done`. |
 | `created_at` | timestamp | tidak | Waktu import selesai; default `CURRENT_TIMESTAMP`. |
 
-### 4.23 `sys_code_sequence`
+### 4.25 `sys_code_sequence`
 
 Counter kode otomatis untuk semua entitas yang membutuhkan kode unik. Dikelola oleh `GenerateCodeService` menggunakan `SELECT ... FOR UPDATE` untuk mencegah race condition. Tidak memiliki model Eloquent; diakses langsung via `DB::table`. Detail implementasi di `docs/architecture.md` §6.
 
@@ -493,7 +588,7 @@ Ada dua format kode yang ditentukan oleh `AutoCodePrefix::format()`:
 | Master (`CodeFormat::Master`) | `COM0002`, `ITM0011` | NULL | NULL | Tidak pernah |
 | Transaksi (`CodeFormat::Transaction`) | `QUO/26/10/0001` | tahun | bulan | Tiap bulan |
 
-Prefix master (`COM`, `EMP`, `CLI`, `PTY`, `IC`, `ITM`, `BNK`) menyimpan `year = NULL` dan `month = NULL` karena nomornya berjalan terus tanpa reset. Prefix transaksi (`QUO`, `PRO`, `INV`, `PAY`) membuat baris baru tiap bulan sehingga penomoran mulai dari 1 setiap awal bulan.
+Prefix master (`COM`, `EMP`, `CLI`, `PTY`, `IC`, `ITM`, `BNK`) menyimpan `year = NULL` dan `month = NULL` karena nomornya berjalan terus tanpa reset. Prefix transaksi (`QUO`, `SO`, `PRO`, `INV`, `PAY`) membuat baris baru tiap bulan sehingga penomoran mulai dari 1 setiap awal bulan.
 
 | Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
@@ -506,7 +601,7 @@ Prefix master (`COM`, `EMP`, `CLI`, `PTY`, `IC`, `ITM`, `BNK`) menyimpan `year =
 
 Constraint unique `uniq_prefix_period` pada `(prefix, year, month)` menjamin satu counter per prefix per periode.
 
-### 4.24 `sys_error_log`
+### 4.26 `sys_error_log`
 
 Log exception aplikasi. Bersifat append-only — tidak ada `updated_at`, `deleted_at`, dan tidak memakai trait audit. Model: `ErrorLog`. Detail implementasi di `docs/error-log.md`.
 
@@ -532,42 +627,49 @@ Log exception aplikasi. Bersifat append-only — tidak ada `updated_at`, `delete
 | `ms_client` | `ms_client_contact.client_id` | satu client memiliki banyak kontak |
 | `ms_client` (alias `client`) | `ms_document.ref_type` + `ms_document.ref_id` | satu client memiliki banyak dokumen lewat relasi polymorphic |
 | `ms_employee` (alias `employee`) | `ms_document.ref_type` + `ms_document.ref_id` | satu employee memiliki banyak dokumen lewat relasi polymorphic |
-| `ms_project_type` | `ms_project_workflow.type_id`, quotation/project `project_type_id` | satu tipe memiliki banyak template tahap dan transaksi |
+| `ms_project_type` | `ms_project_workflow.type_id`, quotation/order/project `project_type_id` | satu tipe memiliki banyak template tahap dan transaksi |
 | `ms_item_category` | `ms_item.item_category_id` | satu kategori memiliki banyak item |
 | `ms_item`, `ms_unit` | `ms_item_unit.item_id`, `ms_item_unit.unit_id` | banyak-ke-banyak melalui konversi unit |
-| `trans_quotation_hd` | `trans_quotation_dt.quotation_hd_id`, `trans_quotation_term.quotation_hd_id` | satu quotation memiliki banyak item dan termin |
-| `trans_quotation_hd` | `trans_project_hd.quotation_hd_id` | satu quotation Approved memiliki maksimal satu project |
-| `trans_project_hd` | `trans_project_dt.project_hd_id`, `trans_project_monitoring.project_hd_id`, `trans_invoice_hd.project_hd_id` | satu project memiliki banyak tahap, log, dan invoice |
-| `trans_invoice_hd` | `trans_invoice_dt.invoice_hd_id`, `trans_payment.invoice_hd_id` | satu invoice memiliki banyak termin dan pembayaran |
-| `ms_status` | seluruh `status_id`, `status_before_id`, `status_after_id` | status dibatasi menurut `type` entitas |
+| `trans_sales_quotation_hd` | `trans_sales_quotation_dt.quotation_hd_id`, `trans_sales_term.quotation_hd_id` | satu quotation memiliki banyak item dan termin |
+| `trans_sales_quotation_hd` | `trans_sales_order_hd.quotation_hd_id` | satu quotation Approved memiliki tepat satu Sales Order (unique, BR-17) |
+| `trans_sales_order_hd` | `trans_sales_order_dt.order_hd_id`, `trans_sales_term.order_hd_id` | satu Sales Order memiliki banyak item (salinan) dan termin |
+| `trans_sales_order_hd` | `trans_project_hd.order_hd_id` | satu Sales Order memiliki maksimal satu Project (unique, BR-17) |
+| `trans_sales_order_hd` | `trans_sales_invoice_hd.order_hd_id` | satu Sales Order dapat memiliki banyak invoice (DP + progress + pelunasan) |
+| `trans_project_hd` | `trans_project_dt.project_hd_id`, `trans_project_monitoring.project_hd_id`, `trans_sales_invoice_hd.project_hd_id` | satu project memiliki banyak tahap, log, dan invoice (invoice DP boleh belum punya project) |
+| `trans_sales_invoice_hd` | `trans_sales_invoice_dt.invoice_hd_id`, `trans_sales_payment.invoice_hd_id` | satu invoice memiliki banyak baris termin dan pembayaran |
+| `trans_sales_invoice_dt` | `trans_sales_term.id` via `sales_term_id` | satu termin hanya boleh masuk satu invoice aktif |
+| `ms_status` | seluruh `status_id`, `payment_status_id`, `status_before_id`, `status_after_id` | status dibatasi menurut `type` entitas |
 
-Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `ms_status.id` saja tidak menjamin tipe status benar.
+Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `ms_status.id` saja tidak menjamin tipe status benar. Khusus `trans_sales_order_hd` memiliki dua FK ke `ms_status`: `status_id` (tipe `order`) dan `payment_status_id` (tipe `order_payment`).
 
 ## 6. Urutan migration
 
-1. Tabel autentikasi Laravel (`users`) bawaan Laravel. Cache dan jobs bawaan Laravel tetap terpisah dari 21 tabel domain ERD.
+1. Tabel autentikasi Laravel (`users`) bawaan Laravel. Cache dan jobs bawaan Laravel tetap terpisah dari 25 tabel domain ERD.
 2. `ms_company` dengan `parent_id`, tetapi tunda foreign key `pic_employee_id`.
 3. `ms_employee`, lalu tambahkan foreign key `ms_company.pic_employee_id` dan FK `users.employee_id`. Urutan dua langkah ini menghindari siklus company ↔ employee.
 4. `ms_client`, `ms_project_type`, `ms_project_workflow`.
 5. `ms_item_category`, `ms_unit`, `ms_item`, `ms_item_unit`.
 6. `ms_bank_account`, `ms_status`.
-7. `trans_quotation_hd`, `trans_quotation_dt`, `trans_quotation_term`.
-8. `trans_project_hd`, `trans_project_dt`, `trans_project_monitoring`.
-9. `trans_invoice_hd`, `trans_invoice_dt`, `trans_payment`.
+7. `trans_sales_quotation_hd`, `trans_sales_quotation_dt`.
+8. `trans_sales_order_hd`, `trans_sales_order_dt`.
+9. `trans_sales_term` (FK ke `trans_sales_quotation_hd` wajib, FK ke `trans_sales_order_hd` nullable).
+10. `trans_project_hd` (FK ke `trans_sales_order_hd`), `trans_project_dt`, `trans_project_monitoring`.
+11. `trans_sales_invoice_hd` (FK ke `trans_sales_order_hd` wajib, FK ke `trans_project_hd` nullable), `trans_sales_invoice_dt`, `trans_sales_payment`.
 
-Migration ekstensi `ms_client_contact` dan `ms_document` berjalan setelah `ms_client`. Tabel infrastruktur `sys_code_sequence` dan `sys_import_log` berjalan setelah tabel master; `sys_error_log` berjalan setelah `users`. Semua migration sudah dijalankan.
+Migration ekstensi `ms_client_contact` dan `ms_document` berjalan setelah `ms_client`. Tabel infrastruktur `sys_code_sequence` dan `sys_import_log` berjalan setelah tabel master; `sys_error_log` berjalan setelah `users`. Semua migration master dan infrastruktur sudah dijalankan; migration tabel transaksi (langkah 7–11) belum dibuat.
 
 Migration `down()` menghapus foreign key tambahan dan tabel dalam urutan terbalik. Proyek memakai `users` dari bawaan Laravel; nama `user` pada ERD tidak dipakai.
 
 ## 7. Index dan constraint utama
 
-- Unique pada `users.email`, kode master yang merupakan identifier, (`ms_status.type`, `ms_status.code`), `trans_project_hd.quotation_hd_id`, (`ms_project_workflow.type_id`, `sequence`), (`trans_quotation_term.quotation_hd_id`, `sequence`), dan (`ms_item_unit.item_id`, `unit_id`).
-- Index pada seluruh foreign key, kode dokumen, status + tanggal transaksi, `trans_invoice_hd.due_date`, serta `trans_payment.invoice_hd_id` untuk daftar outstanding dan histori.
+- Unique pada `users.email`, kode master yang merupakan identifier, (`ms_status.type`, `ms_status.code`), `trans_sales_order_hd.quotation_hd_id`, `trans_project_hd.order_hd_id`, (`ms_project_workflow.type_id`, `sequence`), (`trans_sales_term.quotation_hd_id`, `sequence`), dan (`ms_item_unit.item_id`, `unit_id`).
+- Index pada seluruh foreign key, kode dokumen, status + tanggal transaksi, `trans_sales_invoice_hd.due_date`, serta `trans_sales_payment.invoice_hd_id` untuk daftar outstanding dan histori.
 - `ms_document` memiliki index (`ref_type`, `ref_id`); tidak ada foreign key dinamis untuk pemilik polymorphic. `ms_client_contact.client_id` memakai foreign key biasa.
 - Validasi rentang 0–100 untuk persentase termin, threshold, bobot workflow/tahap, dan progress project. Jumlah lintas baris seperti total termin atau total bobot workflow, serta tepat satu unit dasar per item, divalidasi saat transaksi disimpan.
-- `trans_invoice_dt.quotation_term_id` tidak dapat dibuat unique global jika invoice Void tetap disimpan dan termin dapat ditagih ulang. Saat pembuatan invoice, kunci termin dan validasi bahwa belum ada invoice aktif yang memakainya.
+- `trans_sales_invoice_dt.sales_term_id` tidak dapat dibuat unique global jika invoice Void tetap disimpan dan termin dapat ditagih ulang. Saat pembuatan invoice, kunci termin dengan `lockForUpdate()` dan validasi bahwa belum ada invoice aktif (status ≠ `void`) yang memakainya.
+- `trans_sales_term.order_hd_id` nullable: NULL saat termin masih di quotation Draft/Sent; di-set otomatis oleh `CreateSalesOrderFromQuotationService` saat Approved.
 - Nilai Rupiah pakai `decimal(20, 6)` untuk seluruh kolom nominal (subtotal, grand_total, amount, unit_price, discount, vat_amount, dsb.). ERD menulis `INT`; abaikan dan ikut rekomendasi dokumen ini. Konsisten di semua migration, model cast (`decimal:6`), dan form input.
-- Soft delete bukan pengganti status bisnis Void, Rejected, atau Revised. Histori transaksi dan log monitoring harus tetap dapat ditelusuri.
+- Soft delete bukan pengganti status bisnis Void, Rejected, Revised, atau Cancelled. Histori transaksi dan log monitoring harus tetap dapat ditelusuri.
 
 ## 8. Pola model Eloquent dan migration
 
@@ -621,13 +723,14 @@ return new class extends Migration
 
     public function up(): void
     {
-        Schema::create('trans_quotation_term', function (Blueprint $table) {
+        Schema::create('trans_sales_term', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('quotation_hd_id')->constrained('trans_quotation_hd');
+            $table->foreignId('quotation_hd_id')->constrained('trans_sales_quotation_hd');
+            $table->foreignId('order_hd_id')->nullable()->constrained('trans_sales_order_hd');
             $table->unsignedInteger('sequence');
             $table->string('term_name', 128);
             $table->unsignedTinyInteger('percentage');
-            $table->decimal('amount', 20, 6);
+            $table->decimal('amount', 20, 6)->default(0);
             $table->unsignedTinyInteger('progress_threshold');
             $table->text('notes')->nullable();
             $this->addAuditColumns($table);
@@ -638,12 +741,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('trans_quotation_term');
+        Schema::dropIfExists('trans_sales_term');
     }
 };
 ```
 
-Pada model `TransQuotationTerm`, gunakan `AuditedBySoftDelete` dan `SoftDeletes`, serta `protected $table = 'trans_quotation_term';`. Untuk `TransProjectMonitoring`, jangan pasang trait model itu karena event update/delete tidak sesuai sifat log yang tidak boleh diubah. File gambar dan bukti pembayaran disimpan di storage; database hanya menyimpan path.
+Pada model `TransSalesTerm`, gunakan `AuditedBySoftDelete` dan `SoftDeletes`, serta `protected $table = 'trans_sales_term';`. Untuk `TransProjectMonitoring`, jangan pasang trait model itu karena event update/delete tidak sesuai sifat log yang tidak boleh diubah. File gambar dan bukti pembayaran disimpan di storage; database hanya menyimpan path.
 
 ### Catatan penamaan dari ERD
 
