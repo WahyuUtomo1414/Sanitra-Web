@@ -55,8 +55,6 @@ class TransSalesQuotationHdsTable
                 ViewAction::make(),
                 EditAction::make()->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value),
                 DeleteAction::make()
-                    ->label('Buang Draft')
-                    ->modalDescription('Draft dan seluruh item/termin-nya akan dihapus permanen; nomor quotation akan dirilis.')
                     ->visible(fn (TransSalesQuotationHd $record): bool => $record->status?->code === QuotationStatus::Draft->value)
                     ->using(fn (TransSalesQuotationHd $record): bool => self::discardDraft($record)),
             ]);

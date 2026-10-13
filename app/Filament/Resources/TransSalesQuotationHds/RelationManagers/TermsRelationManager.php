@@ -22,6 +22,8 @@ class TermsRelationManager extends RelationManager
 
     protected static ?string $title = 'Skema Termin';
 
+    protected static ?string $modelLabel = 'skema termin';
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([

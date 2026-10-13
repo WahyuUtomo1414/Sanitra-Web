@@ -26,7 +26,9 @@ class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
 
-    protected static ?string $title = 'Item Quotation';
+    protected static ?string $title = 'Item';
+
+    protected static ?string $modelLabel = 'item';
 
     public function form(Schema $schema): Schema
     {
