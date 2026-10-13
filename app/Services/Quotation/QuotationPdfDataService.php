@@ -11,7 +11,7 @@ class QuotationPdfDataService
     /** @return array<string, mixed> */
     public function execute(TransSalesQuotationHd $quotation): array
     {
-        $quotation->load(['company', 'client.picEmployee', 'items.item', 'items.unit', 'terms']);
+        $quotation->load(['company', 'client.picEmployee', 'projectType', 'items.item', 'items.unit', 'terms']);
         $terms = $quotation->terms->sortBy('sequence')->values();
         $termAmounts = $terms->mapWithKeys(fn ($term): array => [$term->id => (string) $term->amount])->all();
 

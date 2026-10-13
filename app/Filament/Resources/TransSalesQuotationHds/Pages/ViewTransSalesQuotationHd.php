@@ -22,10 +22,10 @@ class ViewTransSalesQuotationHd extends ViewRecord
     {
         return [
             EditAction::make()->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value),
-            Action::make('generatePdf')->label('Generate PDF')->icon('heroicon-o-document-arrow-down')
+            Action::make('downloadPdf')->label('Download PDF')->icon('heroicon-o-document-arrow-down')
                 ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value)
                 ->action(fn () => response()->streamDownload(
-                    fn () => print (Pdf::loadView('pdf.quotation', app(QuotationPdfDataService::class)->execute($this->record))->output()),
+                    fn () => print (Pdf::loadView('pdf.quotation', app(QuotationPdfDataService::class)->execute($this->record))->setPaper('a4', 'portrait')->output()),
                     str_replace('/', '-', $this->record->code).'.pdf',
                 )),
             Action::make('send')->label('Kirim')->color('info')
