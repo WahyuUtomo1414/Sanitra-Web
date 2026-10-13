@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class SendQuotationService
 {
-    public function __construct(public RecalculateQuotationTotalsService $recalculateTotals) {}
+    public function __construct(public RecalculateQuotationService $recalculate) {}
 
     public function execute(TransSalesQuotationHd $quotation): TransSalesQuotationHd
     {
@@ -35,7 +35,7 @@ class SendQuotationService
                 throw new DomainException('Quotation harus memiliki tepat satu termin DP dengan threshold 0%.');
             }
 
-            $this->recalculateTotals->execute($quotation);
+            $this->recalculate->totals($quotation);
 
             $quotation->update([
                 'status_id' => MsStatus::query()->where('type', QuotationStatus::type()->value)

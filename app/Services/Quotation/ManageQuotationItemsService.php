@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class ManageQuotationItemsService
 {
-    public function __construct(public RecalculateQuotationTotalsService $recalculateTotals) {}
+    public function __construct(public RecalculateQuotationService $recalculate) {}
 
     /** @param array<string, mixed> $data */
     public function save(TransSalesQuotationHd $quotation, array $data, ?TransSalesQuotationDt $item = null): TransSalesQuotationDt
@@ -61,7 +61,7 @@ class ManageQuotationItemsService
                 $item = $quotation->items()->create($attributes);
             }
 
-            $this->recalculateTotals->execute($quotation);
+            $this->recalculate->totals($quotation);
 
             return $item;
         });
@@ -77,7 +77,7 @@ class ManageQuotationItemsService
             }
 
             $deleted = $item->delete();
-            $this->recalculateTotals->execute($quotation);
+            $this->recalculate->totals($quotation);
 
             return $deleted;
         });

@@ -23,8 +23,7 @@
 ## 2. Service (`app/Services/Quotation/`)
 
 - [x] `SendQuotationService` — Draft → Sent; validasi total `percentage` termin = 100 (BR-01), minimal 1 item, dan tepat satu termin DP threshold 0%
-- [x] `RecalculateQuotationTotalsService` — hitung ulang subtotal, total diskon, PPN, dan grand total setelah item berubah; lanjut simpan ulang nilai `amount` semua termin
-- [x] `RecalculateQuotationTermAmountsService` — simpan nilai termin ke `trans_sales_term.amount`; hitung proporsional selama skema belum 100%, dan alokasikan sisa pembulatan ke termin terakhir saat total persentase 100%
+- [x] `RecalculateQuotationService` — satu service dengan dua method: `totals()` menghitung ulang subtotal/diskon/PPN/grand total lalu delegasi ke `termAmounts()`; `termAmounts()` simpan nilai `amount` termin proporsional (sisa pembulatan jatuh ke termin terakhir saat total persentase 100%)
 - [x] `ApproveQuotationService` — Sent → Approved; dalam `DB::transaction` panggil `CreateSalesOrderFromQuotationService` (BR-17)
 - [x] `RejectQuotationService` — Sent → Rejected
 - [x] `ReviseQuotationService` — Sent → Draft (histori status tetap tercatat, tanpa nomor revisi; BR-12)

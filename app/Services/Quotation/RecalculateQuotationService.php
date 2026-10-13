@@ -6,11 +6,9 @@ use App\Enums\VatType;
 use App\Models\TransSalesQuotationHd;
 use DomainException;
 
-class RecalculateQuotationTotalsService
+class RecalculateQuotationService
 {
-    public function __construct(public RecalculateQuotationTermAmountsService $recalculateTermAmounts) {}
-
-    public function execute(TransSalesQuotationHd $quotation): TransSalesQuotationHd
+    public function totals(TransSalesQuotationHd $quotation): TransSalesQuotationHd
     {
         $subtotal = $quotation->items()->sum('total_price');
         $discountTotal = $quotation->items()->sum('discount');
@@ -38,8 +36,26 @@ class RecalculateQuotationTotalsService
         ]);
 
         $quotation->refresh();
-        $this->recalculateTermAmounts->execute($quotation);
+        $this->termAmounts($quotation);
 
         return $quotation;
+    }
+
+    public function termAmounts(TransSalesQuotationHd $quotation): void
+    {
+        $terms = $quotation->terms()->orderBy('sequence')->get();
+        $hasCompleteAllocation = $terms->sum('percentage') === 100;
+        $lastTermId = $hasCompleteAllocation ? $terms->last()?->id : null;
+        $allocated = '0.000000';
+        $grandTotal = (string) $quotation->grand_total;
+
+        foreach ($terms as $term) {
+            $amount = $term->id === $lastTermId
+                ? bcsub($grandTotal, $allocated, 6)
+                : bcdiv(bcmul($grandTotal, (string) $term->percentage, 6), '100', 6);
+
+            $term->update(['amount' => $amount]);
+            $allocated = bcadd($allocated, $amount, 6);
+        }
     }
 }

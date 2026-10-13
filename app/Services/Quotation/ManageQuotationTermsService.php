@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class ManageQuotationTermsService
 {
-    public function __construct(public RecalculateQuotationTermAmountsService $recalculateTermAmounts) {}
+    public function __construct(public RecalculateQuotationService $recalculate) {}
 
     /** @param array<string, mixed> $data */
     public function save(TransSalesQuotationHd $quotation, array $data, ?TransSalesTerm $term = null): TransSalesTerm
@@ -54,7 +54,7 @@ class ManageQuotationTermsService
 
             if ($term) {
                 $term->update($attributes);
-                $this->recalculateTermAmounts->execute($quotation);
+                $this->recalculate->termAmounts($quotation);
 
                 return $term;
             }
@@ -69,7 +69,7 @@ class ManageQuotationTermsService
                     'status_id' => MsStatus::query()->where('type', TermStatus::type()->value)
                         ->where('code', TermStatus::Draft->value)->where('active', true)->firstOrFail()->id,
                 ]);
-                $this->recalculateTermAmounts->execute($quotation);
+                $this->recalculate->termAmounts($quotation);
 
                 return $deletedTerm;
             }
@@ -79,7 +79,7 @@ class ManageQuotationTermsService
                 'status_id' => MsStatus::query()->where('type', TermStatus::type()->value)
                     ->where('code', TermStatus::Draft->value)->where('active', true)->firstOrFail()->id,
             ]);
-            $this->recalculateTermAmounts->execute($quotation);
+            $this->recalculate->termAmounts($quotation);
 
             return $createdTerm;
         });
@@ -95,7 +95,7 @@ class ManageQuotationTermsService
             }
 
             $deleted = $term->delete();
-            $this->recalculateTermAmounts->execute($quotation);
+            $this->recalculate->termAmounts($quotation);
 
             return $deleted;
         });

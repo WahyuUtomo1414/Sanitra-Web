@@ -6,7 +6,7 @@ use App\Enums\Status\QuotationStatus;
 use App\Filament\Resources\TransSalesQuotationHds\TransSalesQuotationHdResource;
 use App\Models\MsProjectType;
 use App\Services\Quotation\QuotationPdfDataService;
-use App\Services\Quotation\RecalculateQuotationTotalsService;
+use App\Services\Quotation\RecalculateQuotationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DomainException;
 use Filament\Actions\Action;
@@ -52,7 +52,7 @@ class EditTransSalesQuotationHd extends EditRecord
             $data['company_id'] = MsProjectType::query()->findOrFail($data['project_type_id'])->company_id;
             $record->update($data);
 
-            return app(RecalculateQuotationTotalsService::class)->execute($record);
+            return app(RecalculateQuotationService::class)->totals($record);
         });
     }
 }

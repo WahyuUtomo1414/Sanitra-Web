@@ -16,7 +16,7 @@ use App\Services\Quotation\ApproveQuotationService;
 use App\Services\Quotation\ManageQuotationItemsService;
 use App\Services\Quotation\ManageQuotationTermsService;
 use App\Services\Quotation\QuotationPdfDataService;
-use App\Services\Quotation\RecalculateQuotationTotalsService;
+use App\Services\Quotation\RecalculateQuotationService;
 use App\Services\Quotation\RejectQuotationService;
 use App\Services\Quotation\ReviseQuotationService;
 use App\Services\Quotation\SendQuotationService;
@@ -195,7 +195,7 @@ class QuotationFlowTest extends TestCase
             'total_price' => 900000,
         ]);
 
-        app(RecalculateQuotationTotalsService::class)->execute($quotation);
+        app(RecalculateQuotationService::class)->totals($quotation);
 
         $this->assertSame('900000.000000', $quotation->fresh()->subtotal);
         $this->assertSame('100000.000000', $quotation->fresh()->discount_total);
@@ -203,7 +203,7 @@ class QuotationFlowTest extends TestCase
         $this->assertSame('900000.000000', $quotation->fresh()->grand_total);
 
         $quotation->refresh()->update(['vat_type' => 'exclude']);
-        app(RecalculateQuotationTotalsService::class)->execute($quotation);
+        app(RecalculateQuotationService::class)->totals($quotation);
 
         $this->assertSame('99000.000000', $quotation->fresh()->vat_amount);
         $this->assertSame('999000.000000', $quotation->fresh()->grand_total);
