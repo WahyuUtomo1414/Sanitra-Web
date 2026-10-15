@@ -56,14 +56,14 @@ public function panel(Panel $panel): Panel
         ->default()
         ->id('dashboard')
         ->path('dashboard')
-        ->login()
+        ->login(Login::class)
         ->brandName(config('app.name'))
         ->brandLogo(asset('assets/logo.png'))
-        ->brandLogoHeight('3rem')
-        ->favicon(asset('assets/favicon1.png'))
+        ->brandLogoHeight('2rem')
+        ->favicon(asset('assets/favicon.png'))
         ->darkMode(false)
         ->colors([
-            'primary' => Color::Green,
+            'primary' => Color::hex('#166534'),
             'danger' => Color::Rose,
             'warning' => Color::Amber,
             'success' => Color::Green,
@@ -72,7 +72,10 @@ public function panel(Panel $panel): Panel
         ->renderHook(
             PanelsRenderHook::HEAD_END,
             fn () => view('filament.hooks.admin-theme'),
-        );
+        )
+        ->plugins([
+            FilamentShieldPlugin::make(),
+        ]);
 }
 ```
 
@@ -306,13 +309,13 @@ Catatan:
 
 **Status saat ini:**
 
-- `public/assets/favicon1.png` ✓ sudah ada dan sudah dipakai.
+- `public/assets/favicon.png` ✓ sudah ada dan sudah dipakai.
 - `public/favicon.ico` ⚠ masih 0 bytes (placeholder bawaan Laravel). Browser auto-request `/favicon.ico` by default tanpa lewat Filament link — perlu diisi atau di-delete.
 
 Register di `DashboardPanelProvider`:
 
 ```php
-->favicon(asset('assets/favicon1.png'))
+->favicon(asset('assets/favicon.png'))
 ```
 
 ### 5.3 Nama aplikasi pada panel dan title tag
@@ -371,14 +374,16 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function getFilamentAvatarUrl(): ?string
     {
-        return $this->avatar ? Storage::url($this->avatar) : null;
+        return $this->avatar
+            ? Storage::disk('public')->url($this->avatar)
+            : asset('assets/default-user-avatar.svg');
     }
 }
 ```
 
 Catatan:
-- Avatar disimpan via `FileUpload` di `UserResource` ke direktori `users/avatar` (disk `public`).
-- Jika `avatar` null, Filament fallback ke avatar initials bawaan (UI Avatars).
+- Avatar disimpan via `FileUpload` di `UserResource` dan `UserProfileResource` ke direktori `users/avatar` (disk `public`).
+- Jika `avatar` null, fallback ke `public/assets/default-user-avatar.svg` (bukan Filament initials bawaan).
 
 ## 10. Struktur File
 
@@ -392,10 +397,11 @@ resources/
 public/
 ├── favicon.ico                             # ⚠ 0 bytes, perlu diisi atau di-delete
 └── assets/
-    ├── logo.png                            # logo halaman login (§5.1)
+    ├── logo.png                            # logo halaman login & topbar (§5.1)
     ├── logo1.png                           # aset alternatif, tidak dipakai
-    ├── favicon1.png                        # ✓ favicon aktif (§5.2)
-    └── favicon.png                         # file lama, tidak dipakai
+    ├── favicon.png                         # ✓ favicon aktif (§5.2)
+    ├── favicon1.png                        # file lama, tidak dipakai
+    └── default-user-avatar.svg             # fallback avatar pengguna tanpa foto (§9)
 ```
 
 ## 11. Checklist Setup
@@ -404,7 +410,7 @@ Status kustomisasi saat ini:
 
 - [x] `resources/views/filament/hooks/admin-theme.blade.php` dibuat.
 - [x] `DashboardPanelProvider` dikonfigurasi: colors, renderHook, brandLogo, favicon, darkMode(false).
-- [x] Logo `logo.png` tampil hanya di login dengan height `3.5rem`.
+- [x] Logo `logo.png` tampil di halaman login dan topbar dashboard dengan height `2rem`.
 - [x] Halaman panel menampilkan teks dari `APP_NAME` pada bidang kiri topbar desktop; bagian kanan topbar tetap putih.
 - [x] Header sidebar desktop disembunyikan agar tidak menyisakan garis putih di atas navigasi.
 - [x] Favicon `favicon1.png` aktif.

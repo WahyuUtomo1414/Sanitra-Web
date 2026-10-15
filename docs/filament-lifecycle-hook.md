@@ -1,6 +1,6 @@
 # Filament Lifecycle Hook & Service Pattern
 
-**Status:** Konsep awal · **Acuan:** [filament-resource.md](filament-resource.md), [database.md](database.md), [prd.md](prd.md) · **Panel:** Filament 4
+**Status:** Konsep awal · **Acuan:** [filament-resource.md](filament-resource.md), [database.md](database.md), [prd.md](prd.md) · **Panel:** Filament 5
 
 ## 1. Tujuan
 
@@ -186,7 +186,7 @@ Catatan:
 
 ## 5. Triggering dari Filament Resource
 
-Filament 4 menyediakan beberapa lifecycle hook di resource pages dan actions.
+Filament 5 menyediakan beberapa lifecycle hook di resource pages dan actions.
 
 ### 5.1 Create Page
 
@@ -284,21 +284,29 @@ Catatan:
 Untuk aksi batch (misal mark multiple terms as Ready to Bill):
 
 ```php
-use Filament\Tables\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
 
-BulkAction::make('markReadyToBill')
-    ->label('Tandai Siap Tagih')
-    ->action(function ($records) {
-        $service = app(MarkTermReadyToBillService::class);
+->toolbarActions([
+    BulkActionGroup::make([
+        BulkAction::make('markReadyToBill')
+            ->label('Tandai Siap Tagih')
+            ->action(function ($records) {
+                $service = app(MarkTermReadyToBillService::class);
 
-        foreach ($records as $record) {
-            $service->execute($record);
-        }
-    })
-    ->deselectRecordsAfterCompletion();
+                foreach ($records as $record) {
+                    $service->execute($record);
+                }
+            })
+            ->deselectRecordsAfterCompletion(),
+    ]),
+])
 ```
 
-Catatan: setiap record di-execute terpisah supaya satu kegagalan tidak rollback yang lain. Kalau butuh atomic bulk (all-or-nothing), bungkus loop dalam `DB::transaction()` di service bulk tersendiri.
+Catatan:
+- Di Filament 5, bulk action ditempatkan di `->toolbarActions([BulkActionGroup::make([...])])`, bukan di `->actions([])`.
+- Gunakan class spesifik seperti `DeleteBulkAction`, `RestoreBulkAction` (dari `Filament\Actions\`) untuk aksi bawaan.
+- Setiap record di-execute terpisah supaya satu kegagalan tidak rollback yang lain. Kalau butuh atomic bulk (all-or-nothing), bungkus loop dalam `DB::transaction()` di service bulk tersendiri.
 
 ### 5.5 Form Reactivity (Prefill dari Related Model)
 
@@ -310,8 +318,8 @@ Contoh di `TransProjectHdForm` saat user pilih quotation:
 
 ```php
 use App\Models\TransQuotationHd;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Select;
 use Illuminate\Database\Eloquent\Builder;
 
 Select::make('quotation_hd_id')
