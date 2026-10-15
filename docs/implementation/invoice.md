@@ -24,13 +24,13 @@
 
 Semua dalam satu `DB::transaction` (NFR-04).
 
-- [ ] Guard semua termin yang dipilih milik `order_hd_id` yang sama
-- [ ] Guard semua termin status `ready_to_bill`; lock baris dengan `lockForUpdate()`
-- [ ] Guard termin bebas invoice aktif (cek `trans_sales_invoice_dt` yang join ke invoice status ≠ `void`)
-- [ ] Buat HD invoice; generate `code` via `GenerateCodeService::next(AutoCodePrefix::TransSalesInvoiceHd)`; `grand_total = Σ amount` termin, `vat_amount` dialokasikan dari SO tanpa PPN ganda, `subtotal` mengikuti `vat_type`; selisih pembulatan dibebankan pada invoice terakhir; `project_hd_id` boleh null (invoice DP)
-- [ ] Buat baris DT per termin dengan snapshot `percentage`, `amount`
-- [ ] Update status termin → `invoiced`
-- [ ] Jika invoice memiliki `project_hd_id`: set `editable = false` pada `trans_project_dt` yang status `completed` (BR-05)
+- [x] Guard semua termin yang dipilih milik `order_hd_id` yang sama
+- [x] Guard semua termin status `ready_to_bill`; lock baris dengan `lockForUpdate()`
+- [x] Guard termin bebas invoice aktif (cek `trans_sales_invoice_dt` yang join ke invoice status ≠ `void`)
+- [x] Buat HD invoice; generate `code` via `GenerateCodeService::next(AutoCodePrefix::TransSalesInvoiceHd)`; `grand_total = Σ amount` termin, `vat_amount` dialokasikan dari SO tanpa PPN ganda, `subtotal` mengikuti `vat_type`; selisih pembulatan dibebankan pada invoice terakhir; `project_hd_id` boleh null (invoice DP)
+- [x] Buat baris DT per termin dengan snapshot `percentage`, `amount`
+- [x] Update status termin → `invoiced`
+- [x] Jika invoice memiliki `project_hd_id`: set `editable = false` pada `trans_project_dt` yang status `completed` (BR-05)
 - [ ] (Opsional) tulis log ke `trans_project_monitoring` per tahap yang terkunci (BR-10)
 - [ ] Setelah commit: kirim `InvoiceCreatedNotification` (opsional) + hitung ulang `payment_status` SO
 
@@ -46,7 +46,7 @@ Semua dalam satu `DB::transaction` (NFR-04).
 
 Group: **Keuangan**.
 
-- [ ] Properti: `$navigationLabel = 'Invoice'`, `$slug = 'invoices'`, icon currency
+- [x] Properti: `$navigationLabel = 'Invoice'`, `$slug = 'invoices'`, icon currency
 - [ ] Page: List, View, Edit terbatas (edit disabled begitu ada payment, termasuk Pending/Rejected; BR-11)
 - [ ] Table: `code`, `transaction_date`, `due_date` (highlight warna `danger` saat `isOverdue()`), `order.code`, `client.name`, `grand_total`, `status.name` badge; warna dari `InvoiceStatus::from($record->status->code)->color()`, audit
 - [ ] Filter table: `status_id`, `due_date` range, `client_id`, `company_id`
@@ -55,35 +55,35 @@ Group: **Keuangan**.
 
 ### 3.1 Custom Page — Create Invoice dari Termin Ready to Bill
 
-- [ ] Entry: `BuatInvoiceAction` di `TransSalesOrderHdResource` view page (lihat [sales-order-term.md](sales-order-term.md) §3.2)
-- [ ] Page menampilkan daftar termin `ready_to_bill` untuk SO terpilih
-- [ ] Checkbox pemilihan termin + preview `subtotal` / `vat` / `grand_total`
-- [ ] Field: `transaction_date`, `due_date`, `bank_account_id`, `notes`
-- [ ] Submit → panggil `CreateInvoiceFromTermsService`
-- [ ] Redirect ke view page invoice yang baru dibuat
+- [x] Entry: `BuatInvoiceAction` di `TransSalesOrderHdResource` view page (lihat [sales-order-term.md](sales-order-term.md) §3.2)
+- [x] Page menampilkan daftar termin `ready_to_bill` untuk SO terpilih
+- [x] Checkbox pemilihan termin + preview `subtotal` / `vat` / `grand_total`
+- [x] Field: `transaction_date`, `due_date`, `bank_account_id`, `notes`
+- [x] Submit → panggil `CreateInvoiceFromTermsService`
+- [x] Redirect ke view page invoice yang baru dibuat
 
 ### 3.2 Relation Manager
 
-- [ ] `ItemsRelationManager` → `trans_sales_invoice_dt` (read-only, snapshot termin)
+- [x] `ItemsRelationManager` → `trans_sales_invoice_dt` (read-only, snapshot termin)
 - [ ] `PaymentsRelationManager` → `trans_sales_payment` (lihat [payment.md](payment.md); create + Confirm/Reject action)
 
 ### 3.3 Custom Action
 
 - [ ] `VoidAction` — visible saat status `unpaid` dan tidak ada payment Pending/Confirmed; wajib isi alasan ke `notes`
-- [ ] `PrintPdfAction` — selalu visible, stream PDF
+- [x] `PrintPdfAction` — selalu visible, stream PDF
 
 ## 4. PDF Invoice
 
-- [ ] `composer require barryvdh/laravel-dompdf` (dipakai bersama dengan Quotation; sudah di-track di [quotation.md](quotation.md))
-- [ ] Blade template `resources/views/pdf/invoice.blade.php`
-  - [ ] Header: logo + nama company penerbit
-  - [ ] Info client, nomor invoice, tanggal, jatuh tempo
-  - [ ] Tabel termin yang ditagih (sequence, nama, persentase, nilai)
-  - [ ] Subtotal, VAT, grand total
-  - [ ] Rekening tujuan (`bank_name`, `account_number`, `account_name`)
-  - [ ] Catatan + tanda tangan
-  - [ ] Format Rupiah dan tanggal bahasa Indonesia
-- [ ] Trigger via `PrintPdfAction`: `Pdf::loadView('pdf.invoice', ['invoice' => $record])->stream("invoice-{$record->code}.pdf")`
+- [x] `barryvdh/laravel-dompdf` sudah terpasang dan dipakai bersama Quotation
+- [x] Blade template `resources/views/pdf/invoice.blade.php`
+  - [x] Header: logo + nama legal company penerbit
+  - [x] Info client, nomor invoice, tanggal, jatuh tempo
+  - [x] Tabel termin yang ditagih (sequence, nama, persentase, nilai)
+  - [x] Subtotal, VAT, grand total
+  - [x] Rekening tujuan (`bank_name`, `account_number`, `account_name`)
+  - [x] Catatan + tanda tangan
+  - [x] Format Rupiah dan tanggal bahasa Indonesia
+- [x] Trigger via action `Download PDF` pada halaman View Invoice; data disiapkan `InvoicePdfDataService`, lalu `Pdf::loadView('pdf.invoice', ...)->setPaper('a4', 'portrait')` dikirim sebagai file unduhan
 
 ## 5. Notification
 
@@ -100,3 +100,5 @@ Group: **Keuangan**.
 - [ ] Unit test race condition: 2 user bikin invoice dari termin yang sama → request kedua ditolak oleh `lockForUpdate`
 
 > Catatan: `TransactionSchemaTest` yang ada hanya memverifikasi schema, relasi, dan seeder. Flow invoice end-to-end (pembuatan oleh service, kunci tahap, void) belum diuji.
+
+Resource Invoice saat ini menyediakan List/View, item read-only, dan unduh PDF untuk alur pembuatan dari Sales Order. Edit, Void, filter lengkap, payment, dan notifikasi belum diimplementasikan.

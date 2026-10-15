@@ -39,36 +39,42 @@ Dipanggil dari `ApproveQuotationService` dalam satu `DB::transaction` (BR-17).
 
 Dipanggil saat progress project berubah (BR-04). Fase project belum diimplementasikan; service tetap didesain supaya siap dipanggil.
 
-- [ ] Loop termin SO status `pending` → kalau `progress_percentage ≥ progress_threshold` dan termin belum berada di invoice aktif, update ke `ready_to_bill`
+- [x] Loop termin SO status `pending` → kalau `progress_percentage ≥ progress_threshold` dan termin belum berada di invoice aktif, update ke `ready_to_bill`
 - [ ] Trigger `TermReadyToBillNotification` ke Finance (di luar transaction)
 
 ### 2.3 `app/Services/SalesOrder/RecalculateOrderPaymentStatusService`
 
 Dipanggil dari `ConfirmPaymentService` dan `VoidInvoiceService`.
 
-- [ ] Hitung ulang `payment_status_id` SO dari jumlah termin aktif vs termin `paid` (unpaid / partial / paid)
+- [x] Hitung ulang `payment_status_id` SO dari jumlah termin aktif vs termin `paid` (unpaid / partial / paid)
+
+> Service siap dipanggil, tetapi pemanggilan saat perubahan progress dan dari `ConfirmPaymentService`/`VoidInvoiceService` menunggu implementasi modul Project dan Payment/Invoice tersebut. Notifikasi pada §2.2 dan §4 sengaja belum dikerjakan.
 
 ## 3. Filament Resource `TransSalesOrderHdResource`
 
 Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateAction`.
 
-- [ ] Properti: `$navigationLabel = 'Sales Order'`, `$slug = 'sales-orders'`, icon
-- [ ] Page: List, View, Edit terbatas (hanya `notes`)
-- [ ] Table: `code`, `transaction_date`, `quotation.code`, `client.name`, `grand_total`, `status.name` badge, `paymentStatus.name` badge, audit
-- [ ] Filter table: `status_id`, `payment_status_id`, `client_id`, `company_id`
-- [ ] Infolist: Informasi Utama + Nominal + status pembayaran + Audit
-- [ ] Export Excel
+- [x] Properti: `$navigationLabel = 'Sales Order'`, `$slug = 'sales-orders'`, icon
+- [x] Page: List, View, Edit terbatas (hanya `notes`)
+- [x] Table: `code`, `transaction_date`, `quotation.code`, `client.name`, `grand_total`, `status.name` badge, `paymentStatus.name` badge, audit
+- [x] Filter table: `status_id`, `payment_status_id`, `client_id`, `company_id`
+- [x] Infolist: Informasi Utama + Nominal + status pembayaran + Audit
+- [x] Export Excel
 
 ### 3.1 Relation Manager
 
-- [ ] `ItemsRelationManager` → `trans_sales_order_dt` (read-only)
-- [ ] `TermsRelationManager` → `trans_sales_term` filter `order_hd_id`; status badge; edit hanya `notes`
-- [ ] `InvoicesRelationManager` → `trans_sales_invoice_hd` (read-only; link ke resource invoice)
+- [x] `ItemsRelationManager` → `trans_sales_order_dt` (read-only)
+- [x] `TermsRelationManager` → `trans_sales_term` filter `order_hd_id`; status badge; edit hanya `notes`
+- [x] `InvoicesRelationManager` → `trans_sales_invoice_hd` (read-only; link ke resource invoice)
 
 ### 3.2 Custom Action di Sales Order
 
-- [ ] `BuatInvoiceAction` → arahkan ke custom page pembuatan invoice (lihat [invoice.md](invoice.md) §3.1); visible saat ada termin `ready_to_bill`
-- [ ] `BuatProjectAction` → arahkan ke form Create Project; visible hanya jika invoice DP Paid dan SO belum punya Project; setelah Project tersimpan SO → `on_progress`
+- [x] `BuatInvoiceAction` → arahkan ke custom page pembuatan invoice (lihat [invoice.md](invoice.md) §3.1); visible saat ada termin `ready_to_bill`
+- [x] `BuatProjectAction` → arahkan ke form Create Project; visible hanya jika invoice DP Paid dan SO belum punya Project; setelah Project tersimpan SO → `on_progress`
+
+> Form Create Project menyalin workflow aktif ke tahap Project dan menyiapkan termin pada progress 0%. Aksi baru tersedia setelah invoice DP berstatus Paid; alur pelunasan invoice masih mengikuti implementasi Payment yang terpisah.
+
+Policy Shield untuk Sales Order dan Invoice sudah dibuat. Akses menu/aksi memerlukan permission resource terkait pada role pengguna; permission dan role belum diubah pada database.
 
 ## 4. Notification
 
@@ -86,3 +92,5 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 - [ ] Unit test `CheckTermReadyToBillService` menolak termin yang sedang ada di invoice aktif
 
 > Catatan: `TransactionSchemaTest` yang ada hanya memverifikasi schema, relasi, dan seeder. Flow end-to-end Approve → SO terbentuk oleh service masih belum ada.
+
+Pemeriksaan pada 15 Oktober 2026 dibatasi pada lint PHP, kompilasi Blade, dan pendaftaran route. Test pada §5 tidak dibuat atau dijalankan.
