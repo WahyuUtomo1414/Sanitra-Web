@@ -46,20 +46,37 @@ Observer menang hanya di satu hal: fires tanpa perlu diingat. Untuk business log
 ```
 app/
 └── Services/
-    ├── Quotation/
-    │   ├── SendQuotationService.php
-    │   ├── ApproveQuotationService.php
-    │   └── RejectQuotationService.php
-    ├── Project/
-    │   ├── CreateProjectStagesService.php
-    │   ├── UpdateProjectStageService.php
-    │   ├── OverrideProjectStageService.php
-    │   └── CloseProjectIfPaidService.php
+    ├── Client/
+    │   └── SaveClientContactService.php
     ├── Invoice/
     │   ├── CreateInvoiceFromTermsService.php
+    │   ├── InvoicePdfDataService.php
     │   └── VoidInvoiceService.php
-    └── Payment/
-        └── RecordPaymentService.php
+    ├── Item/
+    │   └── ManageItemUnitsService.php
+    ├── Payment/
+    │   ├── ConfirmPaymentService.php
+    │   ├── RecordPaymentService.php
+    │   └── RejectPaymentService.php
+    ├── Project/
+    │   ├── CreateProjectFromSalesOrderService.php
+    │   └── CreateProjectStagesService.php
+    ├── Quotation/
+    │   ├── ApproveQuotationService.php
+    │   ├── ManageQuotationItemsService.php
+    │   ├── ManageQuotationTermsService.php
+    │   ├── QuotationPdfDataService.php
+    │   ├── QuotationReadinessService.php
+    │   ├── RecalculateQuotationService.php
+    │   ├── RejectQuotationService.php
+    │   ├── ReviseQuotationService.php
+    │   └── SendQuotationService.php
+    ├── SalesOrder/
+    │   ├── CheckTermReadyToBillService.php
+    │   ├── CreateSalesOrderFromQuotationService.php
+    │   └── RecalculateOrderPaymentStatusService.php
+    └── Shared/
+        └── GenerateCodeService.php
 ```
 
 Konvensi:
@@ -230,6 +247,31 @@ Catatan untuk contoh di atas:
 - `DB::transaction()` wajib — kalau pembuatan tahap gagal (misal workflow belum di-set), HD juga rollback.
 - Form sudah pre-fill `client_id`, `project_type_id`, `company_id` dari quotation yang dipilih — lihat §5.5.
 - `static::getModel()::create($data)` dipakai supaya tetap generic kalau model berubah; alternatif pakai `TransProjectHd::create($data)` langsung juga OK.
+
+#### Error handling dalam handleRecordCreation: DomainException + halt
+
+Kalau service bisa gagal dengan domain error (duplikat, state tidak valid, dll.), tangkap exception di `handleRecordCreation`, tampilkan notifikasi, lalu panggil `$this->halt()` untuk menyetop lifecycle Filament. Tambahkan dummy return yang unreachable supaya static analysis tidak komplain:
+
+```php
+protected function handleRecordCreation(array $data): Model
+{
+    $invoice = TransSalesInvoiceHd::query()->findOrFail($data['invoice_hd_id']);
+
+    try {
+        return app(RecordPaymentService::class)->execute($invoice, $data);
+    } catch (DomainException $exception) {
+        Notification::make()->title($exception->getMessage())->danger()->send();
+
+        $this->halt();
+
+        return new TransSalesPayment(); // unreachable; satisfies return type
+    }
+}
+```
+
+- `$this->halt()` melempar `Filament\Support\Exceptions\Halt` — redirect tidak terjadi, form tetap terbuka.
+- Return dummy setelah `halt()` tidak dieksekusi di runtime tetapi diperlukan agar PHP/PHPStan tidak melaporkan *missing return*.
+- Pattern ini hanya untuk error yang perlu ditampilkan di UI tanpa melempar exception ke atas (mis. validasi domain di create payment).
 
 ### 5.2 Edit Page
 
@@ -402,9 +444,7 @@ Berdasarkan [prd.md](prd.md) alur bisnis:
 | Service | Trigger | Fungsi |
 | --- | --- | --- |
 | `CreateProjectStagesService` | Dipanggil di `handleRecordCreation` setelah HD dibuat | Copy workflow stages dari `ms_project_workflow` ke `trans_project_dt` berdasarkan `project_type_id` |
-| `UpdateProjectStageService` | Edit tahap dari relation manager | Ubah status/tanggal tahap, hitung ulang `progress_percentage` di HD, buat log monitoring |
-| `OverrideProjectStageService` | Action "Override" di tahap terkunci | Sama seperti update tapi hanya untuk role berizin, wajib alasan, catat log monitoring tipe override |
-| `CloseProjectIfPaidService` | Dipanggil `RecordPaymentService` setelah payment confirmed | Cek progress 100% + semua termin Paid → ubah status project ke Closed |
+| `CreateProjectFromSalesOrderService` | Form create project dari SO DP Paid | Guard SO sudah DP Paid dan belum punya project; buat HD project dari data SO; panggil `CreateProjectStagesService`; ubah SO → `on_progress` |
 
 ### 6.3 Invoice (`app/Services/Invoice/`)
 
@@ -417,8 +457,9 @@ Berdasarkan [prd.md](prd.md) alur bisnis:
 
 | Service | Trigger | Fungsi |
 | --- | --- | --- |
-| `RecordPaymentService` | Form create payment di relation manager invoice | Simpan payment, hitung total Confirmed, kalau ≥ grand_total ubah invoice & termin ke Paid, panggil `CloseProjectIfPaidService` |
-| `ConfirmPaymentService` | Action "Confirm" di payment pending | Ubah status payment → Confirmed, re-run perhitungan pelunasan |
+| `RecordPaymentService` | Form create payment di relation manager invoice | Validasi amount = grand_total & tidak ada payment Pending/Confirmed lain; simpan payment dengan status `pending`; tidak mengubah invoice/termin |
+| `ConfirmPaymentService` | Action "Confirm" di payment Pending | Ubah payment → `confirmed`; invoice → `paid`; semua termin terkait → `paid`; panggil `RecalculateOrderPaymentStatusService` — semua dalam satu `DB::transaction` |
+| `RejectPaymentService` | Action "Reject" di payment Pending | Ubah payment → `rejected`; tidak mengubah invoice atau SO |
 
 ## 7. Notification & Email
 

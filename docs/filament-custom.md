@@ -297,13 +297,12 @@ Register di `DashboardPanelProvider`:
 
 ```php
 ->brandLogo(asset('assets/logo.png'))
-->brandLogoHeight('3rem')
+->brandLogoHeight('2rem')
 ```
 
 Catatan:
 
 - `->darkModeBrandLogo()` tidak dipanggil karena dark mode dimatikan (§6).
-- CSS hook memastikan logo berukuran `3.15rem` di topbar dan `2.75rem` di halaman login dengan jarak bawah yang lega.
 
 ### 5.2 Favicon
 
@@ -391,17 +390,23 @@ Catatan:
 resources/
 └── views/
     └── filament/
-        └── hooks/
-            └── admin-theme.blade.php      # CSS override (§4) — sudah dibuat
+        ├── hooks/
+        │   └── admin-theme.blade.php           # CSS override (§4)
+        ├── layouts/
+        │   └── auth.blade.php                  # layout split-screen halaman login (§8)
+        └── pages/
+            └── import-master-data.blade.php    # UI import master data
 
 public/
-├── favicon.ico                             # ⚠ 0 bytes, perlu diisi atau di-delete
+├── favicon.ico                                 # ⚠ 0 bytes, perlu diisi atau di-delete
 └── assets/
-    ├── logo.png                            # logo halaman login & topbar (§5.1)
-    ├── logo1.png                           # aset alternatif, tidak dipakai
-    ├── favicon.png                         # ✓ favicon aktif (§5.2)
-    ├── favicon1.png                        # file lama, tidak dipakai
-    └── default-user-avatar.svg             # fallback avatar pengguna tanpa foto (§9)
+    ├── logo.png                                # logo halaman login & topbar (§5.1)
+    ├── logo1.png                               # aset alternatif, tidak dipakai
+    ├── favicon.png                             # ✓ favicon aktif (§5.2)
+    ├── favicon1.png                            # file lama, tidak dipakai
+    ├── auth-bg.jpg                             # foto background kolom kiri halaman login (§8)
+    ├── auth-bg-real.jpg                        # foto alternatif, tidak aktif
+    └── default-user-avatar.svg                 # fallback avatar pengguna tanpa foto (§9)
 ```
 
 ## 11. Checklist Setup
@@ -413,7 +418,7 @@ Status kustomisasi saat ini:
 - [x] Logo `logo.png` tampil di halaman login dan topbar dashboard dengan height `2rem`.
 - [x] Halaman panel menampilkan teks dari `APP_NAME` pada bidang kiri topbar desktop; bagian kanan topbar tetap putih.
 - [x] Header sidebar desktop disembunyikan agar tidak menyisakan garis putih di atas navigasi.
-- [x] Favicon `favicon1.png` aktif.
+- [x] Favicon `favicon.png` aktif.
 - [x] `User` model implements `HasAvatar` — avatar tampil di topbar.
 - [ ] `public/favicon.ico` masih 0 bytes — perlu diisi atau di-delete.
 

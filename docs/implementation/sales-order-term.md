@@ -48,7 +48,7 @@ Dipanggil dari `ConfirmPaymentService` dan `VoidInvoiceService`.
 
 - [x] Hitung ulang `payment_status_id` SO dari jumlah termin aktif vs termin `paid` (unpaid / partial / paid)
 
-> Service siap dipanggil, tetapi pemanggilan saat perubahan progress dan dari `ConfirmPaymentService`/`VoidInvoiceService` menunggu implementasi modul Project dan Payment/Invoice tersebut. Notifikasi pada §2.2 dan §4 sengaja belum dikerjakan.
+> `RecalculateOrderPaymentStatusService` sudah dipanggil saat konfirmasi payment dan Void invoice DP. Pemanggilan kesiapan termin saat progress Project berubah masih menunggu fase Project. Notifikasi pada §2.2 dan §4 belum dikerjakan.
 
 ## 3. Filament Resource `TransSalesOrderHdResource`
 
@@ -72,7 +72,7 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 - [x] `BuatInvoiceAction` → arahkan ke custom page pembuatan invoice (lihat [invoice.md](invoice.md) §3.1); visible saat ada termin `ready_to_bill`
 - [x] `BuatProjectAction` → arahkan ke form Create Project; visible hanya jika invoice DP Paid dan SO belum punya Project; setelah Project tersimpan SO → `on_progress`
 
-> Form Create Project menyalin workflow aktif ke tahap Project dan menyiapkan termin pada progress 0%. Aksi baru tersedia setelah invoice DP berstatus Paid; alur pelunasan invoice masih mengikuti implementasi Payment yang terpisah.
+> Form Create Project menyalin workflow aktif ke tahap Project dan menyiapkan termin pada progress 0%. Setelah invoice DP Paid, halaman SO menampilkan keterangan siap Project dan tombol Buat Project tersedia. SO tetap `waiting_dp` sampai Project benar-benar dibuat; saat itu baru berubah menjadi `on_progress`.
 
 Policy Shield untuk Sales Order dan Invoice sudah dibuat. Akses menu/aksi memerlukan permission resource terkait pada role pengguna; permission dan role belum diubah pada database.
 

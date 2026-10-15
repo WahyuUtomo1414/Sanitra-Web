@@ -16,7 +16,7 @@
 - [x] Trait `AuditedBySoftDelete` + `SoftDeletes`
 - [x] Enum case `AutoCodePrefix::TransSalesInvoiceHd = 'INV'`
 - [x] Enum `InvoiceStatus` (`unpaid`, `partial`, `paid`, `void`) + 4 row aktif di `ms_status` tipe `invoice`
-- [ ] Accessor `isOverdue()` dan `remainingAmount()` di `TransSalesInvoiceHd`
+- [x] Accessor `isOverdue()` dan `remainingAmount()` di `TransSalesInvoiceHd`
 
 ## 2. Service
 
@@ -36,22 +36,24 @@ Semua dalam satu `DB::transaction` (NFR-04).
 
 ### 2.2 `app/Services/Invoice/VoidInvoiceService`
 
-- [ ] Guard: invoice `unpaid` dan tidak ada payment Pending/Confirmed; payment Pending harus ditolak sebelum Void
-- [ ] Update invoice `status = void`
-- [ ] Kembalikan status termin yang terkait → `ready_to_bill` (BR-09)
+- [x] Guard: invoice `unpaid` dan tidak ada payment Pending/Confirmed; payment Pending harus ditolak sebelum Void
+- [x] Update invoice `status = void`
+- [x] Kembalikan status termin yang terkait → `ready_to_bill` (BR-09)
 - [ ] Untuk setiap tahap yang terkunci karena invoice ini, cek apakah masih dikunci invoice aktif lain; kalau tidak, set `editable = true`
 - [ ] Append log ke `trans_project_monitoring` per tahap yang berubah (BR-10)
+
+> Fase ini mengizinkan Void hanya untuk invoice DP (`project_hd_id` null). Void invoice progress ditahan sampai aturan unlock tahap Project dikerjakan.
 
 ## 3. Filament Resource `TransSalesInvoiceHdResource`
 
 Group: **Keuangan**.
 
 - [x] Properti: `$navigationLabel = 'Invoice'`, `$slug = 'invoices'`, icon currency
-- [ ] Page: List, View, Edit terbatas (edit disabled begitu ada payment, termasuk Pending/Rejected; BR-11)
-- [ ] Table: `code`, `transaction_date`, `due_date` (highlight warna `danger` saat `isOverdue()`), `order.code`, `client.name`, `grand_total`, `status.name` badge; warna dari `InvoiceStatus::from($record->status->code)->color()`, audit
-- [ ] Filter table: `status_id`, `due_date` range, `client_id`, `company_id`
-- [ ] Infolist: Informasi Utama + Nominal + Termin yang ditagih + Audit
-- [ ] Export Excel
+- [x] Page: List, View, Edit terbatas (edit disabled begitu ada payment, termasuk Pending/Rejected; BR-11)
+- [x] Table: `code`, `transaction_date`, `due_date` (highlight warna `danger` saat `isOverdue()`), `order.code`, `client.name`, `grand_total`, `status.name` badge; warna dari `InvoiceStatus::from($record->status->code)->color()`, audit
+- [x] Filter table: `status_id`, `due_date` range, `client_id`, `company_id`
+- [x] Infolist: Informasi Utama + Nominal + Audit; termin yang ditagih tampil di `ItemsRelationManager`
+- [x] Export Excel
 
 ### 3.1 Custom Page — Create Invoice dari Termin Ready to Bill
 
@@ -65,11 +67,11 @@ Group: **Keuangan**.
 ### 3.2 Relation Manager
 
 - [x] `ItemsRelationManager` → `trans_sales_invoice_dt` (read-only, snapshot termin)
-- [ ] `PaymentsRelationManager` → `trans_sales_payment` (lihat [payment.md](payment.md); create + Confirm/Reject action)
+- [x] `PaymentsRelationManager` → `trans_sales_payment` (lihat [payment.md](payment.md); create + Confirm/Reject action)
 
 ### 3.3 Custom Action
 
-- [ ] `VoidAction` — visible saat status `unpaid` dan tidak ada payment Pending/Confirmed; wajib isi alasan ke `notes`
+- [x] `VoidAction` untuk invoice DP — visible saat status `unpaid` dan tidak ada payment Pending/Confirmed; wajib isi alasan ke `notes`
 - [x] `PrintPdfAction` — selalu visible, stream PDF
 
 ## 4. PDF Invoice
@@ -101,4 +103,4 @@ Group: **Keuangan**.
 
 > Catatan: `TransactionSchemaTest` yang ada hanya memverifikasi schema, relasi, dan seeder. Flow invoice end-to-end (pembuatan oleh service, kunci tahap, void) belum diuji.
 
-Resource Invoice saat ini menyediakan List/View, item read-only, dan unduh PDF untuk alur pembuatan dari Sales Order. Edit, Void, filter lengkap, payment, dan notifikasi belum diimplementasikan.
+Resource Invoice menyediakan List/View, edit data administratif sebelum ada payment, Void invoice DP, item dan payment relation manager, filter, export, serta unduh PDF. Notifikasi dan Void invoice progress yang menyentuh tahap Project masih ditunda.

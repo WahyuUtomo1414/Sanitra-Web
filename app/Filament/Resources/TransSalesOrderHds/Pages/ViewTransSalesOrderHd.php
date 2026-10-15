@@ -14,6 +14,17 @@ class ViewTransSalesOrderHd extends ViewRecord
 {
     protected static string $resource = TransSalesOrderHdResource::class;
 
+    public function getSubheading(): ?string
+    {
+        if ($this->record->status?->code === OrderStatus::WaitingDp->value
+            && ! $this->record->project()->exists()
+            && $this->hasPaidDownPayment()) {
+            return 'DP lunas. Sales Order siap dibuatkan Project.';
+        }
+
+        return null;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -33,8 +44,13 @@ class ViewTransSalesOrderHd extends ViewRecord
                 ->visible(fn (): bool => TransSalesOrderHdResource::canEdit($this->record)
                     && $this->record->status?->code === OrderStatus::WaitingDp->value
                     && ! $this->record->project()->exists()
-                    && app(CreateProjectFromSalesOrderService::class)->hasPaidDownPayment($this->record))
+                    && $this->hasPaidDownPayment())
                 ->url(fn (): string => static::getResource()::getUrl('createProject', ['record' => $this->record])),
         ];
+    }
+
+    private function hasPaidDownPayment(): bool
+    {
+        return app(CreateProjectFromSalesOrderService::class)->hasPaidDownPayment($this->record);
     }
 }

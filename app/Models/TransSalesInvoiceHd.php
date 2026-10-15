@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\Status\InvoiceStatus;
+use App\Enums\Status\PaymentStatus;
 use App\Enums\VatType;
 use App\Traits\AuditedBySoftDelete;
 use Database\Factories\TransSalesInvoiceHdFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -75,5 +78,29 @@ class TransSalesInvoiceHd extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(TransSalesPayment::class, 'invoice_hd_id');
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->status?->code === InvoiceStatus::Unpaid->value
+            && $this->due_date?->lt(today()) === true;
+    }
+
+    public function remainingAmount(): string
+    {
+        if ($this->status?->code === InvoiceStatus::Void->value) {
+            return '0.000000';
+        }
+
+        $confirmedAmount = $this->payments()
+            ->whereHas('status', fn (Builder $query): Builder => $query
+                ->where('type', PaymentStatus::type()->value)
+                ->where('code', PaymentStatus::Confirmed->value))
+            ->get(['amount'])
+            ->reduce(fn (string $carry, TransSalesPayment $payment): string => bcadd($carry, (string) $payment->amount, 6), '0.000000');
+
+        $remaining = bcsub((string) $this->grand_total, $confirmedAmount, 6);
+
+        return bccomp($remaining, '0', 6) > 0 ? $remaining : '0.000000';
     }
 }
