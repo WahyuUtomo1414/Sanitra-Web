@@ -21,34 +21,72 @@ class ViewTransSalesQuotationHd extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make()->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value),
-            Action::make('downloadPdf')->label('Download PDF')->icon('heroicon-o-document-arrow-down')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value)
-                ->action(fn () => response()->streamDownload(
-                    fn () => print (Pdf::loadView('pdf.quotation', app(QuotationPdfDataService::class)->execute($this->record))->setPaper('a4', 'portrait')->output()),
-                    str_replace('/', '-', $this->record->code).'.pdf',
+            EditAction::make()
+                ->label('Ubah Detail')
+                ->icon('heroicon-o-pencil-square')
+                ->color('gray')
+                ->outlined()
+                ->visible(fn(): bool => $this->record->status?->code === QuotationStatus::Draft->value),
+            Action::make('downloadPdf')
+                ->label('Download PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->outlined()
+                ->visible(fn(): bool => $this->record->status?->code === QuotationStatus::Draft->value)
+                ->action(fn() => response()->streamDownload(
+                    fn() => print(Pdf::loadView('pdf.quotation', app(QuotationPdfDataService::class)->execute($this->record))->setPaper('a4', 'portrait')->output()),
+                    str_replace('/', '-', $this->record->code) . '.pdf',
                 )),
-            Action::make('send')->label('Kirim')->color('info')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value)
+            Action::make('send')
+                ->label('Kirim Penawaran')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->visible(fn(): bool => $this->record->status?->code === QuotationStatus::Draft->value)
                 ->requiresConfirmation()
-                ->action(fn () => app(SendQuotationService::class)->execute($this->record))
-                ->successNotificationTitle('Quotation dikirim.'),
-            Action::make('approve')->label('Setujui')->color('success')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
+                ->modalHeading('Kirim penawaran?')
+                ->modalDescription('Status akan berubah menjadi Dikirim. Detail penawaran tidak dapat diedit sampai dikembalikan ke Draft.')
+                ->modalSubmitActionLabel('Ya, kirim')
+                ->action(fn() => app(SendQuotationService::class)->execute($this->record))
+                ->successNotificationTitle('Quotation dikirim.')
+                ->successRedirectUrl(fn(): string => static::getResource()::getUrl('view', ['record' => $this->record])),
+            Action::make('approve')
+                ->label('Setujui Penawaran')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn(): bool => $this->record->status?->code === QuotationStatus::Sent->value)
                 ->requiresConfirmation()
-                ->modalDescription('Sales Order akan dibuat dan quotation terkunci.')
-                ->action(fn () => app(ApproveQuotationService::class)->execute($this->record))
-                ->successNotificationTitle('Quotation disetujui dan Sales Order dibuat.'),
-            Action::make('reject')->label('Tolak')->color('danger')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
+                ->modalHeading('Setujui penawaran?')
+                ->modalDescription('Sales Order akan dibuat dan quotation akan terkunci.')
+                ->modalSubmitActionLabel('Ya, setujui')
+                ->action(fn() => app(ApproveQuotationService::class)->execute($this->record))
+                ->successNotificationTitle('Quotation disetujui dan Sales Order dibuat.')
+                ->successRedirectUrl(fn(): string => static::getResource()::getUrl('view', ['record' => $this->record])),
+            Action::make('revise')
+                ->label('Kembalikan ke Draft')
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->color('warning')
+                ->outlined()
+                ->visible(fn(): bool => $this->record->status?->code === QuotationStatus::Sent->value)
                 ->requiresConfirmation()
-                ->action(fn () => app(RejectQuotationService::class)->execute($this->record))
-                ->successNotificationTitle('Quotation ditolak.'),
-            Action::make('revise')->label('Revisi')->color('warning')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
+                ->modalHeading('Kembalikan ke Draft?')
+                ->modalDescription('Penawaran dapat diedit kembali setelah status berubah menjadi Draft.')
+                ->modalSubmitActionLabel('Ya, revisi')
+                ->action(fn() => app(ReviseQuotationService::class)->execute($this->record))
+                ->successNotificationTitle('Quotation kembali ke Draft.')
+                ->successRedirectUrl(fn(): string => static::getResource()::getUrl('view', ['record' => $this->record])),
+            Action::make('reject')
+                ->label('Tolak')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->outlined()
+                ->visible(fn(): bool => $this->record->status?->code === QuotationStatus::Sent->value)
                 ->requiresConfirmation()
-                ->action(fn () => app(ReviseQuotationService::class)->execute($this->record))
-                ->successNotificationTitle('Quotation kembali ke Draft.'),
+                ->modalHeading('Tolak penawaran?')
+                ->modalDescription('Status penawaran akan berubah menjadi Ditolak.')
+                ->modalSubmitActionLabel('Ya, tolak')
+                ->action(fn() => app(RejectQuotationService::class)->execute($this->record))
+                ->successNotificationTitle('Quotation ditolak.')
+                ->successRedirectUrl(fn(): string => static::getResource()::getUrl('view', ['record' => $this->record])),
         ];
     }
 }

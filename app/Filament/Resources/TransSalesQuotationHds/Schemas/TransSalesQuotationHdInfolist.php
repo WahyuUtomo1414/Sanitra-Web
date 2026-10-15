@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TransSalesQuotationHds\Schemas;
 
+use App\Enums\Status\QuotationStatus;
 use App\Enums\VatType;
 use App\Support\Formatting\IndonesianMoneyFormatter;
 use Filament\Infolists\Components\TextEntry;
@@ -16,7 +17,8 @@ class TransSalesQuotationHdInfolist
             Section::make('Informasi Utama')->columnSpanFull()->columns(2)->schema([
                 TextEntry::make('code')->label('Nomor Quotation'),
                 TextEntry::make('transaction_date')->label('Tanggal')->date('d M Y'),
-                TextEntry::make('status.name')->label('Status')->badge(),
+                TextEntry::make('status.name')->label('Status')->badge()
+                    ->color(fn ($record): string => QuotationStatus::tryFrom($record->status?->code ?? '')?->color() ?? 'gray'),
                 TextEntry::make('client.name')->label('Klien'),
                 TextEntry::make('company.name')->label('Perusahaan Penerbit'),
                 TextEntry::make('projectType.name')->label('Tipe Proyek'),
