@@ -28,6 +28,10 @@ class MsCompanyInfolist
                         ->label('Email'),
                     TextEntry::make('phone')
                         ->label('Telepon'),
+                    TextEntry::make('website')
+                        ->label('Website')
+                        ->placeholder('-')
+                        ->url(fn ($record): ?string => $record->website, shouldOpenInNewTab: true),
                     TextEntry::make('address')
                         ->label('Alamat')
                         ->placeholder('-')

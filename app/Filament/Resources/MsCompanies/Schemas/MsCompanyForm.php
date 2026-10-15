@@ -49,6 +49,12 @@ class MsCompanyForm
                         ->required()
                         ->maxLength(18),
 
+                    TextInput::make('website')
+                        ->label('Website')
+                        ->url()
+                        ->nullable()
+                        ->maxLength(255),
+
                     Textarea::make('address')
                         ->label('Alamat')
                         ->required()

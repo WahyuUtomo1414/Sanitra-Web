@@ -28,6 +28,7 @@ class QuotationPdfDataService
             'terms' => $terms,
             'termAmounts' => $termAmounts,
             'logoData' => $logoData,
+            'angka' => static fn (string|int|float $amount): string => IndonesianMoneyFormatter::formatNumber($amount),
             'rupiah' => static fn (string|int|float $amount): string => IndonesianMoneyFormatter::formatRupiah($amount),
         ];
     }

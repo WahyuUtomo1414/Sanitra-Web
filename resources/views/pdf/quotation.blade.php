@@ -2,294 +2,508 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>SPH {{ $quotation->code }}</title>
+    <title>Penawaran Harga {{ $quotation->code }}</title>
     <style>
-        @page { size: A4 portrait; margin: 18mm 16mm 18mm 16mm; }
-        * { margin: 0; padding: 0; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 9pt; color: #1a1a1a; line-height: 1.55; }
-
-        /* ── Tabel header biru ── */
-        .th-blue {
-            background-color: #2a4f80;
-            color: #ffffff;
-            padding: 5px 6px;
-            border: 1px solid #c8d4e0;
-            font-weight: bold;
-            text-align: left;
+        @page {
+            size: A4 portrait;
+            margin: 17mm 17mm 18mm;
         }
-        .th-center { text-align: center; }
-        .th-right  { text-align: right; }
 
-        /* ── Tabel item & termin ── */
-        .data-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-        .data-table td { padding: 5px 6px; border: 1px solid #c8d4e0; vertical-align: top; }
-        .td-center { text-align: center; }
-        .td-right  { text-align: right; }
-        .row-even  { background-color: #f7f9fb; }
-        .item-note { font-size: 7.5pt; color: #6b7a8d; }
+        * { box-sizing: border-box; }
 
-        /* ── Section header ── */
-        .sec-hdr {
-            background-color: #1a3557;
-            color: #ffffff;
+        body {
+            margin: 0;
+            color: #243247;
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 8.5pt;
+            line-height: 1.45;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        td, th { vertical-align: top; }
+
+        .muted { color: #66758a; }
+        .brand { color: #166534; }
+        .small { font-size: 7.5pt; }
+        .strong { font-weight: bold; }
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .nowrap { white-space: nowrap; }
+
+        .letterhead {
+            border-bottom: 2px solid #166534;
+        }
+        .letterhead td { padding-bottom: 12px; }
+        .letterhead-logo {
+            width: 178px;
+            padding-right: 18px;
+            vertical-align: middle;
+        }
+        .letterhead-logo img {
+            max-width: 160px;
+            max-height: 90px;
+        }
+        .company-name {
+            color: #173c2b;
+            font-size: 13pt;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        .company-detail {
+            color: #66758a;
+            font-size: 7.5pt;
+            line-height: 1.4;
+            margin-top: 5px;
+        }
+        .company-contact {
+            color: #365747;
+            font-size: 7.5pt;
+            margin-top: 5px;
+        }
+        .company-contact-label {
+            color: #66758a;
+            font-weight: bold;
+            margin-right: 3px;
+        }
+        .company-contact-separator {
+            color: #b2c4b7;
+            padding: 0 9px;
+        }
+
+        .document-header {
+            margin-top: 17px;
+            margin-bottom: 17px;
+        }
+        .document-kicker {
+            color: #166534;
+            font-size: 7.5pt;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .document-title {
+            color: #152d22;
+            font-size: 16pt;
+            font-weight: bold;
+            line-height: 1.2;
+            margin-top: 4px;
+        }
+        .document-code {
+            color: #243247;
             font-size: 9pt;
             font-weight: bold;
-            padding: 5px 8px;
-            margin-top: 0;
-            letter-spacing: 0.3px;
+        }
+
+        .information {
+            border-top: 1px solid #d9e3dd;
+            border-bottom: 1px solid #d9e3dd;
+            margin-bottom: 16px;
+        }
+        .information > tbody > tr > td {
+            width: 50%;
+            padding: 10px 10px 10px 0;
+        }
+        .information > tbody > tr > td + td {
+            border-left: 1px solid #d9e3dd;
+            padding-left: 14px;
+            padding-right: 0;
+        }
+        .eyebrow {
+            color: #607267;
+            font-size: 7pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .client-name {
+            color: #173c2b;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        .meta td { padding: 1px 0; }
+        .meta-label { width: 82px; color: #66758a; }
+
+        .subject {
+            color: #173c2b;
+            font-size: 9pt;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+        .intro { margin-bottom: 18px; }
+
+        .section-title {
+            color: #173c2b;
+            font-size: 8.5pt;
+            font-weight: bold;
+            letter-spacing: .7px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #cbd9cf;
+            padding-bottom: 5px;
+            margin: 17px 0 7px;
+            page-break-after: avoid;
+        }
+        .section-title:first-child { margin-top: 0; }
+        .keep-together { page-break-inside: avoid; }
+
+        .line-table {
+            table-layout: fixed;
+            font-size: 7.6pt;
+        }
+        .line-table thead { display: table-header-group; }
+        .line-table tr { page-break-inside: avoid; }
+        .line-table th {
+            background: #eaf2ec;
+            border-top: 1px solid #9bb9a4;
+            border-bottom: 1px solid #9bb9a4;
+            color: #244b33;
+            font-size: 7pt;
+            font-weight: bold;
+            padding: 6px 5px;
+        }
+        .line-table td {
+            border-bottom: 1px solid #e3eae5;
+            padding: 6px 5px;
+            word-wrap: break-word;
+        }
+        .line-table tbody tr:nth-child(even) { background: #fafcfb; }
+        .item-note {
+            color: #66758a;
+            display: block;
+            font-size: 7pt;
+            margin-top: 2px;
+        }
+
+        .summary {
+            font-size: 8pt;
+            margin-top: 8px;
+            page-break-inside: avoid;
+        }
+        .summary td { padding: 3px 6px; }
+        .summary .summary-heading td {
+            border-bottom: 1px solid #cbd9cf;
+            color: #173c2b;
+            font-size: 8pt;
+            font-weight: bold;
+            letter-spacing: .6px;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .summary .spacer { width: 50%; }
+        .summary .amount { width: 27%; text-align: right; white-space: nowrap; }
+        .summary .grand td {
+            background: #eaf2ec;
+            border-top: 1px solid #9bb9a4;
+            color: #173c2b;
+            font-size: 9.5pt;
+            font-weight: bold;
+            padding-top: 7px;
+            padding-bottom: 7px;
+        }
+        .tax-note {
+            color: #66758a;
+            font-size: 7pt;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .notes {
+            background: #f7f9f8;
+            border-left: 2px solid #5a9a6c;
+            padding: 7px 9px;
+            white-space: pre-line;
+        }
+        .terms {
+            color: #3b4656;
+            font-size: 7.5pt;
+            line-height: 1.4;
+            padding-left: 17px;
+        }
+        .terms li {
+            padding-left: 2px;
+            margin-bottom: 4px;
+            page-break-inside: avoid;
+        }
+        .closing { margin-top: 12px; }
+
+        .signatures {
+            margin-top: 23px;
+            page-break-inside: avoid;
+        }
+        .signatures td { width: 50%; padding-right: 20px; }
+        .signatures td + td { padding-left: 20px; padding-right: 0; }
+        .signature-party {
+            color: #173c2b;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        .signature-space { height: 48px; }
+        .signature-line {
+            border-top: 1px solid #89988e;
+            padding-top: 4px;
+            color: #66758a;
+            font-size: 7.5pt;
+        }
+        .document-footer {
+            border-top: 1px solid #d9e3dd;
+            color: #849187;
+            font-size: 7pt;
+            margin-top: 23px;
+            padding-top: 6px;
         }
     </style>
 </head>
 <body>
+    @php($hasItemDiscount = $quotation->items->contains(fn ($item): bool => (float) $item->discount > 0))
 
-{{-- ── KOP SURAT ── --}}
-<table style="width:100%; border-collapse:collapse; border-bottom:3px solid #1a3557; padding-bottom:10px; margin-bottom:14px;">
-    <tr>
-        <td style="width:130px; vertical-align:middle; padding-bottom:10px;">
+    <table class="letterhead">
+        <tr>
             @if ($logoData)
-                <img src="{{ $logoData }}" style="max-width:120px; max-height:70px;">
-            @endif
-        </td>
-        <td style="text-align:right; vertical-align:middle; padding-bottom:10px;">
-            <div style="font-size:14pt; font-weight:bold; color:#1a3557;">{{ $quotation->company->name }}</div>
-            @if ($quotation->company->legal_name && $quotation->company->legal_name !== $quotation->company->name)
-                <div style="font-size:8.5pt; color:#6b7a8d;">{{ $quotation->company->legal_name }}</div>
-            @endif
-            <div style="font-size:8.5pt; color:#444; line-height:1.6;">
-                {{ $quotation->company->address }}@if($quotation->company->postal_code), {{ $quotation->company->postal_code }}@endif<br>
-                Telp: {{ $quotation->company->phone }} &nbsp;&middot;&nbsp; {{ $quotation->company->email }}
-            </div>
-        </td>
-    </tr>
-</table>
-
-{{-- ── JUDUL ── --}}
-<div style="text-align:center; margin:14px 0 12px;">
-    <div style="font-size:13pt; font-weight:bold; color:#1a3557; letter-spacing:1.5px;">SURAT PENAWARAN HARGA</div>
-    <div style="font-size:9pt; color:#6b7a8d; margin-top:2px;">{{ $quotation->code }}</div>
-</div>
-
-{{-- ── META & KEPADA ── --}}
-<table style="width:100%; border-collapse:collapse; margin-bottom:12px;">
-    <tr>
-        <td style="width:48%; vertical-align:top; padding-right:10px;">
-            <table style="width:100%; border-collapse:collapse;">
-                <tr>
-                    <td style="width:120px; color:#6b7a8d; padding:2px 0; font-size:9pt;">Nomor</td>
-                    <td style="width:8px; color:#6b7a8d; font-size:9pt;">:</td>
-                    <td style="font-size:9pt;">{{ $quotation->code }}</td>
-                </tr>
-                <tr>
-                    <td style="color:#6b7a8d; padding:2px 0; font-size:9pt;">Tanggal</td>
-                    <td style="color:#6b7a8d; font-size:9pt;">:</td>
-                    <td style="font-size:9pt;">{{ $quotation->transaction_date->locale('id')->translatedFormat('d F Y') }}</td>
-                </tr>
-                <tr>
-                    <td style="color:#6b7a8d; padding:2px 0; font-size:9pt;">Jenis Pekerjaan</td>
-                    <td style="color:#6b7a8d; font-size:9pt;">:</td>
-                    <td style="font-size:9pt;">{{ $quotation->projectType->name ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="color:#6b7a8d; padding:2px 0; font-size:9pt;">Skema Bayar</td>
-                    <td style="color:#6b7a8d; font-size:9pt;">:</td>
-                    <td style="font-size:9pt;">{{ $quotation->payment_type }}</td>
-                </tr>
-            </table>
-        </td>
-        <td style="width:52%; vertical-align:top;">
-            <div style="border-left:3px solid #1a3557; padding:7px 10px; background-color:#f7f9fb;">
-                <div style="font-size:8.5pt; color:#6b7a8d; margin-bottom:3px;">Kepada Yth.</div>
-                <div style="font-weight:bold; font-size:10.5pt; color:#1a3557;">{{ $quotation->client->name }}</div>
-                @if ($quotation->client->address)
-                    <div style="font-size:9pt;">{{ $quotation->client->address }}</div>
-                @endif
-                @if ($quotation->client->picEmployee)
-                    <div style="font-size:8.5pt; color:#555; margin-top:3px;">U/p: {{ $quotation->client->picEmployee->name }}</div>
-                @endif
-            </div>
-        </td>
-    </tr>
-</table>
-
-{{-- ── HAL ── --}}
-<div style="margin-bottom:10px; font-size:9.5pt;">
-    <strong>Hal:</strong> Penawaran Harga Jasa {{ $quotation->projectType->name ?? 'Pekerjaan' }} untuk {{ $quotation->client->name }}
-</div>
-
-{{-- ── PEMBUKA ── --}}
-<div style="margin-bottom:14px; font-size:9.5pt; text-align:justify;">
-    Dengan hormat,<br><br>
-    Sehubungan dengan kebutuhan Bapak/Ibu, bersama surat ini kami dari
-    <strong>{{ $quotation->company->legal_name ?? $quotation->company->name }}</strong>
-    dengan hormat menyampaikan penawaran harga atas jasa yang tercantum di bawah ini.
-    Kami berkomitmen untuk memberikan solusi yang tepat, berkualitas, dan sesuai dengan
-    regulasi lingkungan yang berlaku di Indonesia.
-</div>
-
-{{-- ── RINCIAN PENAWARAN ── --}}
-<div class="sec-hdr" style="margin-top:0;">RINCIAN PENAWARAN</div>
-<table class="data-table">
-    <thead>
-        <tr>
-            <th class="th-blue th-center" style="width:22px;">No.</th>
-            <th class="th-blue">Uraian Pekerjaan / Jasa</th>
-            <th class="th-blue th-center" style="width:28px;">Qty</th>
-            <th class="th-blue" style="width:52px;">Satuan</th>
-            <th class="th-blue th-right" style="width:100px;">Harga Satuan</th>
-            <th class="th-blue th-right" style="width:85px;">Diskon</th>
-            <th class="th-blue th-right" style="width:100px;">Jumlah</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach ($quotation->items as $item)
-            <tr @if($loop->even) class="row-even" @endif>
-                <td class="td-center">{{ $loop->iteration }}</td>
-                <td>
-                    {{ $item->item->name }}
-                    @if ($item->notes)
-                        <br><span class="item-note">{{ $item->notes }}</span>
-                    @endif
+                <td class="letterhead-logo">
+                    <img src="{{ $logoData }}" alt="Logo {{ $quotation->company->name }}">
                 </td>
-                <td class="td-center">{{ $item->qty }}</td>
-                <td>{{ $item->unit->name }}</td>
-                <td class="td-right">{{ $rupiah($item->unit_price) }}</td>
-                <td class="td-right">
-                    @if ((float) $item->discount > 0)
-                        {{ $rupiah($item->discount) }}
-                    @else
-                        <span style="color:#bbb;">—</span>
-                    @endif
-                </td>
-                <td class="td-right">{{ $rupiah($item->total_price) }}</td>
-            </tr>
-        @endforeach
-    </tbody>
-</table>
-
-{{-- ── RINGKASAN BIAYA ── --}}
-<table style="width:100%; border-collapse:collapse; font-size:9pt; margin-top:6px;">
-    @if ((float) $quotation->discount_total > 0)
-        <tr>
-            <td style="width:52%;"></td>
-            <td style="color:#6b7a8d; padding:2px 5px;">Subtotal sebelum diskon</td>
-            <td style="text-align:right; padding:2px 5px; min-width:110px;">{{ $rupiah((float) $quotation->subtotal + (float) $quotation->discount_total) }}</td>
-        </tr>
-        <tr>
-            <td></td>
-            <td style="color:#6b7a8d; padding:2px 5px;">Total diskon</td>
-            <td style="text-align:right; padding:2px 5px; color:#c0392b;">({{ $rupiah($quotation->discount_total) }})</td>
-        </tr>
-    @endif
-    <tr>
-        <td style="width:52%;"></td>
-        <td style="color:#6b7a8d; padding:2px 5px;">Subtotal</td>
-        <td style="text-align:right; padding:2px 5px;">{{ $rupiah($quotation->subtotal) }}</td>
-    </tr>
-    @if ($quotation->vat_type->value !== 'none')
-        <tr>
-            <td></td>
-            <td style="color:#6b7a8d; padding:2px 5px;">
-                PPN
-                @if ($quotation->vat_type->value === 'include')
-                    <span style="font-size:7.5pt;">(sudah termasuk)</span>
-                @else
-                    <span style="font-size:7.5pt;">(ditambahkan)</span>
+            @endif
+            <td>
+                <div class="company-name">{{ $quotation->company->legal_name }}</div>
+                @if ($quotation->company->address)
+                    <div class="company-detail">{{ $quotation->company->address }}@if ($quotation->company->postal_code), {{ $quotation->company->postal_code }}@endif</div>
+                @endif
+                @if ($quotation->company->phone || $quotation->company->website)
+                    <div class="company-contact">
+                        @if ($quotation->company->phone)
+                            <span class="company-contact-label">Tel.</span>{{ $quotation->company->phone }}
+                        @endif
+                        @if ($quotation->company->phone && $quotation->company->website)
+                            <span class="company-contact-separator">|</span>
+                        @endif
+                        @if ($quotation->company->website)
+                            <span class="company-contact-label">Web.</span>{{ preg_replace('#^https?://#i', '', rtrim($quotation->company->website, '/')) }}
+                        @endif
+                    </div>
                 @endif
             </td>
-            <td style="text-align:right; padding:2px 5px;">{{ $rupiah($quotation->vat_amount) }}</td>
         </tr>
-    @endif
-    <tr>
-        <td></td>
-        <td style="font-weight:bold; font-size:10pt; color:#1a3557; border-top:2px solid #1a3557; padding:5px 5px;">GRAND TOTAL</td>
-        <td style="text-align:right; font-weight:bold; font-size:10pt; color:#1a3557; border-top:2px solid #1a3557; padding:5px 5px;">{{ $rupiah($quotation->grand_total) }}</td>
-    </tr>
-</table>
-@if ($quotation->vat_type->value === 'include')
-    <div style="font-size:7.5pt; color:#6b7a8d; text-align:right; margin-top:3px;">* PPN 11% sudah termasuk dalam harga di atas.</div>
-@endif
+    </table>
 
-{{-- ── SKEMA TERMIN ── --}}
-@if ($terms->count() > 0)
-    <div class="sec-hdr" style="margin-top:14px;">SKEMA PEMBAYARAN (TERMIN)</div>
-    <table class="data-table">
+    <table class="document-header">
+        <tr>
+            <td>
+                <div class="document-kicker">Dokumen Penawaran</div>
+                <div class="document-title">Surat Penawaran Harga</div>
+            </td>
+            <td class="right" style="vertical-align: bottom;">
+                <div class="eyebrow">Nomor Dokumen</div>
+                <div class="document-code">{{ $quotation->code }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="information">
+        <tr>
+            <td>
+                <div class="eyebrow">Ditujukan kepada</div>
+                <div class="client-name">{{ $quotation->client->name }}</div>
+                @if ($quotation->client->address)
+                    <div>{{ $quotation->client->address }}</div>
+                @endif
+                @if ($quotation->client->picEmployee)
+                    <div class="small muted" style="margin-top: 4px;">PIC internal: {{ $quotation->client->picEmployee->name }}</div>
+                @endif
+            </td>
+            <td>
+                <div class="eyebrow">Informasi Penawaran</div>
+                <table class="meta">
+                    <tr>
+                        <td class="meta-label">Tanggal</td>
+                        <td>{{ $quotation->transaction_date->locale('id')->translatedFormat('d F Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="meta-label">Pekerjaan</td>
+                        <td>{{ $quotation->projectType->name ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="meta-label">Pembayaran</td>
+                        <td>{{ $quotation->payment_type }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div class="subject">Perihal: Penawaran {{ $quotation->projectType->name ?? 'Pekerjaan' }}</div>
+    <div class="intro">
+        Dengan hormat,<br>
+        Menindaklanjuti kebutuhan {{ $quotation->client->name }}, kami menyampaikan penawaran pekerjaan
+        dengan rincian layanan dan nilai sebagai berikut.
+    </div>
+
+    <div class="section-title">Rincian Pekerjaan dan Biaya</div>
+    <table class="line-table">
+        <colgroup>
+            <col style="width: 5%;">
+            @if ($hasItemDiscount)
+                <col style="width: 36%;">
+                <col style="width: 7%;">
+                <col style="width: 9%;">
+                <col style="width: 15%;">
+                <col style="width: 13%;">
+                <col style="width: 15%;">
+            @else
+                <col style="width: 45%;">
+                <col style="width: 7%;">
+                <col style="width: 9%;">
+                <col style="width: 17%;">
+                <col style="width: 17%;">
+            @endif
+        </colgroup>
         <thead>
             <tr>
-                <th class="th-blue th-center" style="width:22px;">No.</th>
-                <th class="th-blue">Nama Termin</th>
-                <th class="th-blue th-center" style="width:68px;">Persentase</th>
-                <th class="th-blue th-center" style="width:105px;">Syarat Progress</th>
-                <th class="th-blue th-right" style="width:110px;">Nilai Termin</th>
+                <th class="center" style="width: 5%;">No.</th>
+                <th style="width: {{ $hasItemDiscount ? '36%' : '45%' }};">Uraian Pekerjaan</th>
+                <th class="center" style="width: 7%;">Qty</th>
+                <th style="width: 9%;">Satuan</th>
+                <th class="right" style="width: {{ $hasItemDiscount ? '15%' : '17%' }};">Harga Satuan (Rp)</th>
+                @if ($hasItemDiscount)
+                    <th class="right" style="width: 13%;">Diskon (Rp)</th>
+                @endif
+                <th class="right" style="width: {{ $hasItemDiscount ? '15%' : '17%' }};">Jumlah (Rp)</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($terms as $term)
-                <tr @if($loop->even) class="row-even" @endif>
-                    <td class="td-center">{{ $loop->iteration }}</td>
-                    <td>{{ $term->term_name }}</td>
-                    <td class="td-center">{{ $term->percentage }}%</td>
-                    <td class="td-center">
-                        @if ((int) $term->progress_threshold === 0)
-                            Down Payment
-                        @else
-                            &ge; {{ $term->progress_threshold }}% progress
+            @foreach ($quotation->items as $item)
+                <tr>
+                    <td class="center">{{ $loop->iteration }}</td>
+                    <td>
+                        <span class="strong">{{ $item->item->name }}</span>
+                        @if ($item->notes)
+                            <span class="item-note">{{ $item->notes }}</span>
                         @endif
                     </td>
-                    <td class="td-right">{{ $rupiah($termAmounts[$term->id]) }}</td>
+                    <td class="center">{{ $item->qty }}</td>
+                    <td>{{ $item->unit->name }}</td>
+                    <td class="right nowrap">{{ $angka($item->unit_price) }}</td>
+                    @if ($hasItemDiscount)
+                        <td class="right nowrap">{{ (float) $item->discount > 0 ? $angka($item->discount) : '-' }}</td>
+                    @endif
+                    <td class="right nowrap strong">{{ $angka($item->total_price) }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
-@endif
 
-{{-- ── CATATAN KHUSUS ── --}}
-@if ($quotation->notes)
-    <div class="sec-hdr" style="margin-top:14px;">CATATAN KHUSUS</div>
-    <div style="border:1px solid #c8d4e0; padding:7px 10px; font-size:9pt; background-color:#fafbfc;">{{ $quotation->notes }}</div>
-@endif
+    <table class="summary">
+        <tr class="summary-heading">
+            <td colspan="3">Ringkasan Biaya</td>
+        </tr>
+        @if ((float) $quotation->discount_total > 0)
+            <tr>
+                <td class="spacer"></td>
+                <td class="muted">Nilai sebelum diskon</td>
+                <td class="amount">{{ $rupiah((float) $quotation->subtotal + (float) $quotation->discount_total) }}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="muted">Diskon</td>
+                <td class="amount">({{ $rupiah($quotation->discount_total) }})</td>
+            </tr>
+        @endif
+        <tr>
+            <td class="spacer"></td>
+            <td class="muted">Subtotal</td>
+            <td class="amount">{{ $rupiah($quotation->subtotal) }}</td>
+        </tr>
+        @if ($quotation->vat_type->value !== 'none')
+            <tr>
+                <td></td>
+                <td class="muted">PPN {{ $quotation->vat_type->value === 'include' ? '(termasuk)' : '(ditambahkan)' }}</td>
+                <td class="amount">{{ $rupiah($quotation->vat_amount) }}</td>
+            </tr>
+        @endif
+        <tr class="grand">
+            <td></td>
+            <td>Total Penawaran</td>
+            <td class="amount">{{ $rupiah($quotation->grand_total) }}</td>
+        </tr>
+    </table>
+    @if ($quotation->vat_type->value === 'include')
+        <div class="tax-note">Nilai PPN sudah termasuk dalam total penawaran.</div>
+    @endif
 
-{{-- ── SYARAT & KETENTUAN ── --}}
-<div class="sec-hdr" style="margin-top:14px;">SYARAT DAN KETENTUAN</div>
-<div style="font-size:8.5pt; color:#333; margin-top:5px;">
-    <ol style="padding-left:16px;">
-        <li style="margin-bottom:3px; line-height:1.5;">Penawaran ini berlaku selama <strong>30 (tiga puluh) hari kalender</strong> sejak tanggal surat diterbitkan.</li>
-        <li style="margin-bottom:3px; line-height:1.5;">Harga yang tercantum belum termasuk biaya akomodasi dan transportasi di luar wilayah Jabodetabek, kecuali disebutkan secara khusus dalam rincian penawaran.</li>
-        <li style="margin-bottom:3px; line-height:1.5;">Pelaksanaan pekerjaan dimulai setelah pembayaran Down Payment (DP) diterima dan Purchase Order (PO) atau Surat Perintah Kerja (SPK) diterbitkan oleh pemberi kerja.</li>
-        <li style="margin-bottom:3px; line-height:1.5;">Seluruh dokumen perizinan, data teknis, dan akses lokasi yang diperlukan untuk pelaksanaan pekerjaan menjadi tanggung jawab pemberi kerja.</li>
-        <li style="margin-bottom:3px; line-height:1.5;">Perubahan lingkup pekerjaan (change order) yang disepakati kedua belah pihak dapat memengaruhi nilai kontrak dan jadwal pelaksanaan.</li>
-        <li style="margin-bottom:3px; line-height:1.5;">Keterlambatan pembayaran termin dapat mengakibatkan penghentian sementara pekerjaan sampai kewajiban pembayaran dipenuhi.</li>
-        <li style="margin-bottom:3px; line-height:1.5;">Garansi pekerjaan berlaku sesuai kesepakatan dalam kontrak dan tidak mencakup kerusakan akibat pihak lain atau force majeure.</li>
+    @if ($terms->count() > 0)
+        <div class="section-title">Skema Pembayaran</div>
+        <table class="line-table">
+            <colgroup>
+                <col style="width: 5%;">
+                <col style="width: 35%;">
+                <col style="width: 13%;">
+                <col style="width: 24%;">
+                <col style="width: 23%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="center">No.</th>
+                    <th>Termin</th>
+                    <th class="center">Porsi</th>
+                    <th>Syarat Penagihan</th>
+                    <th class="right">Nilai</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($terms as $term)
+                    <tr>
+                        <td class="center">{{ $loop->iteration }}</td>
+                        <td class="strong">{{ $term->term_name }}</td>
+                        <td class="center">{{ $term->percentage }}%</td>
+                        <td>{{ (int) $term->progress_threshold === 0 ? 'Down Payment' : 'Progress minimal '.$term->progress_threshold.'%' }}</td>
+                        <td class="right nowrap">{{ $rupiah($termAmounts[$term->id]) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if ($quotation->notes)
+        <div class="keep-together">
+            <div class="section-title">Catatan Penawaran</div>
+            <div class="notes">{{ $quotation->notes }}</div>
+        </div>
+    @endif
+
+    <div class="section-title">Syarat dan Ketentuan</div>
+    <ol class="terms">
+        <li>Penawaran ini berlaku selama <strong>30 (tiga puluh) hari kalender</strong> sejak tanggal surat diterbitkan.</li>
+        <li>Harga yang tercantum belum termasuk biaya akomodasi dan transportasi di luar wilayah Jabodetabek, kecuali disebutkan secara khusus dalam rincian penawaran.</li>
+        <li>Pelaksanaan pekerjaan dimulai setelah pembayaran Down Payment (DP) diterima dan Purchase Order (PO) atau Surat Perintah Kerja (SPK) diterbitkan oleh pemberi kerja.</li>
+        <li>Seluruh dokumen perizinan, data teknis, dan akses lokasi yang diperlukan untuk pelaksanaan pekerjaan menjadi tanggung jawab pemberi kerja.</li>
+        <li>Perubahan lingkup pekerjaan (change order) yang disepakati kedua belah pihak dapat memengaruhi nilai kontrak dan jadwal pelaksanaan.</li>
+        <li>Keterlambatan pembayaran termin dapat mengakibatkan penghentian sementara pekerjaan sampai kewajiban pembayaran dipenuhi.</li>
+        <li>Garansi pekerjaan berlaku sesuai kesepakatan dalam kontrak dan tidak mencakup kerusakan akibat pihak lain atau force majeure.</li>
     </ol>
-</div>
 
-{{-- ── PENUTUP ── --}}
-<div style="margin-top:12px; font-size:9.5pt; text-align:justify;">
-    Demikian penawaran harga ini kami sampaikan. Besar harapan kami untuk dapat menjalin
-    kerja sama yang baik dengan <strong>{{ $quotation->client->name }}</strong>.
-    Apabila terdapat pertanyaan lebih lanjut, kami siap dihubungi melalui kontak yang tertera di atas.
-</div>
+    <div class="closing">
+        Demikian penawaran ini kami sampaikan. Kami berharap dapat bekerja sama dengan
+        {{ $quotation->client->name }}. Untuk klarifikasi, silakan menghubungi kontak perusahaan di atas.
+    </div>
 
-{{-- ── TANDA TANGAN ── --}}
-<table style="width:100%; border-collapse:collapse; margin-top:24px;">
-    <tr>
-        <td style="width:50%; vertical-align:top; padding-right:20px;">
-            <div style="font-size:8.5pt; color:#6b7a8d; margin-bottom:2px;">Menyetujui,</div>
-            <div style="font-weight:bold; color:#1a3557; font-size:10pt; margin-bottom:55px;">{{ $quotation->client->name }}</div>
-            <div style="border-top:1px solid #555; padding-top:4px; font-size:8.5pt;">
-                (______________________________)<br>
-                <span style="font-size:8pt; color:#6b7a8d;">Nama &amp; Jabatan</span>
-            </div>
-        </td>
-        <td style="width:50%; vertical-align:top; text-align:right;">
-            <div style="font-size:8.5pt; color:#6b7a8d; margin-bottom:2px;">Hormat kami,</div>
-            <div style="font-weight:bold; color:#1a3557; font-size:10pt; margin-bottom:55px;">{{ $quotation->company->legal_name ?? $quotation->company->name }}</div>
-            <div style="border-top:1px solid #555; padding-top:4px; font-size:8.5pt;">
-                (______________________________)<br>
-                <span style="font-size:8pt; color:#6b7a8d;">Penanggung Jawab</span>
-            </div>
-        </td>
-    </tr>
-</table>
+    <table class="signatures">
+        <tr>
+            <td>
+                <div class="muted small">Persetujuan pemberi kerja</div>
+                <div class="signature-party">{{ $quotation->client->name }}</div>
+                <div class="signature-space"></div>
+                <div class="signature-line">Nama, jabatan, dan tanda tangan</div>
+            </td>
+            <td>
+                <div class="muted small">Hormat kami</div>
+                <div class="signature-party">{{ $quotation->company->legal_name ?: $quotation->company->name }}</div>
+                <div class="signature-space"></div>
+                <div class="signature-line">Nama, jabatan, dan tanda tangan</div>
+            </td>
+        </tr>
+    </table>
 
+    <div class="document-footer">
+        {{ $quotation->company->name }} &nbsp; | &nbsp; Penawaran {{ $quotation->code }}
+    </div>
 </body>
 </html>

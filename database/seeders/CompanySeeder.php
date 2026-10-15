@@ -11,6 +11,8 @@ class CompanySeeder extends SanitraSeeder
 
     private const SANITRA_POSTAL_CODE = '15225';
 
+    private const SANITRA_WEBSITE = 'https://sanitra.co.id';
+
     public function run(): void
     {
         $company = MsCompany::withTrashed()->find(1);
@@ -26,6 +28,10 @@ class CompanySeeder extends SanitraSeeder
 
             if (blank($company->postal_code)) {
                 $company->postal_code = self::SANITRA_POSTAL_CODE;
+            }
+
+            if (blank($company->website)) {
+                $company->website = self::SANITRA_WEBSITE;
             }
 
             if ($company->isDirty()) {
@@ -45,6 +51,7 @@ class CompanySeeder extends SanitraSeeder
             'legal_name' => 'PT Sanitra Sapta Utama',
             'email' => 'info@sanitra.co.id',
             'phone' => '02139701224',
+            'website' => self::SANITRA_WEBSITE,
             'address' => self::SANITRA_ADDRESS,
             'postal_code' => self::SANITRA_POSTAL_CODE,
             'description' => 'Jasa IPAL, perizinan lingkungan, TPS limbah B3, pest control, dan bahan penunjang IPAL.',
