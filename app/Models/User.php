@@ -21,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     public function canAccessPanel(Panel $panel): bool
     {
@@ -30,7 +30,9 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function getFilamentAvatarUrl(): ?string
     {
-        return $this->avatar ? Storage::url($this->avatar) : null;
+        return $this->avatar
+            ? Storage::disk('public')->url($this->avatar)
+            : asset('assets/default-user-avatar.svg');
     }
 
     /**

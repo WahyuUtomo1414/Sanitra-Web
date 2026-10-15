@@ -19,6 +19,7 @@ class UsersTable
                 ImageColumn::make('avatar')
                     ->label('Avatar')
                     ->disk('public')
+                    ->defaultImageUrl(asset('assets/default-user-avatar.svg'))
                     ->circular(),
 
                 TextColumn::make('name')
