@@ -73,22 +73,26 @@ Tarif PPN mengikuti contoh Sanitra (BR-14). Jika tarifnya `r`, `vat_amount` untu
 
 Termin disusun di quotation sebagai bagian dari penawaran. Setelah quotation Approved, pengelolaan termin pindah ke Sales Order (BR-16). Detail field termin, status, dan logika transisi otomatis ada di [sales-order-term.md §3](sales-order-term.md).
 
-**Validasi aplikasi saat quotation disimpan:**
+**Validasi kesiapan sebelum quotation dikirim atau PDF diunduh:**
 
+- Quotation harus memiliki minimal satu item sebelum dapat dikirim atau diunduh sebagai PDF.
 - Total `percentage` seluruh termin **wajib 100** (BR-01). Validasi dilakukan sebelum status pindah ke Sent.
 - Tepat satu termin DP dengan `progress_threshold = 0` wajib didefinisikan sebelum Quotation dikirim; termin lain boleh memakai threshold progress di atas 0. Ini validasi skema termin, bukan kewajiban membayar DP sebelum SO dibuat.
 - Threshold berurutan tidak diwajibkan (urutan tampil ≠ urutan threshold).
+
+Pada status Draft, tombol **Kirim Penawaran** dan **Download PDF** hanya tampil setelah ketiga syarat kesiapan di atas terpenuhi. Halaman detail menampilkan syarat pertama yang belum terpenuhi. Perubahan item atau termin memperbarui tampilan tombol. Service pengiriman dan penyusunan data PDF memvalidasi ulang syarat tersebut di server, termasuk jika action dipanggil saat data berubah.
 
 ## 7. Service Transisi
 
 | Service | Validasi | Side-effect |
 | --- | --- | --- |
-| `SendQuotationService` | Total `percentage` termin = 100; minimal 1 item; tepat satu termin DP threshold 0% | `status = sent` |
+| `QuotationReadinessService` | Minimal 1 item; total `percentage` termin = 100; tepat satu termin DP threshold 0% | Dipakai untuk visibilitas action serta guard Send dan PDF |
+| `SendQuotationService` | Status `draft`; panggil `QuotationReadinessService` | `status = sent` |
 | `ApproveQuotationService` | Status saat ini `sent` | `status = approved`; panggil `CreateSalesOrderFromQuotationService` dalam DB transaction yang sama (BR-17) |
 | `RejectQuotationService` | Status saat ini `sent` | `status = rejected` |
 | `ReviseQuotationService` | Status saat ini `sent` | `status = draft`; histori status dicatat; data finansial boleh diubah lagi |
 
-Semua service memakai pola `DB::transaction` dengan notifikasi di luar transaction (lihat [architecture.md](../architecture.md) §2.1 dan [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)).
+Service yang mengubah status memakai `DB::transaction` dengan notifikasi di luar transaction. `QuotationReadinessService` hanya membaca data (lihat [architecture.md](../architecture.md) §2.1 dan [filament-lifecycle-hook.md](../filament-lifecycle-hook.md)).
 
 ## 8. Business Rules yang Dijaga
 

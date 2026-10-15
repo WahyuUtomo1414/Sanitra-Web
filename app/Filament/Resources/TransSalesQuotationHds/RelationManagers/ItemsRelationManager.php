@@ -74,17 +74,26 @@ class ItemsRelationManager extends RelationManager
                 CreateAction::make()->visible(fn (): bool => $this->isDraft())
                     ->using(fn (array $data): TransSalesQuotationDt => app(ManageQuotationItemsService::class)
                         ->save($this->getOwnerRecord(), $data))
-                    ->after(fn (ItemsRelationManager $livewire) => $livewire->dispatch('quotation-totals-updated')),
+                    ->after(function (ItemsRelationManager $livewire): void {
+                        $livewire->dispatch('quotation-totals-updated');
+                        $livewire->dispatch('refresh-page');
+                    }),
             ])
             ->recordActions([
                 EditAction::make()->visible(fn (): bool => $this->isDraft())
                     ->using(fn (TransSalesQuotationDt $record, array $data): TransSalesQuotationDt => app(ManageQuotationItemsService::class)
                         ->save($this->getOwnerRecord(), $data, $record))
-                    ->after(fn (ItemsRelationManager $livewire) => $livewire->dispatch('quotation-totals-updated')),
+                    ->after(function (ItemsRelationManager $livewire): void {
+                        $livewire->dispatch('quotation-totals-updated');
+                        $livewire->dispatch('refresh-page');
+                    }),
                 DeleteAction::make()->visible(fn (): bool => $this->isDraft())
                     ->using(fn (TransSalesQuotationDt $record): bool => app(ManageQuotationItemsService::class)
                         ->delete($this->getOwnerRecord(), $record))
-                    ->after(fn (ItemsRelationManager $livewire) => $livewire->dispatch('quotation-totals-updated')),
+                    ->after(function (ItemsRelationManager $livewire): void {
+                        $livewire->dispatch('quotation-totals-updated');
+                        $livewire->dispatch('refresh-page');
+                    }),
             ]);
     }
 

@@ -1,6 +1,6 @@
 # Code Flow — Trans Sales Quotation
 
-**Status:** Sinkron dengan `main` per 11 Okt 2026 · **Entitas:** `trans_sales_quotation_hd`, `trans_sales_quotation_dt`, `trans_sales_term` · **Acuan:** [bisnis-flow/quotation.md](../bisnis-flow/quotation.md), [implementation/quotation.md](../implementation/quotation.md)
+**Status:** Diperbarui 15 Okt 2026 · **Entitas:** `trans_sales_quotation_hd`, `trans_sales_quotation_dt`, `trans_sales_term` · **Acuan:** [bisnis-flow/quotation.md](../bisnis-flow/quotation.md), [implementation/quotation.md](../implementation/quotation.md)
 
 Dokumen ini menjelaskan **cara kerja code** modul Quotation: urutan panggil, batas transaksi, dan sinkronisasi Filament ↔ DB. Untuk aturan bisnis + arti status, lihat [bisnis-flow/quotation.md](../bisnis-flow/quotation.md).
 
@@ -30,13 +30,14 @@ Draft ──▶ Sent ──▶ Approved  (buat Sales Order)
 
 Status disimpan di `ms_status` (type=`quotation`). Setelah Approved/Rejected, record terkunci.
 
-### Daftar service (8 file)
+### Daftar service terkait
 
 | Service | Dipanggil saat |
 |---------|----------------|
 | `ManageQuotationItemsService` | CRUD item di relation manager |
 | `ManageQuotationTermsService` | CRUD termin di relation manager |
 | `RecalculateQuotationService` | Auto, setelah item/termin berubah |
+| `QuotationReadinessService` | Cek kesiapan untuk Kirim dan Download PDF |
 | `SendQuotationService` | Tombol **Kirim** (Draft → Sent) |
 | `ApproveQuotationService` | Tombol **Setujui** (Sent → Approved + buat SO) |
 | `RejectQuotationService` | Tombol **Tolak** (Sent → Rejected) |
@@ -97,7 +98,7 @@ Entry: `ItemsRelationManager` memakai pola `->using(fn => app(Service::class)->s
 6. Hitung `total_price = qty × unit_price − discount` (pakai `bcmul`/`bcsub`, bukan float).
 7. `create()` atau `update()`.
 8. Panggil `RecalculateQuotationService::totals($quotation)`.
-9. Setelah commit, relation manager dispatch event `quotation-totals-updated` → form header auto-refresh (lihat §5.1).
+9. Setelah commit, relation manager dispatch `quotation-totals-updated` untuk ringkasan finansial dan `refresh-page` untuk visibilitas action Kirim/PDF (lihat §4.2).
 
 **Delete** (`ManageQuotationItemsService::delete`):
 
@@ -113,20 +114,20 @@ Validasi tambahan di `ManageQuotationTermsService::save`:
 - **Threshold 0 hanya boleh satu** per quotation (DP unik, BR-15).
 - Total `percentage` seluruh termin **tidak boleh > 100**.
 - Edge case: kalau `sequence` yang sama pernah dipakai termin soft-deleted → **restore** baris lama (bukan create baru) untuk mencegah tabrakan unique index.
+- Setelah create/edit/delete, relation manager dispatch `refresh-page` agar tombol Kirim/PDF dan pesan kesiapan ikut diperbarui.
 
 ### 2.5 Send (Draft → Sent)
 
 Dalam `SendQuotationService::execute`:
 
 1. Lock quotation, guard status `draft`.
-2. Jalankan 4 validasi:
+2. Jalankan `QuotationReadinessService::ensureReady($quotation)`:
 
-   | # | Validasi | Error |
-   |---|----------|-------|
-   | 1 | Minimal 1 item | "Quotation harus memiliki minimal satu item." |
-   | 2 | `Σ percentage = 100` | "Total persentase termin harus 100%." |
-   | 3 | Tepat 1 termin threshold 0 | "Quotation harus memiliki tepat satu termin DP..." |
-   | 4 | — | — |
+   | Validasi | Error |
+   |----------|-------|
+   | Minimal 1 item | "Quotation harus memiliki minimal satu item." |
+   | `Σ percentage = 100` | "Total persentase termin harus 100%." |
+   | Tepat 1 termin threshold 0 | "Quotation harus memiliki tepat satu termin DP dengan threshold 0%." |
 
 3. **Recalc dulu, baru flip status** → `RecalculateQuotationService::totals` memastikan nilai `amount` termin final sebelum terkunci (dibawa ke SO).
 4. Update `status_id` → `sent`.
@@ -184,15 +185,16 @@ lock → guard status=sent → update status_id → commit
 
 ### 3.1 Generate PDF
 
-Tombol **Generate PDF** visible hanya saat `status = draft`.
+Tombol **Download PDF** di halaman View dan Edit hanya tampil saat `status = draft` dan `QuotationReadinessService::isReady($quotation)` bernilai benar. Tombol **Kirim Penawaran** di halaman View memakai syarat yang sama. Saat belum siap, subheading halaman View menampilkan syarat pertama yang belum terpenuhi.
 
 Alur di `QuotationPdfDataService::execute`:
 
-1. Load relasi: `company`, `client.picEmployee`, `items.item`, `items.unit`, `terms`.
-2. Baca file logo dari `Storage::disk('public')`, encode base64 (karena dompdf default `isRemoteEnabled = false`).
-3. Return array berisi: `quotation`, `terms`, `termAmounts`, `logoData`, dan **closure** `rupiah` untuk format angka di Blade.
-4. `Pdf::loadView('pdf.quotation', $payload)->download($filename)`.
-5. Nama file: `str_replace('/', '-', $code).'.pdf'` → `QUO-26-10-0007.pdf`.
+1. Panggil `QuotationReadinessService::ensureReady($quotation)` sebelum membuat respons unduhan. Guard ini juga berlaku saat action dipanggil langsung setelah data berubah.
+2. Load relasi: `company`, `client.picEmployee`, `items.item`, `items.unit`, `terms`.
+3. Baca file logo dari `Storage::disk('public')`, encode base64 (karena dompdf default `isRemoteEnabled = false`).
+4. Return array berisi: `quotation`, `terms`, `termAmounts`, `logoData`, serta **closure** `angka` dan `rupiah` untuk format angka di Blade.
+5. Action mengirim `Pdf::loadView('pdf.quotation', $payload)->output()` melalui `response()->streamDownload(...)` agar unduhan bekerja di Livewire.
+6. Nama file: `str_replace('/', '-', $code).'.pdf'` → `QUO-26-10-0007.pdf`.
 
 Service PDF **tidak** buka transaksi — murni read + render.
 
@@ -259,6 +261,8 @@ ItemsRelationManager::save()
 
 Tanpa event ini, user harus reload halaman untuk lihat total yang baru.
 
+`ItemsRelationManager` dan `TermsRelationManager` juga dispatch `refresh-page`. Halaman View menghitung ulang syarat kesiapan untuk menampilkan/menyembunyikan tombol Kirim/PDF; halaman Edit memperbarui visibilitas tombol PDF.
+
 ### 4.3 Validasi berlapis
 
 Validasi penting selalu ada di **dua** tempat (defense in depth):
@@ -269,6 +273,7 @@ Validasi penting selalu ada di **dua** tempat (defense in depth):
 | `discount <= gross` | — | `bccomp` throw |
 | Unit terdaftar untuk item | `Select` option difilter | `MsItemUnit::where(...)->exists()` throw |
 | Status = Draft | tombol `visible()` cek | `editableQuotation` guard throw |
+| Kesiapan Kirim/PDF | tombol `visible()` cek syarat item dan termin | `QuotationReadinessService::ensureReady()` di service Send/PDF |
 
 Form constraint cuma UX; service tetap yang authoritative.
 
@@ -312,6 +317,7 @@ Semua `lockForUpdate` dilakukan **setelah** transaksi terbuka.
 | File | Method |
 |------|--------|
 | `SendQuotationService.php` | `execute($q)` |
+| `QuotationReadinessService.php` | `missingRequirement($q)`, `isReady($q)`, `ensureReady($q)` |
 | `ApproveQuotationService.php` | `execute($q)` |
 | `RejectQuotationService.php` | `execute($q)` |
 | `ReviseQuotationService.php` | `execute($q)` |
@@ -326,14 +332,14 @@ Semua `lockForUpdate` dilakukan **setelah** transaksi terbuka.
 |------|-------|
 | `TransSalesQuotationHdResource.php` | Resource utama; `canEdit`/`canDelete` hanya Draft |
 | `Pages/CreateTransSalesQuotationHd.php` | `mutateFormDataBeforeCreate` → kode + default status/vat/0 |
-| `Pages/EditTransSalesQuotationHd.php` | `handleRecordUpdate` + recalc + `#[On('quotation-totals-updated')]` |
-| `Pages/ViewTransSalesQuotationHd.php` | Header actions: send/approve/reject/revise/generatePdf |
+| `Pages/EditTransSalesQuotationHd.php` | `handleRecordUpdate` + recalc + `#[On('quotation-totals-updated')]`; PDF hanya saat siap |
+| `Pages/ViewTransSalesQuotationHd.php` | Header actions: Kirim/Download PDF hanya saat siap; tampilkan syarat yang belum terpenuhi |
 | `Pages/ListTransSalesQuotationHds.php` | `CreateAction` + `ExportAction` xlsx |
 | `Schemas/TransSalesQuotationHdForm.php` | Form schema; `project_type_id` reaktif auto-fill `company_id` |
 | `Schemas/TransSalesQuotationHdInfolist.php` | 3 section: Informasi / Nominal / Audit |
 | `Tables/TransSalesQuotationHdsTable.php` | Columns + filter + `discardDraft` + release sequence |
-| `RelationManagers/ItemsRelationManager.php` | CRUD item via service + dispatch event |
-| `RelationManagers/TermsRelationManager.php` | CRUD termin via service |
+| `RelationManagers/ItemsRelationManager.php` | CRUD item via service + dispatch event ringkasan dan refresh halaman |
+| `RelationManagers/TermsRelationManager.php` | CRUD termin via service + dispatch refresh halaman |
 
 **PDF & Support**
 

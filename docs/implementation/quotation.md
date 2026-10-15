@@ -23,6 +23,7 @@
 ## 2. Service (`app/Services/Quotation/`)
 
 - [x] `SendQuotationService` — Draft → Sent; validasi total `percentage` termin = 100 (BR-01), minimal 1 item, dan tepat satu termin DP threshold 0%
+- [x] `QuotationReadinessService` — satu sumber aturan kesiapan untuk tombol Kirim/PDF, guard `SendQuotationService`, dan guard `QuotationPdfDataService`
 - [x] `RecalculateQuotationService` — satu service dengan dua method: `totals()` menghitung ulang subtotal/diskon/PPN/grand total lalu delegasi ke `termAmounts()`; `termAmounts()` simpan nilai `amount` termin proporsional (sisa pembulatan jatuh ke termin terakhir saat total persentase 100%)
 - [x] `ApproveQuotationService` — Sent → Approved; dalam `DB::transaction` panggil `CreateSalesOrderFromQuotationService` (BR-17)
 - [x] `RejectQuotationService` — Sent → Rejected
@@ -51,11 +52,12 @@ Group: **Penjualan**.
 
 ### 3.2 Custom Action
 
-- [x] `SendAction` — visible saat status `draft`; panggil `SendQuotationService`
+- [x] `SendAction` — visible saat status `draft` dan quotation siap (minimal satu item, total termin 100%, tepat satu DP); panggil `SendQuotationService`
 - [x] `ApproveAction` — visible saat status `sent`; `requiresConfirmation` + modal deskripsi (SO akan dibuat, data terkunci)
 - [x] `RejectAction` — visible saat status `sent`
 - [x] `ReviseAction` — visible saat status `sent`
-- [x] Action `Generate PDF` tersedia saat status `draft` di halaman Edit dan View; PDF memakai nilai termin yang tersimpan
+- [x] Action `Download PDF` tersedia saat status `draft` dan quotation siap di halaman Edit dan View; `QuotationPdfDataService` memvalidasi ulang sebelum respons unduhan dibuat
+- [x] Halaman View menunjukkan syarat pertama yang belum terpenuhi; perubahan item/termin memicu `refresh-page` agar visibilitas action mengikuti data terbaru
 
 ## 4. PDF Quotation
 
@@ -68,7 +70,7 @@ Group: **Penjualan**.
   - [x] Tabel termin (sequence, nama, persentase, threshold, nilai dari `trans_sales_term.amount`)
   - [x] Footer: syarat & ketentuan, tanda tangan
   - [x] Format Rupiah dan tanggal bahasa Indonesia
-- [x] Generate PDF dari action di halaman Edit dan View saat quotation masih Draft; file diunduh dengan nama berdasarkan kode quotation
+- [x] Download PDF dari action di halaman Edit dan View hanya saat quotation Draft dan siap; file diunduh dengan nama berdasarkan kode quotation
 
 ## 5. Notification
 

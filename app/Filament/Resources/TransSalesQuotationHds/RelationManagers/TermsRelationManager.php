@@ -52,15 +52,18 @@ class TermsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()->visible(fn (): bool => $this->isDraft())
                     ->using(fn (array $data): TransSalesTerm => app(ManageQuotationTermsService::class)
-                        ->save($this->getOwnerRecord(), $data)),
+                        ->save($this->getOwnerRecord(), $data))
+                    ->after(fn (TermsRelationManager $livewire) => $livewire->dispatch('refresh-page')),
             ])
             ->recordActions([
                 EditAction::make()->visible(fn (): bool => $this->isDraft())
                     ->using(fn (TransSalesTerm $record, array $data): TransSalesTerm => app(ManageQuotationTermsService::class)
-                        ->save($this->getOwnerRecord(), $data, $record)),
+                        ->save($this->getOwnerRecord(), $data, $record))
+                    ->after(fn (TermsRelationManager $livewire) => $livewire->dispatch('refresh-page')),
                 DeleteAction::make()->visible(fn (): bool => $this->isDraft())
                     ->using(fn (TransSalesTerm $record): bool => app(ManageQuotationTermsService::class)
-                        ->delete($this->getOwnerRecord(), $record)),
+                        ->delete($this->getOwnerRecord(), $record))
+                    ->after(fn (TermsRelationManager $livewire) => $livewire->dispatch('refresh-page')),
             ]);
     }
 

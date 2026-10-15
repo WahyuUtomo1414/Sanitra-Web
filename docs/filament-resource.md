@@ -726,7 +726,7 @@ Catatan:
 - `status_id` select dibatasi `MsStatus::where('type', 'quotation')`.
 - `subtotal`, `vat_amount`, `discount_total`, `grand_total` dihitung dari detail; input manual dinonaktifkan atau read-only di form.
 - Setelah status Approved/Rejected, form tidak bisa diedit.
-- Total `percentage` di `TransQuotationTerm` harus 100 sebelum quotation bisa di-send (BR-01).
+- Tombol Kirim Penawaran dan Download PDF pada Draft hanya tampil jika quotation memiliki minimal satu item, total `percentage` termin 100%, dan tepat satu termin DP dengan threshold 0%. Halaman View menampilkan syarat pertama yang belum terpenuhi. Service tetap memvalidasi ulang sebelum mengirim atau menyiapkan PDF.
 
 ### 14.13 TransProjectHd
 

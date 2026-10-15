@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\Storage;
 
 class QuotationPdfDataService
 {
+    public function __construct(public QuotationReadinessService $readiness) {}
+
     /** @return array<string, mixed> */
     public function execute(TransSalesQuotationHd $quotation): array
     {
+        $this->readiness->ensureReady($quotation);
+
         $quotation->load(['company', 'client.picEmployee', 'projectType', 'items.item', 'items.unit', 'terms']);
         $terms = $quotation->terms->sortBy('sequence')->values();
         $termAmounts = $terms->mapWithKeys(fn ($term): array => [$term->id => (string) $term->amount])->all();
