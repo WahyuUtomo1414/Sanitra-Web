@@ -6,10 +6,9 @@ use App\Enums\StatusType;
 
 enum OrderStatus: string
 {
-    case WaitingDp = 'waiting_dp';
-    case OnProgress = 'on_progress';
+    case Draft = 'draft';
+    case Open = 'open';
     case Closed = 'closed';
-    case Cancelled = 'cancelled';
 
     public static function type(): StatusType
     {
@@ -19,20 +18,18 @@ enum OrderStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::WaitingDp => 'Menunggu DP',
-            self::OnProgress => 'Berjalan',
+            self::Draft => 'Menunggu DP',
+            self::Open => 'Berjalan',
             self::Closed => 'Selesai',
-            self::Cancelled => 'Dibatalkan',
         };
     }
 
     public function color(): string
     {
         return match ($this) {
-            self::WaitingDp => 'warning',
-            self::OnProgress => 'info',
+            self::Draft => 'warning',
+            self::Open => 'info',
             self::Closed => 'success',
-            self::Cancelled => 'gray',
         };
     }
 }

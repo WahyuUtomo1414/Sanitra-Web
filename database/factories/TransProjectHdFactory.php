@@ -33,7 +33,7 @@ class TransProjectHdFactory extends Factory
             'start_date' => now()->toDateString(),
             'end_date' => now()->addMonth()->toDateString(),
             'progress_percentage' => 0,
-            'status_id' => MsStatus::query()->where('type', 'project')->where('code', 'open')->firstOrFail()->id,
+            'status_id' => MsStatus::query()->where('type', 'project')->where('code', 'on_progress')->firstOrFail()->id,
         ];
     }
 }

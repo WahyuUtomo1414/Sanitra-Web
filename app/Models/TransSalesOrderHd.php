@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\Status\OrderCloseReason;
+use App\Enums\Status\TermStatus;
 use App\Enums\VatType;
 use App\Traits\AuditedBySoftDelete;
 use Database\Factories\TransSalesOrderHdFactory;
@@ -26,6 +28,7 @@ class TransSalesOrderHd extends Model
         return [
             'transaction_date' => 'date',
             'vat_type' => VatType::class,
+            'close_reason' => OrderCloseReason::class,
             'vat_amount' => 'decimal:6',
             'discount_total' => 'decimal:6',
             'subtotal' => 'decimal:6',
@@ -58,11 +61,6 @@ class TransSalesOrderHd extends Model
         return $this->belongsTo(MsStatus::class, 'status_id');
     }
 
-    public function paymentStatus(): BelongsTo
-    {
-        return $this->belongsTo(MsStatus::class, 'payment_status_id');
-    }
-
     public function items(): HasMany
     {
         return $this->hasMany(TransSalesOrderDt::class, 'order_hd_id');
@@ -81,5 +79,22 @@ class TransSalesOrderHd extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(TransSalesInvoiceHd::class, 'order_hd_id');
+    }
+
+    public function paymentSummary(): string
+    {
+        $terms = $this->terms()->with('status')->get();
+
+        if ($terms->isEmpty()) {
+            return 'Belum Dibayar';
+        }
+
+        $paidCount = $terms->filter(fn ($term): bool => $term->status?->code === TermStatus::Paid->value)->count();
+
+        return match (true) {
+            $paidCount === $terms->count() => 'Lunas',
+            $paidCount > 0 => 'Dibayar Sebagian',
+            default => 'Belum Dibayar',
+        };
     }
 }

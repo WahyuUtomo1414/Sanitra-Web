@@ -6,7 +6,6 @@ use App\Enums\StatusType;
 
 enum ProjectStatus: string
 {
-    case Open = 'open';
     case OnProgress = 'on_progress';
     case Completed = 'completed';
     case Cancelled = 'cancelled';
@@ -19,7 +18,6 @@ enum ProjectStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Open => 'Terbuka',
             self::OnProgress => 'Berjalan',
             self::Completed => 'Selesai',
             self::Cancelled => 'Dibatalkan',
@@ -29,7 +27,6 @@ enum ProjectStatus: string
     public function color(): string
     {
         return match ($this) {
-            self::Open => 'gray',
             self::OnProgress => 'info',
             self::Completed => 'success',
             self::Cancelled => 'gray',

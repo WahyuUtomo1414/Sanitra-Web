@@ -7,7 +7,6 @@ use App\Enums\StatusType;
 enum InvoiceStatus: string
 {
     case Unpaid = 'unpaid';
-    case Partial = 'partial';
     case Paid = 'paid';
     case Void = 'void';
 
@@ -20,7 +19,6 @@ enum InvoiceStatus: string
     {
         return match ($this) {
             self::Unpaid => 'Belum Dibayar',
-            self::Partial => 'Dibayar Sebagian',
             self::Paid => 'Lunas',
             self::Void => 'Dibatalkan',
         };
@@ -30,7 +28,6 @@ enum InvoiceStatus: string
     {
         return match ($this) {
             self::Unpaid => 'gray',
-            self::Partial => 'warning',
             self::Paid => 'success',
             self::Void => 'gray',
         };

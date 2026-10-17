@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Enums\Status\InvoiceStatus;
-use App\Enums\Status\OrderPaymentStatus;
 use App\Enums\Status\OrderStatus;
 use App\Enums\Status\PaymentStatus;
 use App\Enums\Status\ProjectStageStatus;
@@ -19,7 +18,6 @@ class StatusSeeder extends SanitraSeeder
         foreach ([
             QuotationStatus::class,
             OrderStatus::class,
-            OrderPaymentStatus::class,
             ProjectStatus::class,
             ProjectStageStatus::class,
             TermStatus::class,
@@ -39,5 +37,7 @@ class StatusSeeder extends SanitraSeeder
                 $obsoleteStatus->update(['active' => false]);
             }
         }
+
+        MsStatus::query()->where('type', 'order_payment')->update(['active' => false]);
     }
 }

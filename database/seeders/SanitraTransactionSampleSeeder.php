@@ -95,8 +95,7 @@ class SanitraTransactionSampleSeeder extends SanitraSeeder
                             'discount_total' => $quotation->discount_total,
                             'subtotal' => $quotation->subtotal,
                             'grand_total' => $quotation->grand_total,
-                            'status_id' => $this->statusId('order', 'waiting_dp'),
-                            'payment_status_id' => $this->statusId('order_payment', 'unpaid'),
+                            'status_id' => $this->statusId('order', 'draft'),
                         ]);
 
                     $this->uncoded(TransSalesOrderDt::class,

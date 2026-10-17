@@ -33,8 +33,7 @@ class TransSalesOrderHdFactory extends Factory
             'discount_total' => 0,
             'subtotal' => 1000000,
             'grand_total' => 1000000,
-            'status_id' => MsStatus::query()->where('type', 'order')->where('code', 'on_progress')->firstOrFail()->id,
-            'payment_status_id' => MsStatus::query()->where('type', 'order_payment')->where('code', 'unpaid')->firstOrFail()->id,
+            'status_id' => MsStatus::query()->where('type', 'order')->where('code', 'open')->firstOrFail()->id,
         ];
     }
 }
