@@ -44,7 +44,8 @@ class ViewTransSalesQuotationHd extends ViewRecord
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->outlined()
-                ->visible(fn (): bool => $this->isDraftReady())
+                ->visible(fn (): bool => $this->record->status?->code !== QuotationStatus::Draft->value
+                    || $this->isDraftReady())
                 ->action(function () {
                     $pdfData = app(QuotationPdfDataService::class)->execute($this->record);
 
@@ -78,10 +79,9 @@ class ViewTransSalesQuotationHd extends ViewRecord
                 ->successNotificationTitle('Quotation disetujui dan Sales Order dibuat.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
             Action::make('revise')
-                ->label('Kembalikan ke Draft')
+                ->label('Revisi')
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('warning')
-                ->outlined()
                 ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
                 ->requiresConfirmation()
                 ->modalHeading('Kembalikan ke Draft?')
