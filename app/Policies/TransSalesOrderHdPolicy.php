@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\TransSalesOrderHd;
 use Illuminate\Auth\Access\HandlesAuthorization;
-use Illuminate\Foundation\Auth\User as AuthUser;
 
 class TransSalesOrderHdPolicy
 {
     use HandlesAuthorization;
-
+    
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:TransSalesOrderHd');
@@ -71,4 +71,5 @@ class TransSalesOrderHdPolicy
     {
         return $authUser->can('Reorder:TransSalesOrderHd');
     }
+
 }
