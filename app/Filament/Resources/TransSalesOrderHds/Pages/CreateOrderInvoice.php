@@ -78,7 +78,8 @@ class CreateOrderInvoice extends Page
                     ->content(fn (Get $get): string => IndonesianMoneyFormatter::formatRupiah($this->previewAmounts($get('term_ids'))['grand_total'])),
             ]),
             Section::make('Informasi Invoice')->columnSpanFull()->columns(2)->schema([
-                DatePicker::make('transaction_date')->label('Tanggal Invoice')->required()->native(false),
+                DatePicker::make('transaction_date')->label('Tanggal Invoice')->required()->native(false)
+                    ->minDate($this->order->transaction_date?->toDateString()),
                 DatePicker::make('due_date')->label('Jatuh Tempo')->required()->afterOrEqual('transaction_date')->native(false),
                 Select::make('bank_account_id')->label('Rekening Tujuan')
                     ->options(fn () => MsBankAccount::query()->where('active', true)->orderBy('name')->get()

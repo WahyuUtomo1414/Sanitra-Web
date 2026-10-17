@@ -25,7 +25,7 @@ class TransSalesPaymentForm
     }
 
     /** @return array<int, Section> */
-    public static function components(bool $includeInvoice = true): array
+    public static function components(bool $includeInvoice = true, ?string $minDate = null): array
     {
         $fields = [
             TextInput::make('code')->label('Nomor Pembayaran')
@@ -42,16 +42,20 @@ class TransSalesPaymentForm
                             ->whereIn('code', [PaymentStatus::Pending->value, PaymentStatus::Confirmed->value]))))
                 ->searchable()->preload()->required()->live()
                 ->afterStateUpdated(function (int|string|null $state, Set $set): void {
-                    $invoice = TransSalesInvoiceHd::query()->find($state);
-                    $set('amount', $invoice?->grand_total);
+                    $amount = TransSalesInvoiceHd::query()->find($state)?->grand_total;
+                    $set('amount', $amount !== null ? number_format((float) $amount, 0, ',', '.') : null);
                 });
         }
 
         $fields[] = DatePicker::make('transaction_date')->label('Tanggal Pembayaran')
-            ->default(now()->toDateString())->required();
+            ->default(now()->toDateString())->required()->native(false)
+            ->minDate($includeInvoice
+                ? fn (Get $get): ?string => TransSalesInvoiceHd::query()->with('order')->find($get('invoice_hd_id'))?->order?->transaction_date?->toDateString()
+                : $minDate);
         $fields[] = TextInput::make('amount')->label('Nominal Pembayaran')
-            ->numeric()->required()->minValue(0.01)
-            ->helperText('Harus sama dengan total invoice; diverifikasi ulang saat disimpan.');
+            ->required()->readOnly()->prefix('Rp')
+            ->afterStateHydrated(fn ($state, Set $set) => $set('amount', $state !== null ? number_format((float) $state, 0, ',', '.') : null))
+            ->dehydrateStateUsing(fn ($state): ?string => $state !== null ? str_replace('.', '', (string) $state) : null);
         $fields[] = Select::make('payment_method')->label('Metode Pembayaran')
             ->options(collect(PaymentMethod::cases())->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => $method->label()])->all())
             ->required()->live();

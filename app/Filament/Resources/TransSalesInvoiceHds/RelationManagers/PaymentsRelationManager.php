@@ -46,7 +46,7 @@ class PaymentsRelationManager extends RelationManager
                         && $this->getOwnerRecord()->status?->code === InvoiceStatus::Unpaid->value
                         && ! $this->getOwnerRecord()->payments()->whereHas('status', fn (Builder $query): Builder => $query
                             ->whereIn('code', [PaymentStatus::Pending->value, PaymentStatus::Confirmed->value]))->exists())
-                    ->schema(TransSalesPaymentForm::components(false))
+                    ->schema(fn (): array => TransSalesPaymentForm::components(false, $this->getOwnerRecord()->order?->transaction_date?->toDateString()))
                     ->fillForm(fn (): array => [
                         'transaction_date' => now()->toDateString(),
                         'amount' => $this->getOwnerRecord()->grand_total,
