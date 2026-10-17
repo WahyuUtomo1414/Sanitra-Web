@@ -35,7 +35,6 @@ class TermsRelationManager extends RelationManager
         return $schema
             ->components([
                 Section::make('Detail Termin')
-                    ->columnSpanFull()
                     ->columns(2)
                     ->schema([
                         TextEntry::make('term_name')->label('Termin'),

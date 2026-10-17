@@ -23,17 +23,16 @@ class ItemsRelationManager extends RelationManager
             ->components([
                 Section::make('Detail Item')
                     ->columns(2)
-                    ->columnSpanFull()
                     ->schema([
                         TextEntry::make('item.name')->label('Item'),
                         TextEntry::make('unit.name')->label('Unit'),
                         TextEntry::make('qty')->label('Jumlah'),
                         TextEntry::make('unit_price')->label('Harga Satuan')
-                            ->formatStateUsing(fn(int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                            ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
                         TextEntry::make('discount')->label('Diskon')
-                            ->formatStateUsing(fn(int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                            ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
                         TextEntry::make('total_price')->label('Total')
-                            ->formatStateUsing(fn(int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                            ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
                         TextEntry::make('notes')->label('Catatan')->columnSpanFull()
                             ->placeholder('—'),
                     ]),
@@ -49,11 +48,11 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('unit.name')->label('Unit'),
                 TextColumn::make('qty')->label('Jumlah'),
                 TextColumn::make('unit_price')->label('Harga Satuan')
-                    ->formatStateUsing(fn(int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
                 TextColumn::make('discount')->label('Diskon')
-                    ->formatStateUsing(fn(int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
                 TextColumn::make('total_price')->label('Total')
-                    ->formatStateUsing(fn(int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                    ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
             ])
             ->recordActions([
                 ViewAction::make()->label('Detail'),

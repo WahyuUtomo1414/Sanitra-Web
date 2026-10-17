@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\TransSalesInvoiceHds\Pages;
 
 use App\Enums\Status\InvoiceStatus;
+use App\Filament\Resources\TransSalesInvoiceHds\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\TransSalesInvoiceHds\TransSalesInvoiceHdResource;
 use App\Models\MsBankAccount;
 use DomainException;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +17,26 @@ class EditTransSalesInvoiceHd extends EditRecord
 {
     protected static string $resource = TransSalesInvoiceHdResource::class;
 
+    protected function authorizeAccess(): void
+    {
+        if (! static::getResource()::canEdit($this->getRecord())) {
+            Notification::make()
+                ->title('Invoice tidak dapat diubah setelah ada pembayaran.')
+                ->warning()
+                ->send();
+
+            $this->redirect(static::getResource()::getUrl('view', ['record' => $this->getRecord()]));
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [ViewAction::make()];
+    }
+
+    public function getRelationManagers(): array
+    {
+        return [ItemsRelationManager::class];
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
