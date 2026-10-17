@@ -8,15 +8,12 @@ use App\Enums\Status\TermStatus;
 use App\Models\MsStatus;
 use App\Models\TransSalesInvoiceHd;
 use App\Models\TransSalesOrderHd;
-use App\Services\SalesOrder\RecalculateOrderPaymentStatusService;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class VoidInvoiceService
 {
-    public function __construct(public RecalculateOrderPaymentStatusService $recalculateOrderPaymentStatus) {}
-
     public function execute(TransSalesInvoiceHd $invoice, string $reason): TransSalesInvoiceHd
     {
         $reason = trim($reason);
@@ -64,8 +61,6 @@ class VoidInvoiceService
                 ->firstOrFail()->id;
             $invoice->order->terms()->whereKey($invoice->items()->pluck('sales_term_id'))
                 ->update(['status_id' => $readyTermStatusId]);
-
-            $this->recalculateOrderPaymentStatus->execute($invoice->order);
 
             return $invoice->refresh();
         });

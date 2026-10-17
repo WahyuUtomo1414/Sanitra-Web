@@ -3,27 +3,25 @@
 namespace App\Services\Payment;
 
 use App\Enums\Status\InvoiceStatus;
+use App\Enums\Status\OrderStatus;
 use App\Enums\Status\PaymentStatus;
 use App\Enums\Status\TermStatus;
 use App\Models\MsStatus;
 use App\Models\TransSalesInvoiceHd;
 use App\Models\TransSalesOrderHd;
 use App\Models\TransSalesPayment;
-use App\Services\SalesOrder\RecalculateOrderPaymentStatusService;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmPaymentService
 {
-    public function __construct(public RecalculateOrderPaymentStatusService $recalculateOrderPaymentStatus) {}
-
     public function execute(TransSalesPayment $payment): TransSalesPayment
     {
         return DB::transaction(function () use ($payment): TransSalesPayment {
             $paymentReference = TransSalesPayment::query()->findOrFail($payment->id);
             $invoiceReference = TransSalesInvoiceHd::query()->findOrFail($paymentReference->invoice_hd_id);
-            TransSalesOrderHd::query()->lockForUpdate()->findOrFail($invoiceReference->order_hd_id);
+            $order = TransSalesOrderHd::query()->with('status')->lockForUpdate()->findOrFail($invoiceReference->order_hd_id);
             $invoice = TransSalesInvoiceHd::query()->lockForUpdate()->findOrFail($invoiceReference->id);
             $payment = TransSalesPayment::query()->lockForUpdate()->findOrFail($payment->id);
 
@@ -49,7 +47,7 @@ class ConfirmPaymentService
             }
 
             $termIds = $invoice->items()->pluck('sales_term_id')->all();
-            $terms = $invoice->order->terms()->whereKey($termIds)->with('status')->lockForUpdate()->get();
+            $terms = $order->terms()->whereKey($termIds)->with('status')->lockForUpdate()->get();
 
             if ($termIds === [] || $terms->count() !== count($termIds)
                 || $terms->contains(fn ($term): bool => $term->status?->code !== TermStatus::Invoiced->value)) {
@@ -65,7 +63,10 @@ class ConfirmPaymentService
                 $term->update(['status_id' => $paidTermStatusId]);
             }
 
-            $this->recalculateOrderPaymentStatus->execute($invoice->order);
+            $hasDpTerm = $terms->contains(fn ($term): bool => (int) $term->progress_threshold === 0);
+            if ($hasDpTerm && $order->status?->code === OrderStatus::Draft->value) {
+                $order->update(['status_id' => $this->statusId(OrderStatus::type()->value, OrderStatus::Open->value)]);
+            }
 
             return $payment->refresh();
         });

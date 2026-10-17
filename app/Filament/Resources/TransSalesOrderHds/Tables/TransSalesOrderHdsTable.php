@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\TransSalesOrderHds\Tables;
 
-use App\Enums\Status\OrderPaymentStatus;
 use App\Enums\Status\OrderStatus;
 use App\Models\TransSalesOrderHd;
 use App\Support\Formatting\IndonesianMoneyFormatter;
@@ -31,16 +30,14 @@ class TransSalesOrderHdsTable
                     ->sortable(),
                 TextColumn::make('status.name')->label('Status Order')->badge()
                     ->color(fn (TransSalesOrderHd $record): string => OrderStatus::tryFrom($record->status?->code ?? '')?->color() ?? 'gray'),
-                TextColumn::make('paymentStatus.name')->label('Pembayaran')->badge()
-                    ->color(fn (TransSalesOrderHd $record): string => OrderPaymentStatus::tryFrom($record->paymentStatus?->code ?? '')?->color() ?? 'gray'),
+                TextColumn::make('payment_summary')->label('Status Bayar')
+                    ->state(fn (TransSalesOrderHd $record): string => $record->paymentSummary()),
                 TextColumn::make('createdBy.name')->label('Dibuat Oleh')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updatedBy.name')->label('Diubah Oleh')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status_id')->label('Status Order')->relationship('status', 'name',
                     modifyQueryUsing: fn (Builder $query) => $query->where('type', OrderStatus::type()->value)),
-                SelectFilter::make('payment_status_id')->label('Pembayaran')->relationship('paymentStatus', 'name',
-                    modifyQueryUsing: fn (Builder $query) => $query->where('type', OrderPaymentStatus::type()->value)),
                 SelectFilter::make('client_id')->label('Klien')->relationship('client', 'name')->searchable(),
                 SelectFilter::make('company_id')->label('Perusahaan')->relationship('company', 'name')->searchable(),
                 Filter::make('transaction_date')->label('Rentang Tanggal')

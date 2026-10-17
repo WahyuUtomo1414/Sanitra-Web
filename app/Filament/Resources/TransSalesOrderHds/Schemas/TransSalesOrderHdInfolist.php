@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\TransSalesOrderHds\Schemas;
 
-use App\Enums\Status\OrderPaymentStatus;
+use App\Enums\Status\OrderCloseReason;
 use App\Enums\Status\OrderStatus;
 use App\Enums\VatType;
 use App\Support\Formatting\IndonesianMoneyFormatter;
@@ -24,9 +24,20 @@ class TransSalesOrderHdInfolist
                 TextEntry::make('projectType.name')->label('Tipe Proyek'),
                 TextEntry::make('payment_type')->label('Skema Pembayaran'),
                 TextEntry::make('status.name')->label('Status Order')->badge()
-                    ->color(fn ($record): string => OrderStatus::tryFrom($record->status?->code ?? '')?->color() ?? 'gray'),
-                TextEntry::make('paymentStatus.name')->label('Status Pembayaran')->badge()
-                    ->color(fn ($record): string => OrderPaymentStatus::tryFrom($record->paymentStatus?->code ?? '')?->color() ?? 'gray'),
+                    ->color(fn ($record): string => $record->status?->code === OrderStatus::Closed->value
+                        ? ($record->close_reason?->color() ?? OrderStatus::Closed->color())
+                        : (OrderStatus::tryFrom($record->status?->code ?? '')?->color() ?? 'gray'))
+                    ->formatStateUsing(fn ($state, $record): string => $record->status?->code === OrderStatus::Closed->value && $record->close_reason !== null
+                        ? $record->close_reason->label()
+                        : $state),
+                TextEntry::make('paymentSummary')->label('Status Bayar')
+                    ->state(fn ($record): string => $record->paymentSummary()),
+                TextEntry::make('close_reason')->label('Alasan Penutupan')
+                    ->visible(fn ($record): bool => $record->status?->code === OrderStatus::Closed->value)
+                    ->formatStateUsing(fn (?OrderCloseReason $state): string => $state?->label() ?? '-'),
+                TextEntry::make('close_notes')->label('Catatan Penutupan')
+                    ->visible(fn ($record): bool => $record->status?->code === OrderStatus::Closed->value)
+                    ->placeholder('-'),
                 TextEntry::make('notes')->label('Catatan')->placeholder('-')->columnSpanFull(),
             ]),
             Section::make('Nominal')->columnSpanFull()->columns(2)->schema([

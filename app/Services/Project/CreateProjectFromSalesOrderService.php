@@ -41,8 +41,8 @@ class CreateProjectFromSalesOrderService
         return DB::transaction(function () use ($order, $data): TransProjectHd {
             $order = TransSalesOrderHd::query()->lockForUpdate()->findOrFail($order->id);
 
-            if ($order->status?->code !== OrderStatus::WaitingDp->value || $order->project()->exists()) {
-                throw new DomainException('Project hanya dapat dibuat sekali dari Sales Order yang menunggu DP.');
+            if ($order->status?->code !== OrderStatus::Open->value || $order->project()->exists()) {
+                throw new DomainException('Project hanya dapat dibuat sekali dari Sales Order yang sedang berjalan.');
             }
 
             if (! $this->hasPaidDownPayment($order)) {
@@ -83,20 +83,12 @@ class CreateProjectFromSalesOrderService
                 'notes' => $data['notes'] ?? null,
                 'status_id' => MsStatus::query()
                     ->where('type', ProjectStatus::type()->value)
-                    ->where('code', ProjectStatus::Open->value)
+                    ->where('code', ProjectStatus::OnProgress->value)
                     ->where('active', true)
                     ->firstOrFail()->id,
             ]);
 
             $this->createStages->execute($project, $workflows);
-
-            $order->update([
-                'status_id' => MsStatus::query()
-                    ->where('type', OrderStatus::type()->value)
-                    ->where('code', OrderStatus::OnProgress->value)
-                    ->where('active', true)
-                    ->firstOrFail()->id,
-            ]);
 
             $this->checkTerms->execute($order, 0);
 

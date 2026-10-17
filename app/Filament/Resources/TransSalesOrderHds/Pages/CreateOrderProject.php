@@ -33,9 +33,8 @@ class CreateOrderProject extends Page
         $this->order = TransSalesOrderHdResource::getRecordRouteBindingEloquentQuery()->findOrFail($record);
         abort_unless(TransSalesOrderHdResource::canView($this->order), 403);
         abort_unless(TransSalesOrderHdResource::canEdit($this->order), 403);
-        abort_unless($this->order->status?->code === OrderStatus::WaitingDp->value
-            && ! $this->order->project()->exists()
-            && app(CreateProjectFromSalesOrderService::class)->hasPaidDownPayment($this->order), 404);
+        abort_unless($this->order->status?->code === OrderStatus::Open->value
+            && ! $this->order->project()->exists(), 404);
 
         $this->form->fill(['start_date' => now()->toDateString()]);
     }

@@ -3,7 +3,6 @@
 namespace App\Services\SalesOrder;
 
 use App\Enums\AutoCodePrefix;
-use App\Enums\Status\OrderPaymentStatus;
 use App\Enums\Status\OrderStatus;
 use App\Enums\Status\QuotationStatus;
 use App\Enums\Status\TermStatus;
@@ -20,7 +19,7 @@ class CreateSalesOrderFromQuotationService
 
     public function execute(TransSalesQuotationHd $quotation): TransSalesOrderHd
     {
-        return DB::transaction(fn (): TransSalesOrderHd => $this->run($quotation));
+        return DB::transaction(fn(): TransSalesOrderHd => $this->run($quotation));
     }
 
     private function run(TransSalesQuotationHd $quotation): TransSalesOrderHd
@@ -39,8 +38,10 @@ class CreateSalesOrderFromQuotationService
             throw new DomainException('Item dan termin quotation wajib tersedia.');
         }
 
-        if ($quotation->terms->sum('percentage') !== 100
-            || $quotation->terms->where('progress_threshold', 0)->count() !== 1) {
+        if (
+            $quotation->terms->sum('percentage') !== 100
+            || $quotation->terms->where('progress_threshold', 0)->count() !== 1
+        ) {
             throw new DomainException('Skema termin quotation harus berjumlah 100% dengan tepat satu DP.');
         }
 
@@ -58,8 +59,7 @@ class CreateSalesOrderFromQuotationService
             'subtotal' => $quotation->subtotal,
             'grand_total' => $quotation->grand_total,
             'notes' => $quotation->notes,
-            'status_id' => $this->statusId(OrderStatus::type()->value, OrderStatus::WaitingDp->value),
-            'payment_status_id' => $this->statusId(OrderPaymentStatus::type()->value, OrderPaymentStatus::Unpaid->value),
+            'status_id' => $this->statusId(OrderStatus::type()->value, OrderStatus::Draft->value),
         ]);
 
         foreach ($quotation->items as $item) {
