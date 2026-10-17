@@ -35,10 +35,11 @@ Semua dalam satu `DB::transaction` (NFR-04).
 - [x] Validasi ulang `amount = grand_total`; invoice → `paid` setelah payment penuh Confirmed
 - [x] Jika invoice `paid`: semua termin yang terkait → `paid`
 - [x] Transisi SO `draft` → `open` jika termin DP (threshold 0%) baru saja lunas dan SO saat ini `draft` (dalam transaction yang sama)
-- [ ] Trigger penutupan SO otomatis (BR-13): jika semua termin SO berstatus `paid` → panggil `CloseOrderService` dengan `close_reason = completed`
-- [ ] Setelah commit: SO `open` dengan DP Paid menampilkan tombol Buat Project; email ke Teknis + PIC dikirim setelah Project dibuat dan PIC tersedia
+- [ ] Flow penutupan SO otomatis setelah seluruh Project/termin selesai — tahap berikutnya, di luar batas flow saat ini yang berakhir pada SO `open`.
+- [x] Setelah commit: SO `open` dengan DP Paid menampilkan tombol Buat Project
+- [ ] Email ke Teknis + PIC setelah Project dibuat dan PIC tersedia — tahap setelah batas flow saat ini
 
-> Penutupan SO otomatis saat semua termin lunas belum diimplementasikan di `ConfirmPaymentService`. Saat ini SO dapat ditutup manual via `CloseOrderService`.
+> Flow saat ini berakhir saat DP dikonfirmasi, invoice dan termin DP menjadi `paid`, serta SO berubah ke `open` dan siap dibuatkan Project. Penyelesaian Project dan penutupan SO otomatis berada di tahap berikutnya.
 
 ### 2.3 `app/Services/Payment/RejectPaymentService`
 
@@ -97,7 +98,7 @@ Bagian ini bukan syarat penyelesaian flow Payment saat ini. Saat dikerjakan, fil
 - [ ] Feature test: payment Confirmed pada invoice DP mengubah SO ke `open`; tombol Buat Project muncul di halaman View SO
 - [ ] Feature test: form Create Project menolak SO yang bukan `open` atau yang sudah punya Project; setelah tersimpan Project berstatus `on_progress` dan tahap terbentuk
 - [ ] Feature test: payment Rejected tidak mengubah status invoice/SO
-- [ ] Feature test: SO `Closed` saat progress 100% + semua termin `paid` (BR-13)
+- [ ] Feature test flow Project berjalan hingga SO `Closed` — tahap berikutnya; bukan bagian flow saat ini.
 - [ ] Unit test `RecordPaymentService` menolak invoice `void` / `paid`
 
 > Catatan: `TransactionSchemaTest` yang ada hanya memverifikasi schema, relasi, dan seeder. Flow Confirm/Reject payment dan dampak kaskade ke SO/Project belum diuji.

@@ -32,7 +32,7 @@ Semua dalam satu `DB::transaction` (NFR-04).
 - [x] Update status termin → `invoiced`
 - [x] Jika invoice memiliki `project_hd_id`: set `editable = false` pada `trans_project_dt` yang status `completed` (BR-05)
 - [ ] (Opsional) tulis log ke `trans_project_monitoring` per tahap yang terkunci (BR-10)
-- [ ] Setelah commit: kirim `InvoiceCreatedNotification` (opsional) + hitung ulang `payment_status` SO
+- [ ] Setelah commit: kirim `InvoiceCreatedNotification` (opsional). Pembuatan invoice tidak mengubah status SO; DP yang sudah dibayar dan dikonfirmasi mengubah SO `draft` → `open`.
 
 ### 2.2 `app/Services/Invoice/VoidInvoiceService`
 

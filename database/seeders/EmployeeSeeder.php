@@ -9,25 +9,44 @@ use App\Models\MsEmployee;
 
 class EmployeeSeeder extends SanitraSeeder
 {
+    private const OBSOLETE_EMAILS = [
+        'operasional@sanitra.invalid',
+        'penjualan@sanitra.invalid',
+    ];
+
     public function run(): void
     {
         $company = MsCompany::findOrFail(1);
 
+        MsEmployee::withTrashed()
+            ->whereIn('email', self::OBSOLETE_EMAILS)
+            ->get()
+            ->each(fn (MsEmployee $employee) => $employee->forceDelete());
+
         foreach ([
-            ['Staf Operasional (Contoh)', EmployeePosition::Teknis, 'Operasional', 'operasional@sanitra.invalid'],
-            ['Staf Penjualan (Contoh)', EmployeePosition::Marketing, 'Penjualan', 'penjualan@sanitra.invalid'],
-        ] as [$name, $position, $legacyPosition, $email]) {
+            ['super@gmail.com', 'Super Admin', EmployeePosition::Owner],
+            ['marketing@gmail.com', 'Marketing', EmployeePosition::Marketing],
+            ['teknis@gmail.com', 'Teknis', EmployeePosition::Teknis],
+            ['finance@gmail.com', 'Finance', EmployeePosition::Finance],
+        ] as [$email, $name, $position]) {
             $employee = $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee, ['email' => $email], [
                 'name' => $name,
                 'position' => $position->value,
                 'company_id' => $company->id,
                 'phone' => '-',
-                'active' => false,
+                'active' => true,
             ]);
 
-            if ($employee->position === $legacyPosition) {
-                $employee->update(['position' => $position->value]);
+            if ($employee->trashed()) {
+                $employee->restore();
             }
+
+            $employee->update([
+                'name' => $name,
+                'position' => $position->value,
+                'company_id' => $company->id,
+                'active' => true,
+            ]);
         }
     }
 }

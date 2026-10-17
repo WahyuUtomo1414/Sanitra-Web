@@ -38,6 +38,11 @@ class UsersTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('roles.name')
+                    ->label('Role')
+                    ->badge()
+                    ->placeholder('-'),
+
                 TextColumn::make('created_at')
                     ->label('Dibuat Pada')
                     ->dateTime('d M Y H:i')

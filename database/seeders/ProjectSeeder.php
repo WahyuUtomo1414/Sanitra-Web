@@ -15,29 +15,19 @@ class ProjectSeeder extends SanitraSeeder
         'TPS Limbah B3',
         'Pest Control Gedung',
         'Pengadaan Bahan dan Peralatan IPAL',
+        'Kontraktor',
+        'Service dan Maintenance',
     ];
 
     private const TYPES = [
-        'Kontraktor' => [
-            ['Survei kebutuhan', 10],
-            ['Perencanaan teknis', 20],
-            ['Pelaksanaan pekerjaan', 50],
-            ['Uji fungsi', 10],
-            ['Serah terima', 10],
-        ],
         'Konsultan' => [
-            ['Pengumpulan data', 20],
-            ['Survei dan analisis', 30],
-            ['Penyusunan dokumen', 30],
-            ['Review', 10],
-            ['Finalisasi', 10],
-        ],
-        'Service dan Maintenance' => [
-            ['Inspeksi awal', 20],
-            ['Persiapan pekerjaan', 10],
-            ['Pelaksanaan service', 50],
-            ['Pengujian', 10],
-            ['Laporan', 10],
+            ['Pengumpulan data / Pemberkasan data', 10],
+            ['Public Hearing', 20],
+            ['Penyusunan draft', 20],
+            ['Pemeriksaan draft', 20],
+            ['Submit ke Dinas Administrasi', 10],
+            ['Sidang Perbaikan', 10],
+            ['Penyerahan Akhir', 10],
         ],
     ];
 

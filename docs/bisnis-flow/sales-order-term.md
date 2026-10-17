@@ -25,8 +25,8 @@ Sales Order adalah **kontrak penjualan** yang di-generate otomatis saat Quotatio
 stateDiagram-v2
     [*] --> Draft: SO dibuat (DP belum dibayar)
     Draft --> Open: Invoice DP dikonfirmasi lunas (otomatis oleh ConfirmPaymentService)
-    Open --> Closed: Tutup manual (Owner) atau semua termin Paid
-    Draft --> Closed: Tutup manual sebelum DP dibayar
+    Open --> Closed: Tutup manual (di luar batas flow saat ini)
+    Draft --> Closed: Tutup manual (di luar batas flow saat ini)
     Closed --> [*]
 ```
 
@@ -51,7 +51,7 @@ Tidak ada kolom tersendiri untuk status pembayaran SO. Ringkasan dihitung secara
 | Field | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
 | `code` | varchar(50) | tidak | Format `SO/YY/MM/0001` (prefix baru) |
-| `transaction_date` | date | tidak | Tanggal SO dibuat (= tanggal quotation Approved) |
+| `transaction_date` | date | tidak | Tanggal saat SO dibuat ketika quotation disetujui |
 | `quotation_hd_id` | FK `trans_sales_quotation_hd` | tidak | **Unique** — satu quotation hanya satu SO (BR-17) |
 | `client_id` | FK | tidak | Disalin dari quotation |
 | `project_type_id` | FK | tidak | Disalin dari quotation |
@@ -63,9 +63,9 @@ Tidak ada kolom tersendiri untuk status pembayaran SO. Ringkasan dihitung secara
 | `subtotal` | decimal(20,6) | tidak | Disalin dari quotation |
 | `grand_total` | decimal(20,6) | tidak | Disalin dari quotation |
 | `notes` | text | ya | Catatan tambahan |
-| `close_reason` | varchar(32) | ya | Alasan penutupan: `completed` (semua termin lunas) atau `manual` (ditutup Owner); null saat belum closed |
+| `close_reason` | varchar(32) | ya | Alasan yang dicatat saat SO ditutup; null saat belum closed |
 | `close_notes` | text | ya | Catatan tambahan saat SO ditutup manual; null bila tidak ada |
-| `status_id` | FK status tipe `order` | tidak | Awalnya `draft`; transisi otomatis ke `open` setelah DP Paid; `closed` saat selesai/ditutup |
+| `status_id` | FK status tipe `order` | tidak | Awalnya `draft`; transisi otomatis ke `open` setelah DP Paid. Penutupan SO adalah flow terpisah setelah batas SO siap dibuatkan Project. |
 
 ### 2.5 Detail Item (`trans_sales_order_dt`)
 
@@ -105,14 +105,9 @@ Snapshot dari `trans_sales_quotation_dt` saat SO dibuat.
 
 Form Project meminta `pic_employee_id`, `project_name`, `start_date`, dan `end_date`. Service `CreateProjectFromSalesOrderService` memeriksa status SO = `open` dan belum ada Project, menyalin `client_id`, `company_id`, `project_type_id` dari SO, membuat kode Project dengan status awal **`on_progress`** (bukan `open`), lalu memanggil `CreateProjectStagesService` untuk menyalin workflow menjadi tahap dalam satu transaksi database. Status SO **tidak berubah** saat Project dibuat — SO tetap `open` sampai ditutup oleh `CloseOrderService`.
 
-### 2.8 Penutupan SO (`CloseOrderService`)
+### 2.8 Penutupan SO (`CloseOrderService`) — flow lanjutan
 
-SO dapat ditutup oleh Owner dalam dua cara:
-
-| Cara | `close_reason` | Kondisi |
-| --- | --- | --- |
-| Otomatis | `completed` | Semua termin `paid` (dipanggil dari `ConfirmPaymentService`) |
-| Manual | `manual` | Owner menutup SO secara eksplisit dari halaman View SO |
+Bagian ini berada di luar batas flow saat ini, yang berakhir saat SO `open` dan siap dibuatkan Project. Action penutupan manual tersedia di halaman SO untuk pengguna dengan izin update. Penutupan otomatis setelah Project selesai/semua termin lunas belum diimplementasikan.
 
 Guard `CloseOrderService`:
 1. Status SO harus `draft` atau `open`.
@@ -207,8 +202,8 @@ foreach ($order->terms()->whereRelation('status', 'code', 'pending')->get() as $
 | --- | --- |
 | **BR-02** | `amount` termin = persentase × grand total quotation; dihitung dan dikunci saat Sales Order dibuat |
 | **BR-04** | Termin Ready to Bill saat `progress ≥ threshold` dan belum di invoice aktif |
-| **BR-13** | Sales Order `closed` saat semua termin `paid` (otomatis) atau Owner menutup manual; tidak dapat ditutup jika ada invoice `unpaid` |
-| **BR-15** | Tepat satu DP threshold 0% wajib ada; setelah DP Paid SO otomatis `open`; Project dibuat manual dari SO `open`; Project berstatus `on_progress` langsung (tanpa `open`); email ke Teknis + PIC setelah Project tersimpan |
+| **BR-13** | Penutupan otomatis setelah Project selesai/semua termin `paid` belum diimplementasikan; flow ini berakhir di SO `open`. |
+| **BR-15** | Tepat satu DP threshold 0% wajib ada; setelah DP Paid SO otomatis `open` dan siap dibuatkan Project. Proses setelah Project dibuat adalah tahap berikutnya. |
 | **BR-16** | Termin disusun di Quotation; setelah Approved dikelola dari Sales Order |
 | **BR-17** | Pembuatan Sales Order dalam satu DB transaction (satu Quotation → satu SO → satu Project) |
 

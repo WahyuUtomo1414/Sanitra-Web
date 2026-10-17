@@ -87,7 +87,8 @@ Urutan implementasi yang disarankan:
 
 - [x] Semua migration up (`php artisan migrate:status`) — status saat ini: migration master + transaksi semuanya `Ran`
 - [ ] Semua resource transaksi bisa diakses dari panel Filament (group **Penjualan** + **Keuangan**)
-- [ ] Flow end-to-end: Quotation Draft → Sent → Approved → SO otomatis → Invoice DP → Payment penuh Confirmed → user buat Project → termin progress Ready to Bill → Invoice progress → … → SO Closed
+- [ ] Flow end-to-end sampai batas saat ini: Quotation Draft → Sent → Approved → SO `draft` → Invoice DP → Payment Confirmed → invoice/termin DP `paid` → SO `open` dan siap dibuatkan Project
+- [ ] Flow setelah Project dibuat (progress tahap → termin berikutnya → invoice lanjutan → penutupan SO) — tahap berikutnya
 - [ ] Export Excel aktif di seluruh resource transaksi
 - [ ] Activity log mencatat perubahan domain transaksi
 - [ ] PDF quotation dan invoice bisa diunduh

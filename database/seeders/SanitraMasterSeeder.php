@@ -15,7 +15,6 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class SanitraMasterSeeder extends Seeder
 {
@@ -25,16 +24,18 @@ class SanitraMasterSeeder extends Seeder
 
         try {
             DB::transaction(function (): void {
-                Auth::setUser(User::query()->firstOrCreate(
-                    ['email' => 'master-seeder@sanitra.invalid'],
-                    ['name' => 'Seeder Master Sanitra', 'password' => Str::random(64)],
-                ));
+                $adminUser = User::query()->firstOrCreate(
+                    ['email' => 'super@gmail.com'],
+                    ['name' => 'Super Admin', 'password' => '12345678'],
+                );
+                Auth::setUser($adminUser);
 
                 $this->synchronizeSequences();
 
                 $this->call([
                     CompanySeeder::class,
                     EmployeeSeeder::class,
+                    RoleSeeder::class,
                     UserSeeder::class,
                     ClientSeeder::class,
                     ProjectSeeder::class,

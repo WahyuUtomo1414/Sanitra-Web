@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\MsEmployee;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserForm
 {
@@ -52,6 +54,13 @@ class UserForm
                         ->preload()
                         ->unique(ignoreRecord: true)
                         ->nullable(),
+
+                    CheckboxList::make('roles')
+                        ->label('Role')
+                        ->relationship('roles', 'name')
+                        ->options(fn () => Role::query()->whereNot('name', 'super_admin')->orderBy('name')->pluck('name', 'id'))
+                        ->columns(2)
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Media')

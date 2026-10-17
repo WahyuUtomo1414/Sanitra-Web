@@ -391,7 +391,7 @@ Header Sales Order. Dibuat otomatis saat quotation Approved (BR-17). Model: `Tra
 | Kolom | Tipe | Null | Keterangan |
 | --- | --- | --- | --- |
 | `code` | varchar(50) | tidak | Format `SO/YY/MM/0001`. |
-| `transaction_date` | date | tidak | Tanggal SO = tanggal quotation Approved. |
+| `transaction_date` | date | tidak | Tanggal saat Sales Order dibuat ketika quotation disetujui. |
 | `quotation_hd_id` | bigint unsigned | tidak | FK ke `trans_sales_quotation_hd.id`; **unique** (satu quotation → satu SO). |
 | `client_id` | bigint unsigned | tidak | Disalin dari quotation. |
 | `project_type_id` | bigint unsigned | tidak | Disalin dari quotation. |

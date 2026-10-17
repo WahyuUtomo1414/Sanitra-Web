@@ -15,10 +15,11 @@ class UserSeeder extends SanitraSeeder
         $company = MsCompany::findOrFail(1);
 
         foreach ([
-            ['super@gmail.com', 'Super Admin', EmployeePosition::Owner],
-            ['marketing@gmail.com', 'Marketing', EmployeePosition::Marketing],
-            ['finance@gmail.com', 'Finance', EmployeePosition::Finance],
-        ] as [$email, $name, $position]) {
+            ['super@gmail.com', 'Super Admin', EmployeePosition::Owner, null],
+            ['marketing@gmail.com', 'Marketing', EmployeePosition::Marketing, 'Marketing'],
+            ['teknis@gmail.com', 'Teknis', EmployeePosition::Teknis, 'Teknis'],
+            ['finance@gmail.com', 'Finance', EmployeePosition::Finance, 'Finance'],
+        ] as [$email, $name, $position, $role]) {
             $employee = $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee, ['email' => $email], [
                 'name' => $name,
                 'position' => $position->value,
@@ -45,6 +46,10 @@ class UserSeeder extends SanitraSeeder
             if ($user->employee_id !== $employee->id) {
                 $user->employee()->associate($employee);
                 $user->save();
+            }
+
+            if ($role !== null) {
+                $user->syncRoles([$role]);
             }
         }
     }

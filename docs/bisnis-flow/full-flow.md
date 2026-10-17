@@ -2,7 +2,7 @@
 
 **Status:** Rancangan berdasarkan SRS v1.3 dan keputusan implementasi terbaru (11 Oktober 2026) · **Acuan:** [SRS v1.3](https://drive.google.com/file/d/1UPHenlYyMfJjUuIgG9wFn3pJP2gAAPq0/view), [database.md](../database.md) · **Modul:** [quotation.md](quotation.md), [sales-order-term.md](sales-order-term.md), [invoice.md](invoice.md), [payment.md](payment.md)
 
-Dokumen ini adalah peta/overview modul sales dari pengajuan penawaran sampai pelunasan. Rincian flow, status, field, dan service per entitas ada di masing-masing file modul.
+Dokumen ini adalah peta/overview modul sales. Flow yang sudah dikerjakan saat ini berakhir ketika SO menjadi `open` dan siap dibuatkan Project. Proses setelah Project dibuat masih tahap berikutnya; rincian rancangan lanjutannya ditandai terpisah di dokumen modul.
 
 ## 1. Konsep Umum
 
@@ -13,7 +13,7 @@ SRS v1.3 menambahkan entitas **Sales Order (SO)** sebagai jembatan antara Quotat
 - Quotation hanya untuk negosiasi; begitu Approved, data finansial dan item disalin ke Sales Order dan tidak dapat diubah lagi dari Quotation.
 - Termin yang semula hanya di quotation sekarang **dikelola dari Sales Order** setelah Approved. Satu baris termin dapat tetap dipakai, dengan tambahan FK `order_hd_id`.
 - Invoice dan Project **selalu berasal dari Sales Order**, bukan langsung dari Quotation.
-- Untuk implementasi saat ini, setiap quotation wajib memiliki satu termin DP dengan threshold 0%. **SO tetap dibuat saat Quotation Approved, sebelum DP dibayar.** Setelah SO ada, Finance membuat invoice DP; setelah invoice DP lunas, user berwenang membuat Project lewat form. Alur tanpa DP ditunda.
+- Untuk implementasi saat ini, setiap quotation wajib memiliki satu termin DP dengan threshold 0%. **SO dibuat saat Quotation Approved dengan status `draft`, sebelum DP dibayar.** Finance membuat invoice DP; setelah pembayaran DP dikonfirmasi, SO menjadi `open` dan siap dibuatkan Project. Audit/flow implementasi saat ini berakhir di titik tersebut. Alur tanpa DP ditunda.
 
 ### 1.2 Entitas Utama Modul Sales
 
@@ -25,7 +25,7 @@ SRS v1.3 menambahkan entitas **Sales Order (SO)** sebagai jembatan antara Quotat
 | Invoice | `trans_sales_invoice_hd` + `trans_sales_invoice_dt` | [invoice.md](invoice.md) | Tagihan atas satu atau lebih termin |
 | Payment | `trans_sales_payment` | [payment.md](payment.md) | Pembayaran atas invoice |
 
-Project (`trans_project_hd/dt/monitoring`) adalah entitas anak Sales Order; schema sudah ada tetapi flow dan service-nya belum ditulis.
+Project (`trans_project_hd/dt/monitoring`) adalah entitas anak Sales Order. Pembuatan Project dari SO tersedia, tetapi pengelolaan tahap/progress dan alur setelah Project berjalan belum termasuk flow yang selesai saat ini.
 
 ## 2. Flowchart Alur Bisnis
 
@@ -44,23 +44,7 @@ flowchart TD
     DPPay --> DPCheck{Invoice DP Paid?}
     DPCheck -->|Belum| DPPay
     DPCheck -->|Ya| ProjectReady[SO otomatis Open - siap dibuatkan Project]
-    ProjectReady --> GenProj[User berwenang buat Project lewat form<br/>Isi PIC, nama, tanggal<br/>Status Project: On Progress langsung]
-
-    GenProj --> GenStage[Sistem copy workflow jadi Tahap<br/>Status tahap: Draft]
-    GenStage --> ProjectNotif[Email ke Teknis + PIC setelah Project tersimpan]
-    ProjectNotif --> UpdStage[Teknis update status tahap<br/>Draft → On Progress → Completed]
-    UpdStage --> HitProg[Sistem hitung progress<br/>= Σ bobot tahap Completed]
-    HitProg --> CekThr{Progress ≥<br/>threshold termin<br/>belum ditagih?}
-    CekThr -->|Belum| UpdStage
-    CekThr -->|Ya| TrmReady[Termin Ready to Bill<br/>Email ke Finance]
-    TrmReady --> InvGen[Finance buat Invoice<br/>Tahap Completed terkunci]
-    InvGen --> InvPay[Finance catat & konfirmasi Payment]
-    InvPay --> InvCheck{Invoice Paid?}
-    InvCheck -->|Belum| InvPay
-    InvCheck -->|Ya| CloseCheck{Progress 100% &<br/>semua termin Paid?}
-    CloseCheck -->|Belum| UpdStage
-    CloseCheck -->|Ya| SOClosed[Sales Order Closed]
-    SOClosed --> EndOk([END - Closed])
+    ProjectReady --> EndCurrent([Batas flow saat ini])
 ```
 
 ## 3. Business Rules
@@ -98,9 +82,9 @@ Nomor BR mengikuti SRS v1.3 bagian 5. Keputusan implementasi saat ini mewajibkan
 
 | Kode | Aturan | Dijaga di |
 | --- | --- | --- |
-| **BR-13** | Sales Order `closed` saat semua termin `paid` (otomatis) atau Owner menutup manual; tidak dapat ditutup jika ada invoice `unpaid`. | [sales-order-term.md](sales-order-term.md) |
+| **BR-13** | Penutupan SO setelah Project berjalan adalah flow lanjutan dan berada di luar batas implementasi saat ini. | [sales-order-term.md](sales-order-term.md) |
 | **BR-14** | Format nomor dokumen, tarif PPN, dan format PDF mengikuti contoh Sanitra. | Semua modul |
-| **BR-15** | Implementasi saat ini mewajibkan tepat satu termin DP (threshold 0%). Setelah invoice DP Paid, SO otomatis menjadi `open`; user berwenang dapat membuat Project dari SO `open`; Project berstatus `on_progress` langsung (tanpa status `open`); sistem mengirim email ke Teknis + PIC setelah Project dibuat. Opsi SRS untuk SO tanpa DP ditunda. | [quotation.md](quotation.md), [payment.md](payment.md), [sales-order-term.md](sales-order-term.md) |
+| **BR-15** | Implementasi saat ini mewajibkan tepat satu termin DP (threshold 0%). Setelah invoice DP Paid, SO otomatis menjadi `open` dan siap dibuatkan Project. Flow audit saat ini berakhir di sini. Opsi SRS untuk SO tanpa DP ditunda. | [quotation.md](quotation.md), [payment.md](payment.md), [sales-order-term.md](sales-order-term.md) |
 | **BR-16** | Termin disusun di Quotation. Setelah Quotation Approved, termin **dikelola dari Sales Order** dan tidak dapat diubah dari Quotation. | [sales-order-term.md](sales-order-term.md) |
 | **BR-17** | Pembuatan Sales Order (termasuk penyalinan item dan pengikatan termin) berjalan dalam satu transaksi database. **Satu Quotation → satu Sales Order → satu Project.** | [quotation.md](quotation.md), [sales-order-term.md](sales-order-term.md) |
 
@@ -116,12 +100,9 @@ Status disimpan di `ms_status` per `type`. Implementasi saat ini memakai **25 st
 | Quotation | Sent | Approved / Rejected / Draft | Respon client; revisi balik ke Draft | [quotation.md](quotation.md) |
 | Sales Order | — | Draft | Quotation Approved; satu termin DP wajib ada | [sales-order-term.md](sales-order-term.md) |
 | Sales Order | Draft | Open | Invoice DP dikonfirmasi lunas (otomatis oleh `ConfirmPaymentService`) | [sales-order-term.md](sales-order-term.md), [payment.md](payment.md) |
-| Sales Order | Draft / Open | Closed | Owner tutup manual atau semua termin Paid (`CloseOrderService`) | [sales-order-term.md](sales-order-term.md) |
-| Project | — | On Progress | Dibuat dari SO `open` (langsung `on_progress`, tanpa status `open`) | Modul Project |
-| Project | On Progress | Completed | Progress 100% (otomatis) | Modul Project |
-| Project | On Progress | Cancelled | SO ditutup manual via `CloseOrderService` | [sales-order-term.md](sales-order-term.md) |
-| Tahap | Belum Dimulai/Sedang Dikerjakan | Selesai / Terkendala | Teknis update; Terkendala (`blocked`) wajib notes | Modul Project |
-| Tahap | Completed | On Progress | Hanya jika belum terkunci, wajib alasan | Modul Project |
+| Sales Order | Draft / Open | Closed | Flow penutupan setelah Project berjalan (tahap berikutnya) | [sales-order-term.md](sales-order-term.md) |
+| Project | — | On Progress | Setelah Project dibuat dari SO `open` (di luar batas flow saat ini) | Modul Project |
+| Project / Tahap | — | Status lanjutan | Progress, penyelesaian, dan pembatalan Project (tahap berikutnya) | Modul Project |
 | Termin | Draft | Pending | Quotation Approved, SO dibuat | [sales-order-term.md](sales-order-term.md) |
 | Termin | Pending | Ready to Bill | Progress ≥ threshold | [sales-order-term.md](sales-order-term.md) |
 | Termin | Ready to Bill | Invoiced | Invoice dibuat | [invoice.md](invoice.md) |
@@ -133,7 +114,7 @@ Status disimpan di `ms_status` per `type`. Implementasi saat ini memakai **25 st
 **Catatan:**
 
 - `Overdue` adalah hasil perhitungan (bukan status tersimpan): invoice Unpaid yang due_date lewat.
-- Status pembayaran SO tidak lagi disimpan sebagai kolom terpisah; dihitung via `paymentSummary()` dari status termin.
+- Status pembayaran SO tidak lagi disimpan sebagai kolom terpisah; ringkasannya dihitung via `paymentSummary()` dari status termin.
 - Payment Pending/Rejected **tidak** mengurangi sisa tagihan.
 
 ## 5. ERD Overview — Modul Sales
@@ -193,12 +174,12 @@ Rincian service ada di masing-masing file modul. Daftar singkat:
 | `ReviseQuotationService` | `Services/Quotation/` | Sent → Draft (histori tercatat) | [quotation.md §7](quotation.md) |
 | `CreateSalesOrderFromQuotationService` | `Services/SalesOrder/` | Copy HD/DT, bind termin, set status SO `draft`; dalam satu DB transaction | [sales-order-term.md §2.6](sales-order-term.md) |
 | `CheckTermReadyToBillService` | `Services/SalesOrder/` | Cek termin pending yang melewati threshold progress | [sales-order-term.md §3.5](sales-order-term.md) |
-| `CloseOrderService` | `Services/SalesOrder/` | Tutup SO manual/otomatis; guard invoice unpaid; cancel project on_progress | [sales-order-term.md §2.8](sales-order-term.md) |
+| `CloseOrderService` | `Services/SalesOrder/` | Aksi penutupan SO yang tersedia; pemicu otomatis setelah Project selesai berada di tahap berikutnya | [sales-order-term.md §2.8](sales-order-term.md) |
 | `CreateProjectFromSalesOrderService` | `Services/Project/` | Dipanggil dari form Project saat SO `open`; salin data SO, buat tahap, project langsung `on_progress` | [sales-order-term.md §2.7](sales-order-term.md) |
 | `CreateInvoiceFromTermsService` | `Services/Invoice/` | Buat invoice dari termin Ready to Bill satu SO; kunci tahap Completed | [invoice.md §8](invoice.md) |
 | `VoidInvoiceService` | `Services/Invoice/` | Invoice → Void; kembalikan termin; buka kunci tahap kalau tidak ada invoice aktif | [invoice.md §9](invoice.md) |
 | `RecordPaymentService` | `Services/Payment/` | Simpan payment default `pending` | [payment.md §6](payment.md) |
-| `ConfirmPaymentService` | `Services/Payment/` | Payment → Confirmed → lunasi invoice/termin dan perbarui status pembayaran SO; DP Paid membuka akses Create Project manual | [payment.md §7](payment.md) |
+| `ConfirmPaymentService` | `Services/Payment/` | Payment → Confirmed → lunasi invoice/termin; DP Paid mengubah SO `draft` → `open` agar siap dibuatkan Project | [payment.md §7](payment.md) |
 | `RejectPaymentService` | `Services/Payment/` | Payment → Rejected | [payment.md §8](payment.md) |
 
 Semua service memakai pola `DB::transaction` + notification di luar transaction, sesuai konvensi di [filament-lifecycle-hook.md](../filament-lifecycle-hook.md).

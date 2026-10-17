@@ -111,7 +111,7 @@ Chart tambahan:
 Operasi berikut **wajib** dalam satu `DB::transaction`:
 
 1. Pembuatan invoice: insert HD + insert DT + update termin + lock tahap (lihat [invoice.md §8](invoice.md)).
-2. Confirm payment: update payment + hitung invoice + hitung SO payment_status; DP Paid membuat SO layak dipilih untuk pembuatan Project manual.
+2. Confirm payment: update payment, tandai invoice dan termin terkait lunas, lalu ubah SO dari `draft` ke `open` jika termin yang dibayar adalah DP. SO `open` siap dibuatkan Project.
 3. Void invoice: update invoice + kembalikan termin + unlock tahap (sesuai kondisi).
 
 ### 10.2 Race condition pada pembuatan invoice bersamaan
@@ -146,7 +146,7 @@ return match (true) {
 
 | Kode | Aturan singkat |
 | --- | --- |
-| **BR-13** | Sales Order Closed hanya jika progress project 100% dan semua termin Paid |
-| **BR-15** | Project dibuat manual setelah invoice DP Paid; email ke Teknis + PIC setelah Project tersimpan |
+| **BR-13** | Penutupan dan penyelesaian SO setelah Project berjalan berada di tahap berikutnya; bukan bagian flow yang berakhir pada SO `open`. |
+| **BR-15** | Tepat satu termin DP threshold 0% wajib ada. Setelah invoice DP Paid, SO otomatis `open` dan siap dibuatkan Project. |
 
 Daftar BR lengkap ada di [full-flow.md §3](full-flow.md).
