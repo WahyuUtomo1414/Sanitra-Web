@@ -77,13 +77,15 @@ Group: **Keuangan**.
 ## 4. PDF Invoice
 
 - [x] `barryvdh/laravel-dompdf` sudah terpasang dan dipakai bersama Quotation
-- [x] Blade template `resources/views/pdf/invoice.blade.php`
-  - [x] Header: logo + nama legal company penerbit
-  - [x] Info client, nomor invoice, tanggal, jatuh tempo
-  - [x] Tabel termin yang ditagih (sequence, nama, persentase, nilai)
-  - [x] Subtotal, VAT, grand total
-  - [x] Rekening tujuan (`bank_name`, `account_number`, `account_name`)
-  - [x] Catatan + tanda tangan
+- [x] Blade template `resources/views/pdf/invoice.blade.php` — desain corporate navy (`#1e3a8a`), konsisten dengan PDF Quotation
+  - [x] Header tiga kolom: logo kiri, legal name + alamat + kontak tengah, judul "INVOICE" kanan; garis navy pemisah di bawah
+  - [x] Meta band 4 kolom: Nomor Invoice, Tanggal Diterbitkan, Jatuh Tempo, No. Referensi (kode SO)
+  - [x] Blok client: nama + alamat
+  - [x] Tabel termin: No / Deskripsi Termin (+ notes termin bila ada) / Persentase / Nilai; header solid navy, row even light blue
+  - [x] Summary: Subtotal + PPN (hanya jika vat_type ≠ none) + Total Tagihan solid navy
+  - [x] Kotak Informasi Pembayaran: nama bank, nomor rekening, atas nama, keterangan transfer
+  - [x] Notes invoice (jika ada), rata kanan-kiri
+  - [x] Area tanda tangan dua kolom (klien kiri, Sanitra kanan) dengan kotak dan baris stempel
   - [x] Format Rupiah dan tanggal bahasa Indonesia
 - [x] Trigger via action `Download PDF` pada halaman View Invoice; data disiapkan `InvoicePdfDataService`, lalu `Pdf::loadView('pdf.invoice', ...)->setPaper('a4', 'portrait')` dikirim sebagai file unduhan
 

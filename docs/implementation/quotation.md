@@ -62,13 +62,17 @@ Group: **Penjualan**.
 ## 4. PDF Quotation
 
 - [x] `barryvdh/laravel-dompdf` terpasang
-- [x] Blade template `resources/views/pdf/quotation.blade.php`
-  - [x] Header: logo + nama company penerbit + alamat + kontak
-  - [x] Info client, nomor quotation, tanggal, PIC
-  - [x] Tabel items (no, nama, qty, unit, harga, diskon, total)
-  - [x] Subtotal, VAT, diskon, grand total
-  - [x] Tabel termin (sequence, nama, persentase, threshold, nilai dari `trans_sales_term.amount`)
-  - [x] Footer: syarat & ketentuan, tanda tangan
+- [x] Blade template `resources/views/pdf/quotation.blade.php` — desain corporate navy (`#1e3a8a`), konsisten dengan PDF Invoice
+  - [x] Header tiga kolom: logo kiri, legal name + alamat + kontak tengah, judul "PENAWARAN HARGA" kanan; garis navy pemisah di bawah
+  - [x] Meta band 4 kolom: Nomor Penawaran, Tanggal Penawaran, Berlaku Sampai, Jenis Pekerjaan (highlight light blue)
+  - [x] Blok client: nama + alamat (tanpa PIC)
+  - [x] Paragraf pembuka formal rata kanan-kiri, menyebut nama perusahaan + nama klien + jenis pekerjaan
+  - [x] Tabel items: No / Deskripsi (+ notes) / Qty / Satuan / (Diskon jika ada) / Harga Satuan / Total; header solid navy
+  - [x] Summary: Subtotal, Diskon (jika ada), PPN (jika ada), Total Penawaran solid navy
+  - [x] Kotak Skema Pembayaran: daftar termin + persentase + trigger + nilai (hanya jika ada termin)
+  - [x] Kotak Syarat & Ketentuan (teks default 5 poin)
+  - [x] Kotak Catatan Khusus (jika `quotation->notes` diisi)
+  - [x] Kalimat penutup + area tanda tangan dua kolom (klien kiri, Sanitra kanan)
   - [x] Format Rupiah dan tanggal bahasa Indonesia
 - [x] Download PDF dari action di halaman Edit dan View hanya saat quotation Draft dan siap; file diunduh dengan nama berdasarkan kode quotation
 
