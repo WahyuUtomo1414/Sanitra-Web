@@ -56,7 +56,6 @@ class CreateOrderInvoice extends Page
     {
         return $schema->statePath('data')->components([
             Section::make('Termin Siap Tagih')
-                ->description('Pilih satu atau beberapa termin dari Sales Order ini.')
                 ->columnSpanFull()
                 ->schema([
                     CheckboxList::make('term_ids')
@@ -79,10 +78,13 @@ class CreateOrderInvoice extends Page
                     ->content(fn (Get $get): string => IndonesianMoneyFormatter::formatRupiah($this->previewAmounts($get('term_ids'))['grand_total'])),
             ]),
             Section::make('Informasi Invoice')->columnSpanFull()->columns(2)->schema([
-                DatePicker::make('transaction_date')->label('Tanggal Invoice')->required(),
-                DatePicker::make('due_date')->label('Jatuh Tempo')->required()->afterOrEqual('transaction_date'),
+                DatePicker::make('transaction_date')->label('Tanggal Invoice')->required()->native(false),
+                DatePicker::make('due_date')->label('Jatuh Tempo')->required()->afterOrEqual('transaction_date')->native(false),
                 Select::make('bank_account_id')->label('Rekening Tujuan')
-                    ->options(fn () => MsBankAccount::query()->where('active', true)->orderBy('name')->pluck('name', 'id'))
+                    ->options(fn () => MsBankAccount::query()->where('active', true)->orderBy('name')->get()
+                        ->mapWithKeys(fn (MsBankAccount $account): array => [
+                            $account->id => $account->name.' · '.$account->bank_name,
+                        ])->all())
                     ->searchable()->preload()->required(),
                 Textarea::make('notes')->label('Catatan')->nullable()->columnSpanFull(),
             ]),
