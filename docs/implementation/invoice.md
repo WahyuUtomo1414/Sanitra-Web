@@ -49,7 +49,7 @@ Semua dalam satu `DB::transaction` (NFR-04).
 Group: **Keuangan**.
 
 - [x] Properti: `$navigationLabel = 'Invoice'`, `$slug = 'invoices'`, icon currency
-- [x] Page: List, View, Edit terbatas (edit disabled begitu ada payment, termasuk Pending/Rejected; BR-11)
+- [x] Page: List, View, Edit terbatas (edit disabled begitu ada payment, termasuk Pending/Rejected; BR-11); akses URL edit setelah ada payment redirect ke View dengan notifikasi warning (bukan 403 mentah)
 - [x] Table: `code`, `transaction_date`, `due_date` (highlight warna `danger` saat `isOverdue()`), `order.code`, `client.name`, `grand_total`, `status.name` badge; warna dari `InvoiceStatus::from($record->status->code)->color()`, audit
 - [x] Filter table: `status_id`, `due_date` range, `client_id`, `company_id`
 - [x] Infolist: Informasi Utama + Nominal + Audit; termin yang ditagih tampil di `ItemsRelationManager`
@@ -61,13 +61,15 @@ Group: **Keuangan**.
 - [x] Page menampilkan daftar termin `ready_to_bill` untuk SO terpilih
 - [x] Checkbox pemilihan termin + preview `subtotal` / `vat` / `grand_total`
 - [x] Field: `transaction_date`, `due_date`, `bank_account_id`, `notes`
+- [x] DatePicker `transaction_date` dan `due_date` menggunakan `native(false)`; `transaction_date` dibatasi `minDate` = `transaction_date` SO
+- [x] Dropdown `bank_account_id` menampilkan format `Nama Rekening · Nama Bank`
 - [x] Submit → panggil `CreateInvoiceFromTermsService`
 - [x] Redirect ke view page invoice yang baru dibuat
 
 ### 3.2 Relation Manager
 
 - [x] `ItemsRelationManager` → `trans_sales_invoice_dt` (read-only, snapshot termin)
-- [x] `PaymentsRelationManager` → `trans_sales_payment` (lihat [payment.md](payment.md); create + Confirm/Reject action)
+- [x] `PaymentsRelationManager` → `trans_sales_payment` (lihat [payment.md](payment.md); create + Confirm/Reject action); hanya muncul di halaman View, tidak di Edit (`getRelationManagers()` di-override di `EditTransSalesInvoiceHd`)
 
 ### 3.3 Custom Action
 

@@ -63,8 +63,8 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 
 ### 3.1 Relation Manager
 
-- [x] `ItemsRelationManager` → `trans_sales_order_dt` (read-only)
-- [x] `TermsRelationManager` → `trans_sales_term` filter `order_hd_id`; status badge; edit hanya `notes`
+- [x] `ItemsRelationManager` → `trans_sales_order_dt` (read-only); tombol **Detail** membuka modal infolist (item, unit, qty, harga, diskon, total, catatan)
+- [x] `TermsRelationManager` → `trans_sales_term` filter `order_hd_id`; status badge; edit hanya `notes`; tombol **Detail** membuka modal infolist (nama termin, urutan, persentase, threshold, nilai, status, catatan); kolom catatan dihapus dari tabel
 - [x] `InvoicesRelationManager` → `trans_sales_invoice_hd` (read-only; link ke resource invoice)
 
 ### 3.2 Custom Action di Sales Order

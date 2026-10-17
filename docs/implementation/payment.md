@@ -52,7 +52,7 @@ Semua dalam satu `DB::transaction` (NFR-04).
 Group: **Keuangan**.
 
 - [x] Properti: `$navigationLabel = 'Pembayaran'`, `$slug = 'payments'`
-- [x] Form: `invoice_hd_id` (searchable), `transaction_date`, `amount`, `payment_method` (select enum `PaymentMethod`), `reference_no` (muncul kalau `payment_method` butuh), `payment_proof` (upload disk `public`), `notes`
+- [x] Form (`TransSalesPaymentForm`): `invoice_hd_id` (searchable, live); `transaction_date` DatePicker `native(false)` dengan `minDate` = `transaction_date` SO (via `Get` pada form standalone, via parameter `?string $minDate` saat dipanggil dari `PaymentsRelationManager`); `amount` read-only + format Rupiah (`Rp 12.210.000`) — diformat di `afterStateHydrated` dan `afterStateUpdated` invoice select, di-strip titik via `dehydrateStateUsing` sebelum dikirim ke service; `payment_method` (select enum `PaymentMethod`); `reference_no` (muncul kalau `payment_method` butuh); `payment_proof` (upload disk `public`); `notes`
 - [x] Field `code` `disabled()->dehydrated(false)`; nomor dibuat oleh `RecordPaymentService` melalui `handleRecordCreation`
 - [x] Table: `code`, `transaction_date`, `invoice.code`, `amount`, `payment_method`, `status.name` badge; warna dari `PaymentStatus::from($record->status->code)->color()`, `reference_no`, audit
 - [x] Filter: `status_id`, `payment_method`, tanggal
