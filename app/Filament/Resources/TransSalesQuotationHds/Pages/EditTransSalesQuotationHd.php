@@ -21,24 +21,6 @@ class EditTransSalesQuotationHd extends EditRecord
 {
     protected static string $resource = TransSalesQuotationHdResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            ViewAction::make(),
-            Action::make('downloadPdf')->label('Download PDF')->icon('heroicon-o-document-arrow-down')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Draft->value
-                    && app(QuotationReadinessService::class)->isReady($this->record))
-                ->action(function () {
-                    $pdfData = app(QuotationPdfDataService::class)->execute($this->record);
-
-                    return response()->streamDownload(
-                        fn () => print (Pdf::loadView('pdf.quotation', $pdfData)->setPaper('a4', 'portrait')->output()),
-                        str_replace('/', '-', $this->record->code).'.pdf',
-                    );
-                }),
-        ];
-    }
-
     #[On('quotation-totals-updated')]
     public function refreshQuotationTotals(): void
     {
