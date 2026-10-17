@@ -9,7 +9,7 @@ Entitas: `trans_sales_payment`. Tim pelaksana: **Finance** (catat payment, konfi
 | Aktor | Tanggung jawab |
 | --- | --- |
 | Finance | Catat payment, konfirmasi/tolak payment |
-| Sistem | Ubah invoice menjadi Paid setelah pembayaran penuh dikonfirmasi; hitung `payment_status` SO; izinkan pembuatan Project manual saat DP Paid; tutup SO saat progress 100% & semua termin Paid |
+| Sistem | Ubah invoice menjadi Paid setelah pembayaran penuh dikonfirmasi; transisi SO `draft` → `open` otomatis saat DP Paid; izinkan pembuatan Project manual dari SO `open` |
 | Owner | Lihat semua, override jika diperlukan |
 | Marketing / Teknis | Read-only |
 
@@ -72,13 +72,11 @@ stateDiagram-v2
 1. **Guard:** payment status = `pending`, invoice masih `unpaid`, dan tidak ada payment Confirmed lain untuk invoice tersebut.
 2. **Update payment:** `status = confirmed`.
 3. **Lunasi invoice:** pastikan `amount = grand_total`; invoice status → `paid`, semua termin invoice ini → `paid`.
-4. **Hitung ulang payment status SO** via `RecalculateOrderPaymentStatusService` (lihat [sales-order-term.md §4](sales-order-term.md)).
-5. **Buka akses pembuatan Project (BR-15):**
-   - Jika invoice DP (threshold 0%) sekarang Paid, SO dapat dipilih di form Create Project. Konfirmasi payment tidak membuat Project dan belum mengubah status SO menjadi `on_progress`.
-6. **Trigger penutupan SO (BR-13):**
-   - Jika SO sudah punya Project, cek `progress_percentage = 100` dan `payment_status = paid` → SO status = `closed`. Project status = `completed` jika belum.
+4. **Transisi SO `draft` → `open` (BR-15):**
+   - Jika termin yang baru dibayar adalah termin DP (threshold 0%) dan SO saat ini berstatus `draft` → SO otomatis berubah ke `open` dalam transaction yang sama.
+   - SO `open` menjadi penanda bahwa DP telah lunas dan Project dapat dibuat.
 
-**Setelah commit:** SO dengan DP Paid muncul sebagai pilihan pembuatan Project bagi user berwenang. Email ke Teknis + PIC dikirim satu kali setelah Project benar-benar dibuat dan PIC sudah diisi, bukan saat payment dikonfirmasi.
+**Setelah commit:** SO `open` muncul di halaman View SO dengan tombol "Buat Project". Email ke Teknis + PIC dikirim satu kali setelah Project benar-benar dibuat dan PIC sudah diisi, bukan saat payment dikonfirmasi.
 
 ## 8. Service: `RejectPaymentService`
 
@@ -129,18 +127,18 @@ $terms = TransSalesTerm::whereIn('id', $termIds)
 
 Jika row sudah dikunci user lain, request kedua antre; saat dapat giliran, status termin sudah `invoiced` → service lempar `DomainException`.
 
-### 10.3 Payment status SO perlu di-recompute, bukan increment
+### 10.3 Ringkasan pembayaran SO dihitung dari termin, bukan kolom tersimpan
 
-Saat payment confirmed/rejected/voided, jangan simpan counter manual di SO. Hitung ulang dari sumber:
+Tidak ada kolom `payment_status_id` di SO. Status pembayaran dihitung via `paymentSummary()` pada model, membaca status termin SO secara langsung:
 
 ```php
+$paidCount = $order->terms()->whereRelation('status', 'code', 'paid')->count();
 $totalTerms = $order->terms()->count();
-$paidTerms = $order->terms()->whereRelation('status', 'code', 'paid')->count();
 
-$paymentStatus = match (true) {
-    $paidTerms === 0 => 'unpaid',
-    $paidTerms < $totalTerms => 'partial',
-    default => 'paid',
+return match (true) {
+    $paidCount === $totalTerms => 'Lunas',
+    $paidCount > 0 => 'Dibayar Sebagian',
+    default => 'Belum Dibayar',
 };
 ```
 

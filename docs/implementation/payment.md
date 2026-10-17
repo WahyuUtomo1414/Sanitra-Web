@@ -34,12 +34,11 @@ Semua dalam satu `DB::transaction` (NFR-04).
 - [x] Update payment status → `confirmed`
 - [x] Validasi ulang `amount = grand_total`; invoice → `paid` setelah payment penuh Confirmed
 - [x] Jika invoice `paid`: semua termin yang terkait → `paid`
-- [x] Hitung ulang `payment_status` SO via `RecalculateOrderPaymentStatusService` (lihat [sales-order-term.md](sales-order-term.md) §2.3)
-- [x] Jika invoice DP Paid, tombol Buat Project pada SO menjadi tersedia; konfirmasi payment tidak membuat Project atau mengubah SO ke `on_progress`
-- [ ] Trigger penutupan SO (BR-13): jika SO sudah ada Project, `progress_percentage = 100`, dan semua termin `paid` → SO `closed` + Project `completed`
-- [ ] Setelah commit: SO dengan DP Paid dapat dipilih untuk pembuatan Project manual; email ke Teknis + PIC dikirim setelah Project dibuat dan PIC tersedia
+- [x] Transisi SO `draft` → `open` jika termin DP (threshold 0%) baru saja lunas dan SO saat ini `draft` (dalam transaction yang sama)
+- [ ] Trigger penutupan SO otomatis (BR-13): jika semua termin SO berstatus `paid` → panggil `CloseOrderService` dengan `close_reason = completed`
+- [ ] Setelah commit: SO `open` dengan DP Paid menampilkan tombol Buat Project; email ke Teknis + PIC dikirim setelah Project dibuat dan PIC tersedia
 
-> Penutupan SO/Project pada progress 100% serta notifikasi sesudah Project dibuat berada di luar batas pekerjaan ini. Status `on_progress` baru dipasang oleh alur pembuatan Project, bukan oleh payment.
+> Penutupan SO otomatis saat semua termin lunas belum diimplementasikan di `ConfirmPaymentService`. Saat ini SO dapat ditutup manual via `CloseOrderService`.
 
 ### 2.3 `app/Services/Payment/RejectPaymentService`
 
@@ -93,10 +92,10 @@ Bagian ini bukan syarat penyelesaian flow Payment saat ini. Saat dikerjakan, fil
 
 - [x] `TransactionSchemaTest::test_transaction_tables_and_relationships_support_the_sales_flow` — Invoice ↔ Payment
 - [x] `TransactionSchemaTest::test_transaction_sample_seeder_creates_an_idempotent_dp_flow` — payment sampel default `pending`
-- [ ] Feature test: payment penuh Confirmed memicu invoice `paid`, termin `paid`, SO `payment_status` → `partial` / `paid` sesuai jumlah termin yang sudah lunas
+- [ ] Feature test: payment penuh Confirmed memicu invoice `paid`, termin `paid`, dan jika termin DP → SO `draft` → `open` otomatis
 - [ ] Feature test: payment dengan nominal tidak penuh atau duplikat Pending/Confirmed ditolak
-- [ ] Feature test: payment Confirmed pada invoice DP membuat SO layak dipilih di form Create Project, tetapi belum membuat Project atau mengubah SO ke `on_progress`
-- [ ] Feature test: form Create Project menolak SO tanpa DP Paid atau yang sudah punya Project; setelah tersimpan SO menjadi `on_progress` dan tahap terbentuk
+- [ ] Feature test: payment Confirmed pada invoice DP mengubah SO ke `open`; tombol Buat Project muncul di halaman View SO
+- [ ] Feature test: form Create Project menolak SO yang bukan `open` atau yang sudah punya Project; setelah tersimpan Project berstatus `on_progress` dan tahap terbentuk
 - [ ] Feature test: payment Rejected tidak mengubah status invoice/SO
 - [ ] Feature test: SO `Closed` saat progress 100% + semua termin `paid` (BR-13)
 - [ ] Unit test `RecordPaymentService` menolak invoice `void` / `paid`

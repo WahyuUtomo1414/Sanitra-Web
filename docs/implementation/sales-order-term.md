@@ -8,18 +8,18 @@
 
 ## 1. Schema & Model
 
-- [x] Migration `trans_sales_order_hd` (Ran) dengan unique `quotation_hd_id` dan kolom `payment_status_id`
+- [x] Migration `trans_sales_order_hd` (Ran) dengan unique `quotation_hd_id`; kolom `close_reason` + `close_notes` ditambah via migration terpisah; `payment_status_id` sudah dihapus
 - [x] Migration `trans_sales_order_dt` (Ran) dengan FK `quotation_dt_id` sebagai pointer ke sumber salinan
 - [x] Migration `trans_sales_term` (Ran) — FK `quotation_hd_id` wajib, `order_hd_id` nullable; unique (`quotation_hd_id`, `sequence`)
-- [x] Model `TransSalesOrderHd` dengan relasi `quotation`, `items`, `terms`, `project`, `invoices`, `status`, `paymentStatus`, `client`, `projectType`, `company`; cast `vat_type`, nominal `decimal:6`
+- [x] Model `TransSalesOrderHd` dengan relasi `quotation`, `items`, `terms`, `project`, `invoices`, `status`, `client`, `projectType`, `company`; cast `vat_type`, `close_reason` (`OrderCloseReason`), nominal `decimal:6`; method `paymentSummary(): string`
 - [x] Model `TransSalesOrderDt` dengan relasi `order`, `quotationDetail`, `item`, `unit`
 - [x] Model `TransSalesTerm` dengan relasi `quotation`, `order`, `status`, `invoiceDetails`; cast `amount` `decimal:6`
 - [x] Factory `TransSalesOrderHdFactory`, `TransSalesOrderDtFactory`, `TransSalesTermFactory`
 - [x] Trait `AuditedBySoftDelete` + `SoftDeletes` pada ketiga model
 - [x] Enum case `AutoCodePrefix::TransSalesOrderHd = 'SO'`
-- [x] Enum `StatusType::Order` dan `StatusType::OrderPayment`
-- [x] Enum `OrderStatus` (`waiting_dp`, `on_progress`, `closed`, `cancelled`) + 4 row aktif di `ms_status` tipe `order`
-- [x] Enum `OrderPaymentStatus` (`unpaid`, `partial`, `paid`) + 3 row aktif di `ms_status` tipe `order_payment`
+- [x] Enum `StatusType::Order` (tipe `order_payment` dihapus)
+- [x] Enum `OrderStatus` (`draft`, `open`, `closed`) + 3 row aktif di `ms_status` tipe `order`
+- [x] Enum `OrderCloseReason` (`completed`, `manual`) — bukan tipe ms_status, disimpan di kolom `close_reason`
 - [x] Enum `TermStatus` (`draft`, `pending`, `ready_to_bill`, `invoiced`, `paid`) + 5 row aktif di `ms_status` tipe `term`
 
 ## 2. Service
@@ -32,8 +32,7 @@ Dipanggil dari `ApproveQuotationService` dalam satu `DB::transaction` (BR-17).
 - [x] Copy field finansial dari HD quotation → HD SO; generate `code` via `GenerateCodeService::next(AutoCodePrefix::TransSalesOrderHd)`
 - [x] Copy semua `trans_sales_quotation_dt` → `trans_sales_order_dt` (dengan `quotation_dt_id` pointer)
 - [x] Update `trans_sales_term`: set `order_hd_id` dan pertahankan `amount` yang sudah dihitung serta disimpan selama quotation; termin `progress_threshold = 0` → `ready_to_bill`, selain itu → `pending`
-- [x] Set `status_id` SO = `waiting_dp`; Project belum dibuat sampai invoice DP Paid
-- [x] Set `payment_status_id` SO = `unpaid`
+- [x] Set `status_id` SO = `draft`; Project belum dibuat sampai SO berstatus `open`
 
 ### 2.2 `app/Services/SalesOrder/CheckTermReadyToBillService`
 
@@ -42,13 +41,17 @@ Dipanggil saat progress project berubah (BR-04). Fase project belum diimplementa
 - [x] Loop termin SO status `pending` → kalau `progress_percentage ≥ progress_threshold` dan termin belum berada di invoice aktif, update ke `ready_to_bill`
 - [ ] Trigger `TermReadyToBillNotification` ke Finance (di luar transaction)
 
-### 2.3 `app/Services/SalesOrder/RecalculateOrderPaymentStatusService`
+### 2.3 ~~`app/Services/SalesOrder/RecalculateOrderPaymentStatusService`~~ (DIHAPUS)
 
-Dipanggil dari `ConfirmPaymentService` dan `VoidInvoiceService`.
+Service ini sudah dihapus. Status pembayaran SO tidak lagi disimpan sebagai kolom; dihitung via `paymentSummary()` pada model. `ConfirmPaymentService` sekarang menangani transisi SO `draft` → `open` secara langsung setelah termin DP lunas.
 
-- [x] Hitung ulang `payment_status_id` SO dari jumlah termin aktif vs termin `paid` (unpaid / partial / paid)
+### 2.4 `app/Services/SalesOrder/CloseOrderService`
 
-> `RecalculateOrderPaymentStatusService` sudah dipanggil saat konfirmasi payment dan Void invoice DP. Pemanggilan kesiapan termin saat progress Project berubah masih menunggu fase Project. Notifikasi pada §2.2 dan §4 belum dikerjakan.
+- [x] Guard: SO status `draft` atau `open`
+- [x] Guard: tidak ada invoice dengan status `unpaid`
+- [x] Jika SO punya project berstatus `on_progress` → project diubah ke `cancelled`
+- [x] Set SO `status_id = closed`, `close_reason`, `close_notes`
+- [x] Dipanggil dari action **Tutup SO** di `ViewTransSalesOrderHd`
 
 ## 3. Filament Resource `TransSalesOrderHdResource`
 
@@ -56,9 +59,9 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 
 - [x] Properti: `$navigationLabel = 'Sales Order'`, `$slug = 'sales-orders'`, icon
 - [x] Page: List, View, Edit terbatas (hanya `notes`)
-- [x] Table: `code`, `transaction_date`, `quotation.code`, `client.name`, `grand_total`, `status.name` badge, `paymentStatus.name` badge, audit
-- [x] Filter table: `status_id`, `payment_status_id`, `client_id`, `company_id`
-- [x] Infolist: Informasi Utama + Nominal + status pembayaran + Audit
+- [x] Table: `code`, `transaction_date`, `quotation.code`, `client.name`, `grand_total`, `status.name` badge (label bergantung `close_reason` saat closed), kolom `Status Bayar` computed via `paymentSummary()`, audit
+- [x] Filter table: `status_id`, `client_id`, `company_id` (filter `payment_status_id` dihapus)
+- [x] Infolist: Informasi Utama + Nominal + `close_reason`/`close_notes` (visible saat closed) + Audit
 - [x] Export Excel
 
 ### 3.1 Relation Manager
@@ -70,9 +73,10 @@ Group: **Penjualan**. Read-mostly — SO dibuat otomatis, tidak ada `CreateActio
 ### 3.2 Custom Action di Sales Order
 
 - [x] `BuatInvoiceAction` → arahkan ke custom page pembuatan invoice (lihat [invoice.md](invoice.md) §3.1); visible saat ada termin `ready_to_bill`
-- [x] `BuatProjectAction` → arahkan ke form Create Project; visible hanya jika invoice DP Paid dan SO belum punya Project; setelah Project tersimpan SO → `on_progress`
+- [x] `BuatProjectAction` → arahkan ke form Create Project; visible hanya jika SO berstatus `open` dan belum punya Project; SO tidak berubah status saat Project dibuat (tetap `open`)
+- [x] `TutupSOAction` → modal select alasan (`completed`/`manual`) + textarea catatan; visible saat SO `draft`/`open` dan user punya izin update; panggil `CloseOrderService`
 
-> Form Create Project menyalin workflow aktif ke tahap Project dan menyiapkan termin pada progress 0%. Setelah invoice DP Paid, halaman SO menampilkan keterangan siap Project dan tombol Buat Project tersedia. SO tetap `waiting_dp` sampai Project benar-benar dibuat; saat itu baru berubah menjadi `on_progress`.
+> SO menjadi `open` otomatis setelah DP Paid (via `ConfirmPaymentService`). Project berstatus `on_progress` langsung setelah dibuat. SO status tidak berubah saat Project dibuat.
 
 Policy Shield untuk Sales Order dan Invoice sudah dibuat. Akses menu/aksi memerlukan permission resource terkait pada role pengguna; permission dan role belum diubah pada database.
 
@@ -85,9 +89,10 @@ Policy Shield untuk Sales Order dan Invoice sudah dibuat. Akses menu/aksi memerl
 
 - [x] `TransactionSchemaTest::test_transaction_tables_and_relationships_support_the_sales_flow` — relasi SO ↔ Items ↔ Terms ↔ Project ↔ Invoice
 - [x] `TransactionSchemaTest::test_transaction_sample_seeder_creates_an_idempotent_dp_flow` — seeder sampel sudah menghasilkan 1 SO + termin terikat `order_hd_id` dengan status `invoiced`
-- [ ] Feature test **Approve → SO otomatis**: item disalin, termin bind ke `order_hd_id`, `amount` terhitung (BR-02), status termin set
+- [ ] Feature test **Approve → SO otomatis**: item disalin, termin bind ke `order_hd_id`, `amount` terhitung (BR-02), status termin set, SO status = `draft`
 - [ ] Feature test **Quotation tanpa DP ditolak saat Send**; SO selalu mempunyai satu termin DP threshold 0%
-- [ ] Feature test **SO dengan DP → Waiting DP**: `payment_status = unpaid`
+- [ ] Feature test **DP Paid → SO otomatis open**: `ConfirmPaymentService` mengubah SO `draft` → `open`
+- [ ] Feature test **CloseOrderService**: ditolak jika ada invoice unpaid; project `on_progress` ikut `cancelled`
 - [ ] Unit test guard `CreateSalesOrderFromQuotationService` menolak duplikat SO (FK unique)
 - [ ] Unit test `CheckTermReadyToBillService` menolak termin yang sedang ada di invoice aktif
 

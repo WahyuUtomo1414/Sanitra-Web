@@ -2,13 +2,13 @@
 
 **Status:** Rancangan berdasarkan SRS v1.3 · **Acuan:** [full-flow.md](full-flow.md), [database.md](../database.md), [quotation.md](quotation.md), [invoice.md](invoice.md)
 
-Entitas: `trans_sales_order_hd` + `trans_sales_order_dt` + `trans_sales_term`. Tim pelaksana: **Sistem** (generate SO otomatis, bind termin, update status pembayaran SO) dengan konfirmasi dari **Marketing**.
+Entitas: `trans_sales_order_hd` + `trans_sales_order_dt` + `trans_sales_term`. Tim pelaksana: **Sistem** (generate SO otomatis, bind termin, transisi status SO otomatis) dengan konfirmasi dari **Marketing**.
 
 ## 1. Peran & Tanggung Jawab
 
 | Aktor | Tanggung jawab |
 | --- | --- |
-| Sistem | Generate Sales Order otomatis saat quotation Approved, bind termin ke SO, hitung status pembayaran SO berdasarkan payment Confirmed |
+| Sistem | Generate Sales Order otomatis saat quotation Approved, bind termin ke SO, transisi SO ke `open` otomatis setelah DP Paid |
 | Marketing | Memastikan konten quotation yang jadi dasar SO sudah benar; tidak boleh mengubah SO (hanya revisi di Quotation yang dikembalikan ke Draft) |
 | Owner | Lihat semua; override jika diperlukan |
 | Finance / Teknis | Read-only |
@@ -23,29 +23,28 @@ Sales Order adalah **kontrak penjualan** yang di-generate otomatis saat Quotatio
 
 ```mermaid
 stateDiagram-v2
-    [*] --> WaitingDP: SO dibuat, DP threshold 0% wajib ada
-    WaitingDP --> OnProgress: Invoice DP Paid<br/>→ user buat Project lewat form
-    OnProgress --> Closed: Progress 100% & semua termin Paid
-    WaitingDP --> Cancelled: (aturan menunggu konfirmasi)
-    OnProgress --> Cancelled: (aturan menunggu konfirmasi)
+    [*] --> Draft: SO dibuat (DP belum dibayar)
+    Draft --> Open: Invoice DP dikonfirmasi lunas (otomatis oleh ConfirmPaymentService)
+    Open --> Closed: Tutup manual (Owner) atau semua termin Paid
+    Draft --> Closed: Tutup manual sebelum DP dibayar
     Closed --> [*]
-    Cancelled --> [*]
 ```
 
-**Catatan:**
+**Badge status saat `closed`** bergantung pada `close_reason`:
+- `completed` → label "Selesai" (hijau)
+- `manual` → label "Ditutup" (abu-abu)
 
-- Status `Cancelled` tersedia di `ms_status` tapi aturan pembatalan belum final (lihat [full-flow.md §9](full-flow.md) — Catatan Change Request).
-- Transisi SO otomatis — Marketing tidak mengubah status SO langsung.
+**Catatan:** Transisi SO ke `open` terjadi otomatis di `ConfirmPaymentService` saat termin DP (threshold 0%) dikonfirmasi lunas — Marketing tidak mengubah status SO secara langsung.
 
-### 2.3 Status Pembayaran SO (tipe `order_payment`)
+### 2.3 Ringkasan Status Pembayaran (Computed)
 
-Kolom terpisah `payment_status_id` pada `trans_sales_order_hd` — di-update otomatis dari ringkasan payment Confirmed semua invoice SO.
+Tidak ada kolom tersendiri untuk status pembayaran SO. Ringkasan dihitung secara komputasi dari metode `paymentSummary()` pada model (bukan kolom database) — dibaca dari status termin SO.
 
-| Code | Nama | Pemicu |
-| --- | --- | --- |
-| `unpaid` | Unpaid | Belum ada termin yang Paid |
-| `partial` | Partial | Sebagian termin Paid |
-| `paid` | Paid | Semua termin Paid |
+| Hasil | Kondisi |
+| --- | --- |
+| Lunas | Semua termin berstatus `paid` |
+| Dibayar Sebagian | Sebagian termin berstatus `paid` |
+| Belum Dibayar | Tidak ada termin yang `paid` |
 
 ### 2.4 Field Sales Order Header (`trans_sales_order_hd`)
 
@@ -64,8 +63,9 @@ Kolom terpisah `payment_status_id` pada `trans_sales_order_hd` — di-update oto
 | `subtotal` | decimal(20,6) | tidak | Disalin dari quotation |
 | `grand_total` | decimal(20,6) | tidak | Disalin dari quotation |
 | `notes` | text | ya | Catatan tambahan |
-| `status_id` | FK status tipe `order` | tidak | Awalnya `waiting_dp`; `on_progress` setelah Project dibuat manual sesudah invoice DP Paid |
-| `payment_status_id` | FK status tipe `order_payment` | tidak | Default `unpaid` |
+| `close_reason` | varchar(32) | ya | Alasan penutupan: `completed` (semua termin lunas) atau `manual` (ditutup Owner); null saat belum closed |
+| `close_notes` | text | ya | Catatan tambahan saat SO ditutup manual; null bila tidak ada |
+| `status_id` | FK status tipe `order` | tidak | Awalnya `draft`; transisi otomatis ke `open` setelah DP Paid; `closed` saat selesai/ditutup |
 
 ### 2.5 Detail Item (`trans_sales_order_dt`)
 
@@ -95,15 +95,29 @@ Snapshot dari `trans_sales_quotation_dt` saat SO dibuat.
 4. **Bind termin:** update `trans_sales_term` yang terkait quotation — set `order_hd_id`, hitung `amount = percentage × grand_total / 100`, dan transisi status:
    - Termin dengan `progress_threshold = 0` → status `ready_to_bill` (DP).
    - Termin lainnya → status `pending`.
-5. **Set status SO:** `waiting_dp`. Tepat satu termin DP sudah divalidasi sebelum Quotation dikirim.
-6. **Set payment status SO:** `unpaid`.
-7. **Notifikasi (di luar transaction):** email ke Finance "Termin DP siap ditagih".
+5. **Set status SO:** `draft`. Tepat satu termin DP sudah divalidasi sebelum Quotation dikirim.
+6. **Notifikasi (di luar transaction):** email ke Finance "Termin DP siap ditagih".
 
 ### 2.7 Pembuatan Project
 
-- Setelah invoice DP berstatus Paid (lihat `ConfirmPaymentService` di [payment.md](payment.md)), user berwenang dapat membuat Project dari SO lewat form. Semua SO dalam alur saat ini memiliki satu termin DP threshold 0%. SO belum `on_progress` sampai Project benar-benar tersimpan.
+- Setelah invoice DP berstatus Paid, `ConfirmPaymentService` secara otomatis mengubah SO dari `draft` → `open`. SO `open` menjadi penanda bahwa DP sudah lunas dan Project dapat dibuat.
+- User berwenang dapat membuat Project dari SO `open` yang belum memiliki Project, lewat form di halaman View SO.
 
-Form Project meminta `pic_employee_id`, `project_name`, `start_date`, dan `end_date`. Service `CreateProjectFromSalesOrderService` (detail modul Project belum ditulis) memeriksa invoice DP Paid dan belum ada Project untuk SO, menyalin `client_id`, `company_id`, `project_type_id` dari SO, membuat kode Project, lalu memanggil `CreateProjectStagesService` untuk menyalin workflow menjadi tahap dalam satu transaksi database. Setelah Project tersimpan, status SO menjadi `on_progress` dan email dikirim ke Teknis serta PIC.
+Form Project meminta `pic_employee_id`, `project_name`, `start_date`, dan `end_date`. Service `CreateProjectFromSalesOrderService` memeriksa status SO = `open` dan belum ada Project, menyalin `client_id`, `company_id`, `project_type_id` dari SO, membuat kode Project dengan status awal **`on_progress`** (bukan `open`), lalu memanggil `CreateProjectStagesService` untuk menyalin workflow menjadi tahap dalam satu transaksi database. Status SO **tidak berubah** saat Project dibuat — SO tetap `open` sampai ditutup oleh `CloseOrderService`.
+
+### 2.8 Penutupan SO (`CloseOrderService`)
+
+SO dapat ditutup oleh Owner dalam dua cara:
+
+| Cara | `close_reason` | Kondisi |
+| --- | --- | --- |
+| Otomatis | `completed` | Semua termin `paid` (dipanggil dari `ConfirmPaymentService`) |
+| Manual | `manual` | Owner menutup SO secara eksplisit dari halaman View SO |
+
+Guard `CloseOrderService`:
+1. Status SO harus `draft` atau `open`.
+2. Tidak ada invoice dengan status `unpaid`.
+3. Jika SO punya project berstatus `on_progress` → project diubah ke `cancelled` sebelum SO ditutup.
 
 ## 3. Term
 
@@ -183,9 +197,9 @@ foreach ($order->terms()->whereRelation('status', 'code', 'pending')->get() as $
 
 | Service | Lokasi | Fungsi |
 | --- | --- | --- |
-| `CreateSalesOrderFromQuotationService` | `Services/SalesOrder/` | Copy HD/DT, bind termin, set status SO Waiting DP — satu DB transaction (BR-17) |
+| `CreateSalesOrderFromQuotationService` | `Services/SalesOrder/` | Copy HD/DT, bind termin, set status SO `draft` — satu DB transaction (BR-17) |
 | `CheckTermReadyToBillService` | `Services/SalesOrder/` | Cek termin pending yang melewati threshold progress; dipicu saat SO dibuat, Project dibuat, progress tahap berubah |
-| `RecalculateOrderPaymentStatusService` | `Services/SalesOrder/` | Hitung ulang `payment_status_id` SO dari jumlah termin aktif vs termin Paid; dipanggil `ConfirmPaymentService` dan `VoidInvoiceService` |
+| `CloseOrderService` | `Services/SalesOrder/` | Tutup SO (`closed`) dengan `close_reason` + `close_notes`; guard tidak ada invoice unpaid; cancel project on_progress |
 
 ## 5. Business Rules yang Dijaga
 
@@ -193,8 +207,8 @@ foreach ($order->terms()->whereRelation('status', 'code', 'pending')->get() as $
 | --- | --- |
 | **BR-02** | `amount` termin = persentase × grand total quotation; dihitung dan dikunci saat Sales Order dibuat |
 | **BR-04** | Termin Ready to Bill saat `progress ≥ threshold` dan belum di invoice aktif |
-| **BR-13** | Sales Order Closed hanya jika progress project 100% dan semua termin Paid |
-| **BR-15** | Tepat satu DP threshold 0% wajib ada; Project dibuat manual setelah invoice DP Paid; email ke Teknis + PIC setelah Project tersimpan |
+| **BR-13** | Sales Order `closed` saat semua termin `paid` (otomatis) atau Owner menutup manual; tidak dapat ditutup jika ada invoice `unpaid` |
+| **BR-15** | Tepat satu DP threshold 0% wajib ada; setelah DP Paid SO otomatis `open`; Project dibuat manual dari SO `open`; Project berstatus `on_progress` langsung (tanpa `open`); email ke Teknis + PIC setelah Project tersimpan |
 | **BR-16** | Termin disusun di Quotation; setelah Approved dikelola dari Sales Order |
 | **BR-17** | Pembuatan Sales Order dalam satu DB transaction (satu Quotation → satu SO → satu Project) |
 

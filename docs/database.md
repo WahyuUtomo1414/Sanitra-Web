@@ -13,7 +13,7 @@ Perubahan penting dari ERD awal (SRS v1.0 → v1.3):
 - `trans_sales_term` memiliki FK `quotation_hd_id` (wajib, lokasi penyusunan) dan `order_hd_id` (nullable awalnya, diisi saat SO dibuat).
 - `trans_project_hd` sekarang punya FK `order_hd_id` (bukan langsung `quotation_hd_id`).
 - `trans_sales_invoice_hd.project_hd_id` **nullable** karena invoice DP dibuat sebelum project ada.
-- `ms_status` berisi 31 status untuk 8 tipe (bertambah dari 25 di versi 1.0): tipe baru `order` dan `order_payment`; status `project`, `project_dt`, `term`, dan `invoice` diperbarui.
+- `ms_status` berisi 25 status untuk 7 tipe: tipe `order_payment` dihapus; `order` disederhanakan menjadi 3 status (`draft`, `open`, `closed`); `invoice` tidak lagi punya `partial`; `project` tidak lagi punya `open`.
 
 Nama tabel autentikasi memakai `users` bawaan Laravel (bukan `user` seperti pada ERD). Nama kolom dinormalkan dari typo ERD: `employee_id`, `address`, `progress_weight`, `progress_before`, `progress_after`. Perubahan ini harus dibawa kembali ke ERD agar seragam. Semua model dan migration master sudah dibuat dan dijalankan; migration tabel transaksi belum dibuat.
 
@@ -308,50 +308,44 @@ Status proses per tipe entitas. Model: `MsStatus`.
 
 | Kolom | Tipe ERD | Null | Keterangan |
 | --- | --- | --- | --- |
-| `type` | varchar(128) | tidak | Tipe entitas: `quotation`, `order`, `order_payment`, `project`, `project_dt`, `term`, `invoice`, `payment`. |
+| `type` | varchar(128) | tidak | Tipe entitas: `quotation`, `order`, `project`, `project_dt`, `term`, `invoice`, `payment`. |
 | `code` | varchar(128) | tidak | Kode status stabil untuk logika aplikasi. |
 | `name` | varchar(128) | tidak | Label status. |
 | `description` | text | ya | Keterangan. |
 
-Kombinasi (`type`, `code`) unik. Data awal berisi **31 status** sesuai SRS v1.3 bagian 6.1 (bertambah dari 25 di SRS v1.0 karena penambahan tipe `order`, `order_payment` dan perubahan status `project`, `project_dt`, `term`, `invoice`).
+Kombinasi (`type`, `code`) unik. Implementasi saat ini berisi **25 status** untuk **7 tipe** entitas. Tipe `order_payment` dihapus; status SO disederhanakan; `invoice.partial` dan `project.open` dihapus.
 
 Daftar lengkap:
 
-| type | code | name |
-| --- | --- | --- |
-| quotation | draft | Draft |
-| quotation | sent | Sent |
-| quotation | approved | Approved |
-| quotation | rejected | Rejected |
-| order | waiting_dp | Waiting DP |
-| order | on_progress | On Progress |
-| order | closed | Closed |
-| order | cancelled | Cancelled |
-| order_payment | unpaid | Unpaid |
-| order_payment | partial | Partial |
-| order_payment | paid | Paid |
-| project | open | Open |
-| project | on_progress | On Progress |
-| project | completed | Completed |
-| project | cancelled | Cancelled |
-| project_dt | draft | Belum Dimulai |
-| project_dt | on_progress | Sedang Dikerjakan |
-| project_dt | completed | Selesai |
-| project_dt | blocked | Terkendala |
-| term | draft | Draft |
-| term | pending | Pending |
-| term | ready_to_bill | Ready to Bill |
-| term | invoiced | Invoiced |
-| term | paid | Paid |
-| invoice | unpaid | Unpaid |
-| invoice | partial | Partial |
-| invoice | paid | Paid |
-| invoice | void | Void |
-| payment | pending | Pending |
-| payment | confirmed | Confirmed |
-| payment | rejected | Rejected |
+| type | code | nama | keterangan |
+| --- | --- | --- | --- |
+| quotation | draft | Draft | — |
+| quotation | sent | Sent | — |
+| quotation | approved | Approved | — |
+| quotation | rejected | Rejected | — |
+| order | draft | Menunggu DP | SO baru dibuat, DP belum dibayar |
+| order | open | Berjalan | DP lunas, project dapat dibuat |
+| order | closed | Selesai/Ditutup | Badge bergantung `close_reason` di model |
+| project | on_progress | Berjalan | Status awal project |
+| project | completed | Selesai | Progress 100% |
+| project | cancelled | Dibatalkan | SO ditutup manual |
+| project_dt | draft | Belum Dimulai | — |
+| project_dt | on_progress | Sedang Dikerjakan | — |
+| project_dt | completed | Selesai | — |
+| project_dt | blocked | Terkendala | Wajib `notes` |
+| term | draft | Draft | — |
+| term | pending | Pending | — |
+| term | ready_to_bill | Ready to Bill | — |
+| term | invoiced | Invoiced | — |
+| term | paid | Paid | — |
+| invoice | unpaid | Belum Dibayar | — |
+| invoice | paid | Lunas | — |
+| invoice | void | Dibatalkan | — |
+| payment | pending | Pending | — |
+| payment | confirmed | Confirmed | — |
+| payment | rejected | Rejected | — |
 
-**Catatan:** Alur pembayaran saat ini mensyaratkan satu payment penuh per invoice. Status invoice `partial` tetap tersedia di schema dan seeder, tetapi belum dipakai dalam alur tersebut. Status `order_payment.partial` tetap dipakai ketika baru sebagian termin SO yang lunas. `Overdue` pada invoice adalah hasil perhitungan (`due_date < today()` dan status `unpaid`), bukan status tersimpan.
+**Catatan:** `Overdue` pada invoice adalah hasil perhitungan (`due_date < today()` dan status `unpaid`), bukan status tersimpan. Status pembayaran SO tidak disimpan di kolom terpisah — dihitung via `paymentSummary()` pada model.
 
 ### 4.13 `trans_sales_quotation_hd`
 
@@ -409,10 +403,11 @@ Header Sales Order. Dibuat otomatis saat quotation Approved (BR-17). Model: `Tra
 | `subtotal` | decimal(20,6) | tidak | Disalin dari quotation. |
 | `grand_total` | decimal(20,6) | tidak | Disalin dari quotation. |
 | `notes` | text | ya | Catatan tambahan. |
-| `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `order`. |
-| `payment_status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `order_payment`. |
+| `close_reason` | varchar(32) | ya | Alasan penutupan: `completed` atau `manual`; null saat belum closed. Enum `OrderCloseReason`. |
+| `close_notes` | text | ya | Catatan penutupan dari Owner; null bila tidak ada. |
+| `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `order`. Awalnya `draft`; otomatis `open` setelah DP Paid; `closed` saat selesai/ditutup. |
 
-**Catatan migration:** `TransactionTableColumns::addAuditColumns($table)` menambahkan `status_id` otomatis. Kolom `payment_status_id` ditambah manual setelah trait: `$table->foreignId('payment_status_id')->constrained('ms_status');`.
+**Catatan migration:** `TransactionTableColumns::addAuditColumns($table)` menambahkan `status_id` otomatis. Kolom `close_reason` dan `close_notes` ditambah via migration terpisah; kolom `payment_status_id` sudah dihapus.
 
 ### 4.16 `trans_sales_order_dt`
 
@@ -470,7 +465,7 @@ Header project yang berasal dari Sales Order (BR-15). Model: `TransProjectHd`.
 | `notes` | text | ya | Catatan project. |
 | `status_id` | bigint unsigned | tidak | FK ke `ms_status.id` tipe `project`. |
 
-Dalam alur implementasi saat ini, tepat satu termin DP threshold 0% wajib ada. Setelah invoice DP Paid, user berwenang membuat Project manual lewat form yang mengisi PIC, nama, dan tanggal; nilai client/company/tipe project disalin dari SO. Status awal Project `open`; SO menjadi `on_progress` setelah Project tersimpan. Opsi SRS v1.3 untuk SO tanpa DP ditunda.
+Dalam alur implementasi saat ini, tepat satu termin DP threshold 0% wajib ada. Setelah invoice DP Paid, SO otomatis menjadi `open`; user berwenang membuat Project manual lewat form yang mengisi PIC, nama, dan tanggal; nilai client/company/tipe project disalin dari SO. Status awal Project langsung **`on_progress`** (tanpa status `open`); status SO tidak berubah saat Project dibuat. Opsi SRS v1.3 untuk SO tanpa DP ditunda.
 
 ### 4.19 `trans_project_dt`
 
@@ -640,9 +635,9 @@ Log exception aplikasi. Bersifat append-only — tidak ada `updated_at`, `delete
 | `trans_project_hd` | `trans_project_dt.project_hd_id`, `trans_project_monitoring.project_hd_id`, `trans_sales_invoice_hd.project_hd_id` | satu project memiliki banyak tahap, log, dan invoice (invoice DP boleh belum punya project) |
 | `trans_sales_invoice_hd` | `trans_sales_invoice_dt.invoice_hd_id`, `trans_sales_payment.invoice_hd_id` | satu invoice memiliki banyak baris termin dan pembayaran |
 | `trans_sales_invoice_dt` | `trans_sales_term.id` via `sales_term_id` | satu termin hanya boleh masuk satu invoice aktif |
-| `ms_status` | seluruh `status_id`, `payment_status_id`, `status_before_id`, `status_after_id` | status dibatasi menurut `type` entitas |
+| `ms_status` | seluruh `status_id`, `status_before_id`, `status_after_id` | status dibatasi menurut `type` entitas |
 
-Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `ms_status.id` saja tidak menjamin tipe status benar. Khusus `trans_sales_order_hd` memiliki dua FK ke `ms_status`: `status_id` (tipe `order`) dan `payment_status_id` (tipe `order_payment`).
+Relasi status pada aplikasi harus memeriksa `type` yang sesuai. Foreign key ke `ms_status.id` saja tidak menjamin tipe status benar. `trans_sales_order_hd` hanya memiliki satu FK ke `ms_status`: `status_id` (tipe `order`). Kolom `payment_status_id` sudah dihapus.
 
 ## 6. Urutan migration
 

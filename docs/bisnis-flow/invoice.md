@@ -43,15 +43,13 @@ stateDiagram-v2
 - `Overdue` **bukan** status tersimpan; hasil perhitungan `due_date < today() AND status = unpaid`.
 - Invoice tidak dapat diedit setelah ada payment (BR-11).
 - Void mengembalikan termin ke Ready to Bill (BR-09).
-- Status `partial` sudah ada di enum dan `ms_status`, tetapi tidak dipakai dalam alur pembayaran penuh saat ini.
 
 ## 5. Daftar Status Invoice (tipe `invoice`)
 
 | Code | Nama | Keterangan |
 | --- | --- | --- |
 | `unpaid` | Unpaid | Belum ada pembayaran yang dihitung |
-| `partial` | Partial | Tersedia di schema, tidak dipakai dalam alur saat ini |
-| `paid` | Paid | Total payment Confirmed ≥ grand_total |
+| `paid` | Paid | Payment penuh Confirmed |
 | `void` | Void | Dibatalkan; termin kembali Ready to Bill |
 
 ## 6. Field Invoice Header (`trans_sales_invoice_hd`)
@@ -107,7 +105,6 @@ Nominal termin sudah dihitung dari `grand_total` SO (BR-02). Saat invoice dibuat
 **Setelah commit (di luar transaction):**
 
 - Email ke Finance dan PIC/Teknis (opsional) tentang pembuatan invoice.
-- Trigger ulang kalkulasi `payment_status` SO (seharusnya masih Unpaid).
 
 ## 9. Service: `VoidInvoiceService`
 

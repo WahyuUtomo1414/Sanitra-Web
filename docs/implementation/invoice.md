@@ -15,7 +15,7 @@
 - [x] Factory `TransSalesInvoiceHdFactory`, `TransSalesInvoiceDtFactory`
 - [x] Trait `AuditedBySoftDelete` + `SoftDeletes`
 - [x] Enum case `AutoCodePrefix::TransSalesInvoiceHd = 'INV'`
-- [x] Enum `InvoiceStatus` (`unpaid`, `partial`, `paid`, `void`) + 4 row aktif di `ms_status` tipe `invoice`
+- [x] Enum `InvoiceStatus` (`unpaid`, `paid`, `void`) + 3 row aktif di `ms_status` tipe `invoice` (status `partial` dihapus)
 - [x] Accessor `isOverdue()` dan `remainingAmount()` di `TransSalesInvoiceHd`
 
 ## 2. Service

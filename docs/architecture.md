@@ -88,9 +88,9 @@ app/
 │   ├── CodeFormat.php
 │   ├── EmployeePosition.php
 │   ├── PaymentMethod.php
-│   ├── Status/                      # 8 status enum per entity type
+│   ├── Status/                      # 7 status enum per entity type + OrderCloseReason
 │   │   ├── InvoiceStatus.php
-│   │   ├── OrderPaymentStatus.php
+│   │   ├── OrderCloseReason.php     # alasan penutupan SO: completed / manual
 │   │   ├── OrderStatus.php
 │   │   ├── PaymentStatus.php
 │   │   ├── ProjectStageStatus.php
@@ -225,7 +225,6 @@ enum StatusType: string
 {
     case Quotation = 'quotation';
     case Order = 'order';
-    case OrderPayment = 'order_payment';
     case Project = 'project';
     case ProjectDt = 'project_dt';
     case Term = 'term';
@@ -357,20 +356,20 @@ Pattern setiap enum:
 - Instance method `label(): string` → label bahasa Indonesia untuk UI.
 - Instance method `color(): string` → warna semantik Filament (`gray`, `info`, `warning`, `success`, `danger`) untuk badge.
 
-**Daftar enum (8 file di `app/Enums/Status/`, total 31 case — sesuai SRS v1.3 §6.1):**
+**Daftar enum (7 file di `app/Enums/Status/` untuk tipe ms_status, total 25 case; ditambah `OrderCloseReason` untuk alasan penutupan SO):**
 
 | Enum | Case | Jumlah |
 | --- | --- | --- |
 | `QuotationStatus` | `draft`, `sent`, `approved`, `rejected` | 4 |
-| `OrderStatus` | `waiting_dp`, `on_progress`, `closed`, `cancelled` | 4 |
-| `OrderPaymentStatus` | `unpaid`, `partial`, `paid` | 3 |
-| `ProjectStatus` | `open`, `on_progress`, `completed`, `cancelled` | 4 |
+| `OrderStatus` | `draft`, `open`, `closed` | 3 |
+| `ProjectStatus` | `on_progress`, `completed`, `cancelled` | 3 |
 | `ProjectStageStatus` | `draft`, `on_progress`, `completed`, `blocked` | 4 |
 | `TermStatus` | `draft`, `pending`, `ready_to_bill`, `invoiced`, `paid` | 5 |
-| `InvoiceStatus` | `unpaid`, `partial`, `paid`, `void` | 4 |
+| `InvoiceStatus` | `unpaid`, `paid`, `void` | 3 |
 | `PaymentStatus` | `pending`, `confirmed`, `rejected` | 3 |
+| `OrderCloseReason` *(bukan tipe ms_status)* | `completed`, `manual` | 2 |
 
-`ProjectStageStatus::Blocked` disimpan sebagai kode `blocked` pada tipe `project_dt`, sementara label UI tetap **Terkendala**. Tahap dengan status ini wajib memiliki catatan kendala.
+`OrderCloseReason` bukan tipe status di `ms_status` — disimpan langsung di kolom `close_reason` (varchar) pada `trans_sales_order_hd` dan dipakai untuk menentukan label + warna badge SO `closed`. `ProjectStageStatus::Blocked` disimpan sebagai kode `blocked` pada tipe `project_dt`, label UI **Terkendala**. Tahap dengan status ini wajib memiliki catatan kendala.
 
 **Pemakaian di service:**
 
@@ -664,9 +663,9 @@ Status audit 11 Oktober 2026 — mayoritas item sudah selesai. Pelacakan impleme
 
 1. ~~`app/Enums/CodeFormat.php`~~ ✓ dibuat.
 2. ~~`app/Enums/AutoCodePrefix.php`~~ ✓ dibuat (`TransSalesOrderHd = 'SO'` sudah masuk).
-3. ~~`app/Enums/StatusType.php`~~ ✓ dibuat (8 case termasuk `Order`, `OrderPayment`).
+3. ~~`app/Enums/StatusType.php`~~ ✓ dibuat (7 case; `OrderPayment` dihapus).
 4. ~~`app/Enums/VatType.php`~~ ✓ dibuat.
-5. ~~`app/Enums/Status/{Quotation,Order,OrderPayment,Project,ProjectDt,Term,Invoice,Payment}Status.php`~~ ✓ 8 file dibuat (total 31 case).
+5. ~~`app/Enums/Status/{Quotation,Order,Project,ProjectDt,Term,Invoice,Payment}Status.php`~~ ✓ 7 file; ditambah `OrderCloseReason.php`; total 25 case di ms_status. `OrderPaymentStatus` dihapus.
 6. ~~`app/Enums/PaymentMethod.php`~~ ✓ dibuat (`cash`, `transfer`, `giro`); terpasang pada cast `TransSalesPayment`.
 7. ~~`database/migrations/2026_10_03_140014_create_sys_code_sequence_table.php`~~ ✓ dibuat.
 8. ~~`app/Models/CodeSequence.php`~~ ✓ dibuat.
@@ -674,5 +673,5 @@ Status audit 11 Oktober 2026 — mayoritas item sudah selesai. Pelacakan impleme
 10. ~~Model transaksi `TransSalesQuotationHd`, `TransSalesOrderHd`, `TransSalesInvoiceHd` cast `vat_type` → `VatType::class` + relasi `status()`.~~ ✓ selesai.
 11. ~~Filament `CreateXxx` page master yang pakai AutoCode (`mutateFormDataBeforeCreate` → `GenerateCodeService`).~~ ✓ seluruh master (`CreateMsCompany`, `CreateMsEmployee`, `CreateMsClient`, `CreateMsProjectType`, `CreateMsItemCategory`, `CreateMsItem`, `CreateMsBankAccount`) selesai.
 12. ~~Filament form schema master `TextInput::make('code')->disabled()->dehydrated(false)`.~~ ✓ seluruh master selesai.
-13. ~~`database/seeders/StatusSeeder.php` loop 8 status enum → 31 row aktif di `ms_status`.~~ ✓ dipanggil `SanitraMasterSeeder`; verified lewat `database-query`.
+13. ~~`database/seeders/StatusSeeder.php` loop 7 status enum → 25 row aktif di `ms_status`.~~ ✓ dipanggil `SanitraMasterSeeder`; baris `order_payment` dinonaktifkan.
 14. **TODO** Create/Edit page dan form schema untuk entitas transaksi (`TransSalesQuotationHdResource`, `TransSalesOrderHdResource`, `TransSalesInvoiceHdResource`, `TransSalesPaymentResource`) — resource transaksi belum dibangun, lacak di [docs/implementation/](implementation/full-flow.md).
