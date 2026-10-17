@@ -7,8 +7,11 @@ use App\Filament\Resources\TransSalesOrderHds\TransSalesOrderHdResource;
 use App\Models\TransSalesTerm;
 use App\Support\Formatting\IndonesianMoneyFormatter;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -27,6 +30,28 @@ class TermsRelationManager extends RelationManager
             ]);
     }
 
+    public function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Detail Termin')
+                    ->columnSpanFull()
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('term_name')->label('Termin'),
+                        TextEntry::make('sequence')->label('Urutan'),
+                        TextEntry::make('percentage')->label('Persentase')->suffix('%'),
+                        TextEntry::make('progress_threshold')->label('Threshold Progress')->suffix('%'),
+                        TextEntry::make('amount')->label('Nilai')
+                            ->formatStateUsing(fn (int|float|string|null $state): string => IndonesianMoneyFormatter::formatRupiah($state)),
+                        TextEntry::make('status.name')->label('Status')->badge()
+                            ->color(fn (TransSalesTerm $record): string => TermStatus::tryFrom($record->status?->code ?? '')?->color() ?? 'gray'),
+                        TextEntry::make('notes')->label('Catatan')->columnSpanFull()
+                            ->placeholder('—'),
+                    ]),
+            ]);
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -42,6 +67,7 @@ class TermsRelationManager extends RelationManager
                     ->color(fn (TransSalesTerm $record): string => TermStatus::tryFrom($record->status?->code ?? '')?->color() ?? 'gray'),
             ])
             ->recordActions([
+                ViewAction::make()->label('Detail'),
                 EditAction::make()->label('Ubah Catatan')
                     ->visible(fn (): bool => TransSalesOrderHdResource::canEdit($this->getOwnerRecord()))
                     ->using(function (TransSalesTerm $record, array $data): TransSalesTerm {
