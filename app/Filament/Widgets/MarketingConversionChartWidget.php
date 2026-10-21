@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 
 class MarketingConversionChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Konversi Quotation — 6 Bulan Terakhir';
+    protected ?string $heading = 'Konversi Quotation — 6 Bulan Terakhir';
 
     protected static ?int $sort = 2;
 

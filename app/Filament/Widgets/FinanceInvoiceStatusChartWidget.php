@@ -8,7 +8,7 @@ use Filament\Widgets\ChartWidget;
 
 class FinanceInvoiceStatusChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Status Invoice';
+    protected ?string $heading = 'Status Invoice';
 
     protected static ?int $sort = 5;
 
