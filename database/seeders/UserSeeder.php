@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\AutoCodePrefix;
 use App\Enums\EmployeePosition;
 use App\Models\MsCompany;
 use App\Models\MsEmployee;
@@ -20,23 +19,9 @@ class UserSeeder extends SanitraSeeder
             ['teknis@gmail.com', 'Teknis', EmployeePosition::Teknis, 'Teknis'],
             ['finance@gmail.com', 'Finance', EmployeePosition::Finance, 'Finance'],
         ] as [$email, $name, $position, $role]) {
-            $employee = $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee, ['email' => $email], [
-                'name' => $name,
-                'position' => $position->value,
-                'company_id' => $company->id,
-                'phone' => '-',
-                'active' => true,
-            ]);
-
-            if ($employee->trashed()) {
-                $employee->restore();
-            }
-
-            $employee->update([
-                'position' => $position->value,
-                'company_id' => $company->id,
-                'active' => true,
-            ]);
+            $employee = MsEmployee::where('position', $position->value)
+                ->where('company_id', $company->id)
+                ->firstOrFail();
 
             $user = User::firstOrCreate(
                 ['email' => $email],

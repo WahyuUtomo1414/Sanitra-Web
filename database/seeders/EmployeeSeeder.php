@@ -24,29 +24,20 @@ class EmployeeSeeder extends SanitraSeeder
             ->each(fn (MsEmployee $employee) => $employee->forceDelete());
 
         foreach ([
-            ['super@gmail.com', 'Super Admin', EmployeePosition::Owner],
-            ['marketing@gmail.com', 'Marketing', EmployeePosition::Marketing],
-            ['teknis@gmail.com', 'Teknis', EmployeePosition::Teknis],
-            ['finance@gmail.com', 'Finance', EmployeePosition::Finance],
-        ] as [$email, $name, $position]) {
-            $employee = $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee, ['email' => $email], [
-                'name' => $name,
-                'position' => $position->value,
-                'company_id' => $company->id,
-                'phone' => '-',
-                'active' => true,
-            ]);
+            ['Budi Santoso', EmployeePosition::Owner],
+            ['Rina Wijaya', EmployeePosition::Marketing],
+            ['Ahmad Fauzi', EmployeePosition::Teknis],
+            ['Dewi Rahayu', EmployeePosition::Finance],
+        ] as [$name, $position]) {
+            $employee = $this->coded(MsEmployee::class, AutoCodePrefix::MsEmployee,
+                ['position' => $position->value, 'company_id' => $company->id],
+                [
+                    'name' => $name,
+                    'email' => 'wahyuxd14@gmail.com',
+                    'phone' => '-',
+                    'active' => true,
+                ]);
 
-            if ($employee->trashed()) {
-                $employee->restore();
-            }
-
-            $employee->update([
-                'name' => $name,
-                'position' => $position->value,
-                'company_id' => $company->id,
-                'active' => true,
-            ]);
         }
     }
 }
