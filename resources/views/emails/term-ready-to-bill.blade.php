@@ -1,4 +1,4 @@
-<x-emails.layout :company="$company" :logoData="$logoData ?? null" docLabel="TERMIN SIAP<br>DITAGIH">
+<x-emails.layout :company="$company" :logoData="$logoData ?? null" docLabel="Termin Siap Ditagih" docDescription="Sales Order siap diproses oleh Finance.">
 
   <p style="color:#374151;margin:0 0 4px;font-size:14px;line-height:1.6;">
     Termin berikut sudah siap untuk dibuatkan invoice. Harap segera proses di sistem.

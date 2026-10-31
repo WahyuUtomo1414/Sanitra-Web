@@ -1,6 +1,6 @@
 # Implementasi Custom Email Template — Sanitra
 
-**Scope:** Langkah-langkah coding lengkap untuk membangun custom HTML email template dari nol.
+**Scope:** Panduan implementasi custom HTML email template; checklist mencerminkan status kode saat ini.
 
 **Acuan desain:** [`email-template.md`](email-template.md), [`notification.md`](notification.md)
 
@@ -20,113 +20,11 @@
 
 ## Langkah 1 — Layout Bersama
 
-**File:** `resources/views/emails/layout.blade.php`
+**File aktual:** `resources/views/components/emails/layout.blade.php`
 
-Layout HTML penuh (table-based, inline CSS, max-width 600px). Semua CSS di-inline karena email client tidak support `<style>` external. Konsep visual sama dengan PDF quotation: logo kiri, info perusahaan, garis navy, konten, footer navy.
+Layout bersama sudah dibuat sebagai Blade component `<x-emails.layout>`. Header dua tingkat menampilkan logo di tengah dan nama perusahaan tepat di bawahnya, lalu panel judul serta deskripsi email; teks "Sistem Notifikasi" dihapus. Footer abu muda menampilkan alamat, telepon, email, dan tautan `MsCompany.website` tanpa ikon. `SanitraMail` hanya memakai path logo dari `MsCompany.logo` pada disk `public`; tanpa file yang valid, nama perusahaan tetap tampil. Semua gaya tetap inline dan struktur utama tetap berbasis tabel untuk email client. Lihat [spesifikasi desain](email-template.md#3-desain-layout-componentsemailslayoutbladephp) dan file Blade sebagai sumber implementasi.
 
-```blade
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>{{ $subject ?? 'Notifikasi Sanitra' }}</title>
-</head>
-<body style="margin:0;padding:0;background:#f0f4ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;color:#374151;">
-
-{{-- Wrapper --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4ff;padding:32px 0;">
-<tr><td align="center">
-
-{{-- Card 600px --}}
-<table width="600" cellpadding="0" cellspacing="0"
-       style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
-
-  {{-- ── HEADER ── --}}
-  <tr>
-    <td style="padding:24px 32px 0;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          {{-- Logo --}}
-          <td style="vertical-align:middle;width:90px;padding-right:14px;">
-            @if($company->logo)
-              <img src="{{ Storage::url($company->logo) }}"
-                   alt="{{ $company->legal_name }}"
-                   style="max-width:80px;max-height:60px;display:block;">
-            @endif
-          </td>
-          {{-- Info perusahaan --}}
-          <td style="vertical-align:middle;">
-            <div style="color:#1e3a8a;font-size:15px;font-weight:700;line-height:1.2;">
-              {{ $company->legal_name }}
-            </div>
-            <div style="color:#6b7280;font-size:11px;margin-top:4px;line-height:1.6;">
-              {{ $company->address }}<br>
-              Telp: {{ $company->phone }}
-              @if($company->website)
-                &nbsp;·&nbsp; {{ $company->website }}
-              @endif
-            </div>
-          </td>
-          {{-- Label dokumen --}}
-          <td style="vertical-align:middle;text-align:right;white-space:nowrap;padding-left:14px;">
-            <div style="color:#6b7280;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">
-              Sistem Notifikasi
-            </div>
-            <div style="color:#1e3a8a;font-size:13px;font-weight:700;margin-top:3px;line-height:1.3;">
-              {!! $docLabel ?? '' !!}
-            </div>
-          </td>
-        </tr>
-      </table>
-      {{-- Garis navy --}}
-      <div style="border-top:2.5px solid #1e3a8a;margin-top:16px;"></div>
-    </td>
-  </tr>
-
-  {{-- ── BODY ── --}}
-  <tr>
-    <td style="padding:28px 32px;">
-      {{ $slot }}
-    </td>
-  </tr>
-
-  {{-- ── FOOTER ── --}}
-  <tr>
-    <td style="padding:0 32px 24px;">
-      <div style="border-top:2px solid #1e3a8a;padding-top:16px;text-align:center;">
-        <div style="color:#374151;font-size:12px;font-weight:600;">
-          {{ $company->legal_name }}
-        </div>
-        <div style="color:#9ca3af;font-size:11px;margin-top:4px;line-height:1.6;">
-          {{ $company->address }}<br>
-          @if($company->email) {{ $company->email }} @endif
-          @if($company->website) &nbsp;·&nbsp; {{ $company->website }} @endif
-        </div>
-        <div style="color:#9ca3af;font-size:11px;margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px;">
-          Email ini dikirim otomatis oleh sistem. Mohon tidak membalas email ini.<br>
-          &copy; {{ date('Y') }} Sanitra. All rights reserved.
-        </div>
-      </div>
-    </td>
-  </tr>
-
-</table>
-{{-- /Card --}}
-
-</td></tr>
-</table>
-{{-- /Wrapper --}}
-
-</body>
-</html>
-```
-
-**Catatan:**
-- `$company` di-pass dari setiap Mailable via `with()`
-- `$docLabel` adalah label dokumen kanan atas (misal: "TERMIN SIAP<br>DITAGIH")
-- `{{ $slot }}` adalah area body yang di-fill oleh masing-masing view notifikasi (Blade component syntax)
+**Status:** selesai untuk dua notifikasi wajib; tampilan kiriman nyata belum diverifikasi.
 
 ---
 
@@ -260,7 +158,7 @@ class TermReadyToBillMail extends SanitraMail
 **View:** `resources/views/emails/term-ready-to-bill.blade.php`
 
 ```blade
-<x-emails.layout :company="$company" docLabel="TERMIN SIAP<br>DITAGIH">
+<x-emails.layout :company="$company" :logoData="$logoData ?? null" docLabel="Termin Siap Ditagih" docDescription="Sales Order siap diproses oleh Finance.">
 
   <p style="color:#374151;margin:0 0 4px;font-size:14px;">
     Termin berikut sudah siap untuk dibuatkan invoice. Harap segera proses di sistem.
@@ -352,7 +250,7 @@ class ProjectCreatedMail extends SanitraMail
 **View:** `resources/views/emails/project-created.blade.php`
 
 ```blade
-<x-emails.layout :company="$company" docLabel="PROJECT<br>BARU">
+<x-emails.layout :company="$company" :logoData="$logoData ?? null" docLabel="Project Baru Dibuat" docDescription="Informasi pekerjaan untuk tim teknis.">
 
   <p style="color:#374151;margin:0 0 4px;font-size:14px;">
     Project berikut telah dibuat dan siap dikerjakan. Harap cek detail dan mulai persiapan teknis.
@@ -431,21 +329,22 @@ php artisan view:clear
 
 1. Pastikan ada user ber-role Finance dengan `employee_id` valid dan `ms_employee.email` valid
 2. Buat SO dari Quotation yang sudah disetujui → cek inbox Finance
-3. Buat Project dari SO → cek inbox Teknis + PIC, verifikasi PDF quotation terlampir
+3. Setelah form Project tersedia, buat Project → cek inbox Teknis + PIC. Lampiran PDF Quotation masih rencana terpisah.
 4. Cek tampilan di Gmail, Outlook (web), mobile
 
 ---
 
 ## Checklist
 
-- [ ] `resources/views/emails/layout.blade.php`
-- [ ] `resources/views/emails/partials/transaction-table.blade.php`
-- [ ] `resources/views/emails/partials/cta-button.blade.php`
-- [ ] `app/Mail/SanitraMail.php`
-- [ ] `app/Mail/TermReadyToBillMail.php` + `resources/views/emails/term-ready-to-bill.blade.php`
-- [ ] `app/Mail/ProjectCreatedMail.php` + `resources/views/emails/project-created.blade.php`
-- [ ] Update `TermReadyToBillNotification::toMail()`
-- [ ] Update `ProjectCreatedNotification::toMail()`
+- [x] `resources/views/components/emails/layout.blade.php` — header dan footer terbaru
+- [x] `resources/views/components/emails/partials/transaction-table.blade.php`
+- [x] `resources/views/components/emails/partials/cta-button.blade.php`
+- [x] `app/Mail/SanitraMail.php`
+- [x] `app/Mail/TermReadyToBillMail.php` + `resources/views/emails/term-ready-to-bill.blade.php`
+- [x] `app/Mail/ProjectCreatedMail.php` + `resources/views/emails/project-created.blade.php`
+- [ ] Lampiran PDF Quotation di `ProjectCreatedMail`
+- [x] Update `TermReadyToBillNotification::toMail()`
+- [x] Update `ProjectCreatedNotification::toMail()`
 - [ ] `php artisan view:clear`
 - [ ] Uji manual kirim email kedua notifikasi
 - [ ] `rm -rf resources/views/vendor/mail` + `php artisan view:clear`

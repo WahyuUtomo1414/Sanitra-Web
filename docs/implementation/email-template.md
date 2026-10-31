@@ -8,12 +8,12 @@
 
 ## 1. Kondisi Saat Ini
 
-Template email sekarang menggunakan **Laravel Markdown Mail** dengan vendor Blade yang sudah di-publish dan dikustomisasi. Masalah utama:
+Template email awal menggunakan **Laravel Markdown Mail** dengan vendor Blade yang sudah di-publish dan dikustomisasi. Masalah utama saat itu:
 
 - Body hanya teks paragraf polos — tidak ada data transaksi (nomor SO, klien, nominal, dsb.)
 - Layout dikendalikan oleh vendor framework, kurang fleksibel untuk HTML tabel
 
-**Keputusan:** Ganti seluruh template dengan **HTML kustom penuh** (mirip PDF print), tidak lagi bergantung pada vendor mail template. Setelah migrasi selesai, `resources/views/vendor/mail/` bisa dihapus.
+**Keputusan:** Dua notifikasi wajib sudah memakai HTML kustom penuh melalui Mailable dan Blade component. Vendor mail template tetap disimpan sampai pengiriman nyata terverifikasi.
 
 ---
 
@@ -43,10 +43,13 @@ app/Mail/
 ├── SalesOrderCreatedMail.php        ← #6
 └── InvoiceOverdueMail.php           ← #7
 
-resources/views/emails/
+resources/views/components/emails/
 ├── layout.blade.php                 ← layout HTML bersama (header + footer)
-├── partials/
-│   └── transaction-table.blade.php ← tabel generik (label → nilai)
+└── partials/
+    ├── transaction-table.blade.php ← tabel generik (label → nilai)
+    └── cta-button.blade.php         ← tombol tindakan
+
+resources/views/emails/
 ├── term-ready-to-bill.blade.php     ← #1
 ├── project-created.blade.php       ← #2
 ├── invoice-created.blade.php       ← #3
@@ -58,9 +61,13 @@ resources/views/emails/
 
 ---
 
-## 3. Desain Layout (`emails/layout.blade.php`)
+## 3. Desain Layout (`components/emails/layout.blade.php`)
 
-Layout HTML kustom penuh — konsep sama dengan PDF (`resources/views/pdf/quotation.blade.php`), disesuaikan untuk email (inline CSS, table-based, lebar 600px, kompatibel email client).
+Layout HTML kustom penuh memakai CSS inline dan tabel dengan lebar maksimum 600px. Latar halaman biru abu sangat muda; kartu email putih dengan aksen navy.
+
+![Contoh tampilan email termin siap ditagih dengan header dan footer baru](email-design-preview.png)
+
+Contoh di atas dirender dari Blade email yang aktif memakai data dummy dan logo lokal `public/assets/logo.png`. Di server, Mailable memakai path dari `MsCompany.logo`. Hasil akhir di aplikasi email dapat sedikit berbeda menurut dukungan CSS masing-masing klien.
 
 ### 3.1 Data dari Company Profile
 
@@ -74,40 +81,41 @@ Header dan footer mengambil data dari `MsCompany` record utama (row pertama / `i
 | `phone` | 02139701224 |
 | `email` | info@sanitra.co.id |
 | `website` | https://sanitra.co.id |
-| `logo` | `companies/logos/01M54FZSP4NKTSQ90GH00YY9F2.png` (storage disk `public`) |
+| `logo` | Path dari `MsCompany.logo` pada disk `public`; nilai di server yang diberikan: `companies/logos/01M5FKNXPBT3S80BM6BBXY6S0E.png` |
 
-Layout memanggil `MsCompany::first()` atau menerima `$company` sebagai variable yang di-pass dari Mailable.
+`SanitraMail` mengambil profil perusahaan dan meneruskan `$company` ke layout. Logo hanya memakai path dari `MsCompany.logo`; bila kosong atau file tidak ditemukan, nama perusahaan tetap tampil tanpa logo.
 
 ### 3.2 Struktur Header Email
 
 ```
 ┌─────────────────────────────────────────────┐
-│  [LOGO]  PT Sanitra Sapta Utama             │
-│          Alamat perusahaan                  │
-│          Telp | Email | Website             │
-│ ─────────────────────────────────────────── │  ← garis navy #1e3a8a
-│  SISTEM NOTIFIKASI         [nama dokumen]   │
+│ ━━━━━━━━━ aksen navy tipis ━━━━━━━━━━━━━━━ │
+│                   [LOGO]                    │
+│           PT Sanitra Sapta Utama            │
+│ ─────────────────────────────────────────── │
+│  ▏ Termin Siap Ditagih                      │
+│  ▏ Sales Order siap diproses oleh Finance.  │
 └─────────────────────────────────────────────┘
 ```
 
-- Background putih (berbeda dari PDF yang putih juga — lebih ringan untuk email)
-- Logo dari `Storage::url($company->logo)`, fallback teks jika logo null
-- Nama perusahaan navy `#1e3a8a`, bold
-- Detail perusahaan abu-abu kecil
-- Garis divider navy tebal di bawah header
-- Label dokumen (misal: "TERMIN SIAP DITAGIH") di kanan atas bagian info
+- Baris identitas putih dengan garis navy tipis di atas, logo 68px di tengah, dan nama perusahaan navy `#1e3a8a` tepat di bawahnya.
+- Tidak ada teks "Sistem Notifikasi".
+- Baris kedua berlatar biru abu muda dengan garis vertikal navy, judul besar, dan deskripsi singkat. Judul dan deskripsi berbeda untuk email termin dan Project.
+- Nama perusahaan tetap terlihat jika logo tidak tersedia.
 
 ### 3.3 Struktur Footer Email
 
 ```
-│ ─────────────────────────────────────────── │  ← garis navy
 │  PT Sanitra Sapta Utama                     │
-│  Alamat | Telp | Website                    │
-│  © 2026 Sanitra. All rights reserved.       │
+│  Alamat perusahaan                          │
+│  Telepon · Email · Website                  │
+│ ─────────────────────────────────────────── │
 │  Email ini dikirim otomatis oleh sistem.    │
-│  Mohon tidak membalas email ini.            │
+│  © 2026 Sanitra. All rights reserved.       │
 └─────────────────────────────────────────────┘
 ```
+
+Footer berlatar abu muda, tanpa ikon. Email memakai tautan `mailto:` dan website memakai tautan dari `MsCompany.website`. Informasi sistem dan copyright berwarna lebih redup.
 
 ### 3.4 Area Body (Slot/`@yield`)
 
@@ -345,14 +353,16 @@ Setelah semua Mailable class selesai dan teruji:
 
 ### Setup Layout
 
-- [ ] Buat `resources/views/emails/layout.blade.php` — HTML penuh, header dari `MsCompany`, footer, slot konten
-- [ ] Buat `resources/views/emails/partials/transaction-table.blade.php`
+- [x] Buat `resources/views/components/emails/layout.blade.php` — HTML penuh, header dari `MsCompany`, footer dengan website dan tanpa ikon, slot konten
+- [x] Buat `resources/views/components/emails/partials/transaction-table.blade.php`
+- [x] Buat `resources/views/components/emails/partials/cta-button.blade.php`
 
 ### Wajib (2 notifikasi aktif)
 
-- [ ] `TermReadyToBillMail` + `term-ready-to-bill.blade.php`
-- [ ] `ProjectCreatedMail` + `project-created.blade.php` (+ attach PDF quotation)
-- [ ] Update `toMail()` di `TermReadyToBillNotification` dan `ProjectCreatedNotification`
+- [x] `TermReadyToBillMail` + `term-ready-to-bill.blade.php`
+- [x] `ProjectCreatedMail` + `project-created.blade.php`
+- [ ] Lampirkan PDF Quotation pada `ProjectCreatedMail`
+- [x] Update `toMail()` di `TermReadyToBillNotification` dan `ProjectCreatedNotification`
 
 ### Opsional
 
@@ -370,4 +380,4 @@ Setelah semua Mailable class selesai dan teruji:
 
 ## 9. Status
 
-**31 Oktober 2026:** Spec selesai. Implementasi belum dimulai. Dua notifikasi wajib (#1, #2) menjadi prioritas pertama.
+**31 Oktober 2026:** Dua template wajib sudah memakai Mailable dan HTML kustom. Header dua tingkat tanpa teks "Sistem Notifikasi" dan footer dengan website tanpa ikon telah diperbarui; tampilan kiriman nyata masih perlu diperiksa. Lampiran PDF Quotation untuk email Project belum diimplementasikan.

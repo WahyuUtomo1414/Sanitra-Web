@@ -17,6 +17,7 @@ abstract class SanitraMail extends Mailable
         $this->company = MsCompany::query()->oldest()->firstOrFail();
 
         $logoPath = $this->company->logo;
+
         if ($logoPath && Storage::disk('public')->exists($logoPath)) {
             $mime = Storage::disk('public')->mimeType($logoPath) ?: 'image/png';
             $this->logoData = 'data:'.$mime.';base64,'.base64_encode(
