@@ -3,6 +3,7 @@
 namespace App\Services\Project;
 
 use App\Enums\AutoCodePrefix;
+use App\Enums\RoleName;
 use App\Enums\Status\InvoiceStatus;
 use App\Enums\Status\OrderStatus;
 use App\Enums\Status\ProjectStatus;
@@ -18,6 +19,7 @@ use App\Services\Shared\GenerateCodeService;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -105,12 +107,24 @@ class CreateProjectFromSalesOrderService
     private function notifyProjectCreated(TransProjectHd $project): void
     {
         $project->loadMissing(['order', 'picEmployee']);
-        $technicalUsers = User::role('Teknis')->whereNotNull('email')->get()->unique('email');
+        $technicalEmployees = User::role(RoleName::Teknis->value)
+            ->with('employee')
+            ->get()
+            ->pluck('employee')
+            ->filter(fn (?MsEmployee $employee): bool => $employee !== null
+                && filter_var((string) $employee->email, FILTER_VALIDATE_EMAIL) !== false)
+            ->unique(fn (MsEmployee $employee): string => Str::lower($employee->email));
         $notification = new ProjectCreatedNotification($project);
 
-        foreach ($technicalUsers as $recipient) {
+        if ($technicalEmployees->isEmpty()) {
+            Log::warning('Notifikasi project dibuat tidak memiliki email employee Teknis yang valid.', [
+                'project_id' => $project->id,
+            ]);
+        }
+
+        foreach ($technicalEmployees as $recipient) {
             try {
-                $recipient->notify($notification);
+                Notification::route('mail', [$recipient->email => $recipient->name])->notify($notification);
             } catch (Throwable $exception) {
                 report($exception);
             }
@@ -121,7 +135,7 @@ class CreateProjectFromSalesOrderService
         if (
             $picEmail !== null
             && filter_var($picEmail, FILTER_VALIDATE_EMAIL)
-            && ! $technicalUsers->contains(fn (User $user): bool => strcasecmp($user->email, $picEmail) === 0)
+            && ! $technicalEmployees->contains(fn (MsEmployee $employee): bool => strcasecmp($employee->email, $picEmail) === 0)
         ) {
             try {
                 Notification::route('mail', [$picEmail => $project->picEmployee->name])->notify($notification);
