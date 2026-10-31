@@ -28,7 +28,8 @@ class MsItemsTable
                 ImageColumn::make('image')
                     ->label('Gambar')
                     ->disk('public')
-                    ->square(),
+                    ->square()
+                    ->defaultImageUrl(asset('assets/default-item.svg')),
 
                 TextColumn::make('code')
                     ->label('Kode')
