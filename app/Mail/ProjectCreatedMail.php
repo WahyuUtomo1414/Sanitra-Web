@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Filament\Resources\TransSalesOrderHds\TransSalesOrderHdResource;
 use App\Models\TransProjectHd;
+use App\Services\Quotation\QuotationPdfDataService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -48,7 +49,8 @@ class ProjectCreatedMail extends SanitraMail
             return [];
         }
 
-        $pdf = Pdf::loadView('pdf.quotation', ['quotation' => $quotation]);
+        $data = app(QuotationPdfDataService::class)->execute($quotation);
+        $pdf = Pdf::loadView('pdf.quotation', $data);
 
         return [
             Attachment::fromData(
