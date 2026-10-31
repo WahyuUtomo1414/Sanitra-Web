@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use App\Filament\Resources\TransSalesOrderHds\TransSalesOrderHdResource;
+use App\Mail\ProjectCreatedMail;
 use App\Models\TransProjectHd;
-use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
 class ProjectCreatedNotification extends Notification
@@ -17,15 +17,8 @@ class ProjectCreatedNotification extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): Mailable
     {
-        $this->project->loadMissing('order');
-
-        return (new MailMessage)
-            ->subject('Project Baru - '.$this->project->code)
-            ->greeting('Halo,')
-            ->line('Project '.$this->project->project_name.' ('.$this->project->code.') telah dibuat dari Sales Order '.$this->project->order?->code.'.')
-            ->line('Silakan lihat detail Sales Order untuk memulai pekerjaan project.')
-            ->action('Lihat Sales Order', TransSalesOrderHdResource::getUrl('view', ['record' => $this->project->order_hd_id]));
+        return new ProjectCreatedMail($this->project);
     }
 }

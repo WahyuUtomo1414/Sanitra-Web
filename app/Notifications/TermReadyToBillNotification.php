@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use App\Filament\Resources\TransSalesOrderHds\TransSalesOrderHdResource;
+use App\Mail\TermReadyToBillMail;
 use App\Models\TransSalesTerm;
-use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
 class TermReadyToBillNotification extends Notification
@@ -17,15 +17,8 @@ class TermReadyToBillNotification extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): Mailable
     {
-        $this->term->loadMissing('order');
-
-        return (new MailMessage)
-            ->subject('Termin Siap Ditagih - '.$this->term->term_name)
-            ->greeting('Halo,')
-            ->line('Termin '.$this->term->term_name.' pada Sales Order '.$this->term->order?->code.' sudah siap ditagih.')
-            ->line('Silakan buat invoice untuk termin ini.')
-            ->action('Lihat Sales Order', TransSalesOrderHdResource::getUrl('view', ['record' => $this->term->order_hd_id]));
+        return new TermReadyToBillMail($this->term);
     }
 }
