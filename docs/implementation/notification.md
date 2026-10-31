@@ -49,7 +49,7 @@ MAIL_FROM_NAME="Sanitra"
 
 | # | Class | Trigger | Penerima | Dipanggil dari |
 |---|---|---|---|---|
-| 1 | `TermReadyToBillNotification` | Termin berubah ke `ready_to_bill` | Role **Finance** | `CheckTermReadyToBillService::execute()` setelah commit |
+| 1 | `TermReadyToBillNotification` | Termin berubah ke `ready_to_bill`, termasuk DP saat SO dibuat | Role **Finance** | `CreateSalesOrderFromQuotationService::execute()` dan `CheckTermReadyToBillService::execute()` setelah commit |
 | 2 | `ProjectCreatedNotification` | Project baru dibuat dari SO `open` | Role **Teknis** + PIC employee (email langsung) | `CreateProjectFromSalesOrderService::execute()` setelah commit |
 
 ### Prioritas: Opsional (log / informasional)
@@ -95,64 +95,14 @@ Schedule::command('sanitra:invoice-overdue-reminder')->dailyAt('08:00');
 
 ## 4. Pola Implementasi
 
-### Notification class
+### Dua notifikasi wajib yang sudah terpasang
 
-```php
-namespace App\Notifications;
+- [`TermReadyToBillNotification`](../../app/Notifications/TermReadyToBillNotification.php) dan [`ProjectCreatedNotification`](../../app/Notifications/ProjectCreatedNotification.php) memakai channel `mail` sinkron dengan `MailMessage`. Template HTML Sanitra diterapkan oleh view mail bersama.
+- Pembuatan SO mendaftarkan pengiriman untuk termin DP, sedangkan `CheckTermReadyToBillService` mendaftarkannya untuk termin progress yang baru siap ditagih. Keduanya memakai [`NotifyTermReadyToBillService`](../../app/Services/SalesOrder/NotifyTermReadyToBillService.php) untuk memilih pengguna Finance.
+- Pembuatan Project mendaftarkan pengiriman ke pengguna Teknis dan ke email `picEmployee` melalui on-demand notification. Bila alamat PIC sama dengan alamat salah satu pengguna Teknis, email hanya dikirim sekali.
+- Semua pemicu menggunakan `DB::afterCommit()`, sehingga pengiriman berlangsung setelah transaksi terluar berhasil dan dibatalkan bila transaksi di-rollback. Kegagalan pengiriman dilaporkan melalui `report()` tanpa membatalkan data bisnis yang sudah tersimpan.
 
-use App\Models\TransSalesTerm;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-
-class TermReadyToBillNotification extends Notification
-{
-    public function __construct(public readonly TransSalesTerm $term) {}
-
-    /** @return array<string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('Termin Siap Ditagih — ' . $this->term->name)
-            ->greeting('Halo, ' . $notifiable->name)
-            ->line('Termin **' . $this->term->name . '** pada SO ' . $this->term->order?->code . ' sudah siap ditagih.')
-            ->action('Lihat Sales Order', url('/dashboard/sales-orders/' . $this->term->order_hd_id));
-    }
-}
-```
-
-### Pemanggilan dari service (setelah commit)
-
-```php
-// Di dalam service, setelah DB::transaction selesai
-DB::transaction(function () use (...): void {
-    // ... logic ...
-});
-
-// Di luar transaction:
-$recipients = User::role('Finance')->get();
-Notification::send($recipients, new TermReadyToBillNotification($term));
-```
-
-### ProjectCreatedNotification — penerima ganda
-
-```php
-// Teknis by role
-$teknisUsers = User::role('Teknis')->get();
-Notification::send($teknisUsers, new ProjectCreatedNotification($project));
-
-// PIC by email langsung (jika PIC punya email employee)
-$picEmail = $project->pic?->email;
-if ($picEmail && filter_var($picEmail, FILTER_VALIDATE_EMAIL)) {
-    Mail::to($picEmail)->send(new ProjectCreatedMail($project));
-}
-```
-
-### Scheduler command (#7)
+### Scheduler command (#7) — rancangan, belum diimplementasikan
 
 ```php
 // app/Console/Commands/SendInvoiceOverdueReminder.php
@@ -176,8 +126,8 @@ public function handle(): void
 
 ### Wajib
 
-- [ ] `TermReadyToBillNotification` — class + panggilan di `CheckTermReadyToBillService`
-- [ ] `ProjectCreatedNotification` — class + panggilan di `CreateProjectFromSalesOrderService`
+- [x] `TermReadyToBillNotification` — class + pengiriman ke role Finance saat DP siap pada pembuatan SO atau termin lain berubah status lewat `CheckTermReadyToBillService`; memakai `MailMessage` dan `DB::afterCommit`
+- [x] `ProjectCreatedNotification` — class + pengiriman ke role Teknis dan email PIC melalui `CreateProjectFromSalesOrderService`; alamat yang sama tidak dikirimi dua kali; memakai `MailMessage` dan `DB::afterCommit`
 
 ### Opsional
 
@@ -191,3 +141,5 @@ public function handle(): void
 - [ ] `InvoiceOverdueNotification` + `SendInvoiceOverdueReminder` command
 - [ ] Daftarkan schedule di `routes/console.php`
 - [ ] Setup cron di shared hosting: `* * * * * php /path/to/artisan schedule:run`
+
+**Status 31 Oktober 2026:** Dua notifikasi wajib sudah terpasang dan memakai template email Sanitra yang telah dipublish. Pengiriman SMTP nyata belum diverifikasi dan test belum dijalankan. Empat notifikasi opsional serta pengingat invoice terjadwal ditunda sesuai keputusan saat ini; tidak ada scheduler atau worker yang ditambahkan.
