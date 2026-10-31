@@ -43,7 +43,11 @@ class ViewTransSalesInvoiceHd extends ViewRecord
                 ->schema([Textarea::make('reason')->label('Alasan Pembatalan')->required()->rows(4)])
                 ->modalHeading('Batalkan invoice')
                 ->modalDescription('Termin invoice akan kembali siap ditagih.')
-                ->action(fn (array $data) => app(VoidInvoiceService::class)->execute($this->record, $data['reason']))
+                ->action(function (array $data) {
+                    Gate::authorize('Void:TransSalesInvoiceHd');
+
+                    return app(VoidInvoiceService::class)->execute($this->record, $data['reason']);
+                })
                 ->successNotificationTitle('Invoice dibatalkan.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
         ];
@@ -51,7 +55,8 @@ class ViewTransSalesInvoiceHd extends ViewRecord
 
     private function canVoid(): bool
     {
-        return Gate::allows('update', $this->record)
+        return Gate::allows('Void:TransSalesInvoiceHd')
+            && Gate::allows('update', $this->record)
             && $this->record->status?->code === InvoiceStatus::Unpaid->value
             && $this->record->project_hd_id === null
             && ! $this->record->payments()->whereHas('status', fn (Builder $query): Builder => $query

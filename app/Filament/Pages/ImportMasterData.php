@@ -42,8 +42,15 @@ class ImportMasterData extends Page
     /** @var array{entity: string, success_count: int, errors: list<string>, status: string}|null */
     public ?array $importResult = null;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('Access:ImportMasterData') ?? false;
+    }
+
     public function mount(): void
     {
+        abort_unless(static::canAccess(), 403);
+
         $this->form->fill();
     }
 
@@ -108,6 +115,8 @@ class ImportMasterData extends Page
 
     public function import(): void
     {
+        abort_unless(static::canAccess(), 403);
+
         $state = $this->form->getState();
         $entity = $state['entity'];
         $filePath = $state['file'];

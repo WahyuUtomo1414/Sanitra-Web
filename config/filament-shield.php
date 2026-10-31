@@ -27,7 +27,7 @@ return [
             'pages' => true,
             'widgets' => true,
             'resources' => true,
-            'custom_permissions' => false,
+            'custom_permissions' => true,
         ],
     ],
 
@@ -252,7 +252,17 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        'Send:TransSalesQuotationHd' => 'Kirim Penawaran',
+        'Approve:TransSalesQuotationHd' => 'Setujui Penawaran',
+        'Revise:TransSalesQuotationHd' => 'Revisi Penawaran',
+        'Reject:TransSalesQuotationHd' => 'Tolak Penawaran',
+        'Close:TransSalesOrderHd' => 'Tutup Sales Order',
+        'Void:TransSalesInvoiceHd' => 'Batalkan Invoice',
+        'Confirm:TransSalesPayment' => 'Konfirmasi Pembayaran',
+        'Reject:TransSalesPayment' => 'Tolak Pembayaran',
+        'Access:ImportMasterData' => 'Akses Import Data Master',
+    ],
 
     /*
     |--------------------------------------------------------------------------

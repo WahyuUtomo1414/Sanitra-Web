@@ -20,6 +20,7 @@ use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Gate;
 
 class CreateOrderInvoice extends Page
 {
@@ -36,7 +37,7 @@ class CreateOrderInvoice extends Page
     {
         $this->order = TransSalesOrderHdResource::getRecordRouteBindingEloquentQuery()->findOrFail($record);
         abort_unless(TransSalesOrderHdResource::canView($this->order), 403);
-        abort_unless(TransSalesOrderHdResource::canEdit($this->order), 403);
+        Gate::authorize('Create:TransSalesInvoiceHd');
         abort_unless($this->order->terms()->whereHas('status', fn ($query) => $query
             ->where('code', TermStatus::ReadyToBill->value))->exists(), 404);
 
@@ -94,6 +95,9 @@ class CreateOrderInvoice extends Page
 
     public function create(): void
     {
+        Gate::authorize('Create:TransSalesInvoiceHd');
+        abort_unless(TransSalesOrderHdResource::canView($this->order), 403);
+
         $data = $this->form->getState();
 
         try {

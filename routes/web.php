@@ -7,7 +7,7 @@ use Maatwebsite\Excel\Facades\Excel;
 Route::redirect('/', '/dashboard/login');
 
 Route::get('/import/template/{entity}', function (string $entity) {
-    abort_if(! auth()->check(), 401);
+    abort_unless(auth()->user()?->can('Access:ImportMasterData') ?? false, 403);
 
     $allowed = ['company', 'employee', 'client', 'item_category', 'item', 'bank_account'];
     abort_if(! in_array($entity, $allowed, true), 404);

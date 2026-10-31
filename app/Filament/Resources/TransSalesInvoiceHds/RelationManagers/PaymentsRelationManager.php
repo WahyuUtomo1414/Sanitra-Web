@@ -60,16 +60,24 @@ class PaymentsRelationManager extends RelationManager
                     ->url(fn (TransSalesPayment $record): string => TransSalesPaymentResource::getUrl('view', ['record' => $record])),
                 Action::make('confirm')->label('Konfirmasi')->icon('heroicon-o-check-circle')->color('success')
                     ->visible(fn (TransSalesPayment $record): bool => $record->status?->code === PaymentStatus::Pending->value
-                        && Gate::allows('update', $record))
+                        && Gate::allows('Confirm:TransSalesPayment'))
                     ->requiresConfirmation()
-                    ->action(fn (TransSalesPayment $record) => app(ConfirmPaymentService::class)->execute($record))
+                    ->action(function (TransSalesPayment $record) {
+                        Gate::authorize('Confirm:TransSalesPayment');
+
+                        return app(ConfirmPaymentService::class)->execute($record);
+                    })
                     ->successNotificationTitle('Pembayaran dikonfirmasi.')
                     ->successRedirectUrl(fn (): string => TransSalesInvoiceHdResource::getUrl('view', ['record' => $this->getOwnerRecord()])),
                 Action::make('reject')->label('Tolak')->icon('heroicon-o-x-circle')->color('danger')
                     ->visible(fn (TransSalesPayment $record): bool => $record->status?->code === PaymentStatus::Pending->value
-                        && Gate::allows('update', $record))
+                        && Gate::allows('Reject:TransSalesPayment'))
                     ->schema([Textarea::make('reason')->label('Alasan Penolakan')->required()->rows(4)])
-                    ->action(fn (TransSalesPayment $record, array $data) => app(RejectPaymentService::class)->execute($record, $data['reason']))
+                    ->action(function (TransSalesPayment $record, array $data) {
+                        Gate::authorize('Reject:TransSalesPayment');
+
+                        return app(RejectPaymentService::class)->execute($record, $data['reason']);
+                    })
                     ->successNotificationTitle('Pembayaran ditolak.')
                     ->successRedirectUrl(fn (): string => TransSalesInvoiceHdResource::getUrl('view', ['record' => $this->getOwnerRecord()])),
             ]);

@@ -11,7 +11,7 @@ Data perusahaan, kelompok layanan, produk penunjang, dan nama organisasi diambil
 | Perusahaan | PT Sanitra Sapta Utama (ID 1), kontak publik, alamat, dan kode pos | Berdasarkan [halaman kontak resmi](https://sanitra.co.id/kontak/); logo belum diisi karena belum ada berkas lokal yang disetujui |
 | Pegawai | 4 karyawan aktif: Budi Santoso (Owner), Rina Wijaya (Marketing), Ahmad Fauzi (Teknis), Dewi Rahayu (Finance) | Email semua ke `wahyuxd14@gmail.com` untuk uji notifikasi; ganti ke email resmi sebelum produksi |
 | Pengguna | 4 akun login: `super@gmail.com`, `marketing@gmail.com`, `teknis@gmail.com`, `finance@gmail.com`; password `12345678` | Akun dev; ganti password sebelum produksi |
-| Role | Marketing, Finance, Teknis (via `RoleSeeder`); `super_admin` di-assign via `php artisan shield:super-admin --user=1` | Role Spatie Permission; permission dikelola Shield |
+| Role | Marketing, Finance, Teknis, dan `super_admin` beserta permission melalui `RoleSeeder`; user contoh mendapat role melalui `UserSeeder` | Role Spatie Permission; permission standar dibuat Shield dan dipastikan ada oleh seeder |
 | Klien | Tujuh nama organisasi dari portofolio | Nama berdasarkan situs; kontak dan alamat placeholder, nonaktif sampai diverifikasi |
 | Tipe proyek | Konsultan (7 tahap, total 100%) | Tipe lain dihapus; sesuaikan tahap dengan SOP aktual |
 | Alur proyek | 7 tahap Konsultan dengan bobot masing-masing | Template contoh; sesuaikan dengan SOP |

@@ -88,6 +88,7 @@ app/
 │   ├── CodeFormat.php
 │   ├── EmployeePosition.php
 │   ├── PaymentMethod.php
+│   ├── RoleName.php                 # nama role Spatie Permission (SuperAdmin / Marketing / Finance / Teknis)
 │   ├── Status/                      # 7 status enum per entity type + OrderCloseReason
 │   │   ├── InvoiceStatus.php
 │   │   ├── OrderCloseReason.php     # alasan penutupan SO: completed / manual
@@ -442,6 +443,30 @@ Pemakaian di Filament select:
 Select::make('type')
     ->options(UnitType::options());
 ```
+
+#### 5.3.7 `RoleName`
+
+Nama role Spatie Permission. Dipakai di seeder (`RoleSeeder`, `UserSeeder`) dan guard Filament untuk menghindari string literal. `value` menyamakan nama role yang disimpan di tabel `roles`.
+
+```php
+namespace App\Enums;
+
+enum RoleName: string
+{
+    case SuperAdmin = 'super_admin';
+    case Marketing = 'Marketing';
+    case Finance = 'Finance';
+    case Teknis = 'Teknis';
+}
+```
+
+Pemakaian di guard:
+
+```php
+auth()->user()?->hasAnyRole([RoleName::Marketing->value, RoleName::SuperAdmin->value])
+```
+
+Enum ini **tidak** di-cast ke model karena Spatie menyimpan role di tabel pivot, bukan di kolom model.
 
 ### 5.4 Enum untuk Ditambahkan Nanti
 

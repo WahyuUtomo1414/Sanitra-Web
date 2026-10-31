@@ -24,7 +24,7 @@ class ViewTransSalesOrderHd extends ViewRecord
     {
         if ($this->record->status?->code === OrderStatus::Open->value
             && ! $this->record->project()->exists()) {
-            return 'DP lunas. Sales Order siap dibuatkan Project.';
+            return 'DP lunas.';
         }
 
         return null;
@@ -38,18 +38,10 @@ class ViewTransSalesOrderHd extends ViewRecord
                 ->label('Buat Invoice')
                 ->icon('heroicon-o-document-plus')
                 ->color('info')
-                ->visible(fn (): bool => TransSalesOrderHdResource::canEdit($this->record) && $this->record->terms()
+                ->visible(fn (): bool => Gate::allows('Create:TransSalesInvoiceHd') && $this->record->terms()
                     ->whereHas('status', fn ($query) => $query->where('code', TermStatus::ReadyToBill->value))
                     ->exists())
                 ->url(fn (): string => static::getResource()::getUrl('createInvoice', ['record' => $this->record])),
-            Action::make('createProject')
-                ->label('Buat Project')
-                ->icon('heroicon-o-building-office-2')
-                ->color('success')
-                ->visible(fn (): bool => TransSalesOrderHdResource::canEdit($this->record)
-                    && $this->record->status?->code === OrderStatus::Open->value
-                    && ! $this->record->project()->exists())
-                ->url(fn (): string => static::getResource()::getUrl('createProject', ['record' => $this->record])),
             Action::make('closeOrder')
                 ->label('Tutup SO')
                 ->icon('heroicon-o-x-circle')
@@ -66,6 +58,8 @@ class ViewTransSalesOrderHd extends ViewRecord
                 ->modalHeading('Tutup Sales Order')
                 ->modalDescription('Pastikan tidak ada invoice yang belum dibayar. Project yang sedang berjalan akan dibatalkan.')
                 ->action(function (array $data): void {
+                    abort_unless($this->canClose(), 403);
+
                     try {
                         app(CloseOrderService::class)->execute($this->record, $data['close_reason'], $data['close_notes'] ?? null);
                     } catch (DomainException $e) {
@@ -81,7 +75,8 @@ class ViewTransSalesOrderHd extends ViewRecord
 
     private function canClose(): bool
     {
-        return Gate::allows('update', $this->record)
+        return Gate::allows('Close:TransSalesOrderHd')
+            && Gate::allows('update', $this->record)
             && in_array($this->record->status?->code, [OrderStatus::Draft->value, OrderStatus::Open->value]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TransSalesQuotationHds\Pages;
 
+use App\Enums\RoleName;
 use App\Enums\Status\QuotationStatus;
 use App\Filament\Resources\TransSalesQuotationHds\TransSalesQuotationHdResource;
 use App\Services\Quotation\ApproveQuotationService;
@@ -14,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Facades\Gate;
 
 class ViewTransSalesQuotationHd extends ViewRecord
 {
@@ -58,36 +60,48 @@ class ViewTransSalesQuotationHd extends ViewRecord
                 ->label('Kirim Penawaran')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn (): bool => $this->isDraftReady())
+                ->visible(fn (): bool => $this->isDraftReady()
+                    && $this->canRunQuotationAction('Send:TransSalesQuotationHd'))
                 ->requiresConfirmation()
                 ->modalHeading('Kirim penawaran?')
                 ->modalDescription('Status akan berubah menjadi Dikirim. Detail penawaran tidak dapat diedit sampai dikembalikan ke Draft.')
                 ->modalSubmitActionLabel('Ya, kirim')
-                ->action(fn () => app(SendQuotationService::class)->execute($this->record))
+                ->action(function (): void {
+                    $this->authorizeQuotationAction('Send:TransSalesQuotationHd');
+                    app(SendQuotationService::class)->execute($this->record);
+                })
                 ->successNotificationTitle('Quotation dikirim.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
             Action::make('approve')
                 ->label('Setujui Penawaran')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
+                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value
+                    && $this->canRunQuotationAction('Approve:TransSalesQuotationHd'))
                 ->requiresConfirmation()
                 ->modalHeading('Setujui penawaran?')
                 ->modalDescription('Sales Order akan dibuat dan quotation akan terkunci.')
                 ->modalSubmitActionLabel('Ya, setujui')
-                ->action(fn () => app(ApproveQuotationService::class)->execute($this->record))
+                ->action(function (): void {
+                    $this->authorizeQuotationAction('Approve:TransSalesQuotationHd');
+                    app(ApproveQuotationService::class)->execute($this->record);
+                })
                 ->successNotificationTitle('Quotation disetujui dan Sales Order dibuat.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
             Action::make('revise')
                 ->label('Revisi')
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('warning')
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
+                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value
+                    && $this->canRunQuotationAction('Revise:TransSalesQuotationHd'))
                 ->requiresConfirmation()
                 ->modalHeading('Kembalikan ke Draft?')
                 ->modalDescription('Penawaran dapat diedit kembali setelah status berubah menjadi Draft.')
                 ->modalSubmitActionLabel('Ya, revisi')
-                ->action(fn () => app(ReviseQuotationService::class)->execute($this->record))
+                ->action(function (): void {
+                    $this->authorizeQuotationAction('Revise:TransSalesQuotationHd');
+                    app(ReviseQuotationService::class)->execute($this->record);
+                })
                 ->successNotificationTitle('Quotation kembali ke Draft.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
             Action::make('reject')
@@ -95,12 +109,16 @@ class ViewTransSalesQuotationHd extends ViewRecord
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->outlined()
-                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value)
+                ->visible(fn (): bool => $this->record->status?->code === QuotationStatus::Sent->value
+                    && $this->canRunQuotationAction('Reject:TransSalesQuotationHd'))
                 ->requiresConfirmation()
                 ->modalHeading('Tolak penawaran?')
                 ->modalDescription('Status penawaran akan berubah menjadi Ditolak.')
                 ->modalSubmitActionLabel('Ya, tolak')
-                ->action(fn () => app(RejectQuotationService::class)->execute($this->record))
+                ->action(function (): void {
+                    $this->authorizeQuotationAction('Reject:TransSalesQuotationHd');
+                    app(RejectQuotationService::class)->execute($this->record);
+                })
                 ->successNotificationTitle('Quotation ditolak.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
         ];
@@ -110,5 +128,20 @@ class ViewTransSalesQuotationHd extends ViewRecord
     {
         return $this->record->status?->code === QuotationStatus::Draft->value
             && app(QuotationReadinessService::class)->isReady($this->record);
+    }
+
+    private function canRunQuotationAction(string $permission): bool
+    {
+        return (auth()->user()?->hasAnyRole([RoleName::Marketing->value, RoleName::SuperAdmin->value]) ?? false)
+            && Gate::allows($permission);
+    }
+
+    private function authorizeQuotationAction(string $permission): void
+    {
+        abort_unless(
+            auth()->user()?->hasAnyRole([RoleName::Marketing->value, RoleName::SuperAdmin->value]),
+            403,
+        );
+        Gate::authorize($permission);
     }
 }

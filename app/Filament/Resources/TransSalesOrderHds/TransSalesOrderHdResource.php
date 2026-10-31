@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\TransSalesOrderHds;
 
 use App\Filament\Resources\TransSalesOrderHds\Pages\CreateOrderInvoice;
-use App\Filament\Resources\TransSalesOrderHds\Pages\CreateOrderProject;
 use App\Filament\Resources\TransSalesOrderHds\Pages\EditTransSalesOrderHd;
 use App\Filament\Resources\TransSalesOrderHds\Pages\ListTransSalesOrderHds;
 use App\Filament\Resources\TransSalesOrderHds\Pages\ViewTransSalesOrderHd;
@@ -86,7 +85,6 @@ class TransSalesOrderHdResource extends Resource
             'view' => ViewTransSalesOrderHd::route('/{record}'),
             'edit' => EditTransSalesOrderHd::route('/{record}/edit'),
             'createInvoice' => CreateOrderInvoice::route('/{record}/create-invoice'),
-            'createProject' => CreateOrderProject::route('/{record}/create-project'),
         ];
     }
 

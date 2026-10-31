@@ -21,20 +21,28 @@ class ViewTransSalesPayment extends ViewRecord
             Action::make('confirm')->label('Konfirmasi Pembayaran')
                 ->icon('heroicon-o-check-circle')->color('success')
                 ->visible(fn (): bool => $this->record->status?->code === PaymentStatus::Pending->value
-                    && Gate::allows('update', $this->record))
+                    && Gate::allows('Confirm:TransSalesPayment'))
                 ->requiresConfirmation()
                 ->modalHeading('Konfirmasi pembayaran?')
                 ->modalDescription('Invoice dan termin terkait akan ditandai lunas.')
-                ->action(fn () => app(ConfirmPaymentService::class)->execute($this->record))
+                ->action(function () {
+                    Gate::authorize('Confirm:TransSalesPayment');
+
+                    return app(ConfirmPaymentService::class)->execute($this->record);
+                })
                 ->successNotificationTitle('Pembayaran dikonfirmasi.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
             Action::make('reject')->label('Tolak Pembayaran')
                 ->icon('heroicon-o-x-circle')->color('danger')->outlined()
                 ->visible(fn (): bool => $this->record->status?->code === PaymentStatus::Pending->value
-                    && Gate::allows('update', $this->record))
+                    && Gate::allows('Reject:TransSalesPayment'))
                 ->schema([Textarea::make('reason')->label('Alasan Penolakan')->required()->rows(4)])
                 ->modalHeading('Tolak pembayaran')
-                ->action(fn (array $data) => app(RejectPaymentService::class)->execute($this->record, $data['reason']))
+                ->action(function (array $data) {
+                    Gate::authorize('Reject:TransSalesPayment');
+
+                    return app(RejectPaymentService::class)->execute($this->record, $data['reason']);
+                })
                 ->successNotificationTitle('Pembayaran ditolak.')
                 ->successRedirectUrl(fn (): string => static::getResource()::getUrl('view', ['record' => $this->record])),
         ];

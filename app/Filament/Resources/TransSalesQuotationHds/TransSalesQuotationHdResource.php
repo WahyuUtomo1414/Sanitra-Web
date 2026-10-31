@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TransSalesQuotationHds;
 
+use App\Enums\RoleName;
 use App\Enums\Status\QuotationStatus;
 use App\Filament\Resources\TransSalesQuotationHds\Pages\CreateTransSalesQuotationHd;
 use App\Filament\Resources\TransSalesQuotationHds\Pages\EditTransSalesQuotationHd;
@@ -64,12 +65,16 @@ class TransSalesQuotationHdResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return $record->status?->code === QuotationStatus::Draft->value;
+        return (auth()->user()?->hasAnyRole([RoleName::Marketing->value, RoleName::SuperAdmin->value]) ?? false)
+            && parent::canEdit($record)
+            && $record->status?->code === QuotationStatus::Draft->value;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return $record->status?->code === QuotationStatus::Draft->value;
+        return (auth()->user()?->hasAnyRole([RoleName::Marketing->value, RoleName::SuperAdmin->value]) ?? false)
+            && parent::canDelete($record)
+            && $record->status?->code === QuotationStatus::Draft->value;
     }
 
     public static function canDeleteAny(): bool
