@@ -75,7 +75,7 @@ class ViewTransSalesOrderHd extends ViewRecord
 
                         foreach ($financeRecipients as $recipient) {
                             try {
-                                Mail::to([$recipient->email => $recipient->name])
+                                Mail::to($recipient->email, $recipient->name)
                                     ->send(new TermReadyToBillMail($term));
                                 $sent[] = 'Termin → '.$recipient->email;
                             } catch (Throwable $exception) {
@@ -113,7 +113,7 @@ class ViewTransSalesOrderHd extends ViewRecord
 
                     foreach ($teknisRecipients as $recipient) {
                         try {
-                            Mail::to([$recipient->email => $recipient->name])
+                            Mail::to($recipient->email, $recipient->name)
                                 ->send(new ProjectCreatedMail($fakeProject));
                             $sent[] = 'Project → '.$recipient->email;
                         } catch (Throwable $exception) {
