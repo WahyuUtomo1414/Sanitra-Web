@@ -142,4 +142,24 @@ public function handle(): void
 - [ ] Daftarkan schedule di `routes/console.php`
 - [ ] Setup cron di shared hosting: `* * * * * php /path/to/artisan schedule:run`
 
-**Status 31 Oktober 2026:** Dua notifikasi wajib sudah terpasang dan memakai template email Sanitra yang telah dipublish. Pengiriman SMTP nyata belum diverifikasi dan test belum dijalankan. Empat notifikasi opsional serta pengingat invoice terjadwal ditunda sesuai keputusan saat ini; tidak ada scheduler atau worker yang ditambahkan.
+---
+
+## 6. Catatan review code (31 Oktober 2026)
+
+Hasil review implementasi dua notifikasi wajib. Tidak ada bug yang ditemukan; empat catatan berikut adalah observasi arsitektural untuk referensi, bukan blocker.
+
+1. **SMTP sinkron di request HTTP.** Semua notifikasi dikirim dalam HTTP request yang sama (shared hosting constraint). Kalau SMTP server lambat atau timeout (default Symfony Mailer ~30 detik), user akan menunggu lama di aksi (Setujui Quotation, Buat Project, dsb.). Skala Sanitra saat ini (1–2 user per role) aman. Mitigasi kalau role tumbuh ≥10 user: tetap sinkron, tapi pakai provider SMTP latency rendah seperti Mailgun atau SES (biasanya <2 detik) dan monitor timeout di `sys_error_log`.
+
+2. **Loop email satu per satu.** `NotifyTermReadyToBillService::execute()` dan `CreateProjectFromSalesOrderService::notifyProjectCreated()` iterasi recipient dan panggil `$recipient->notify(...)` per user → N user = N kali koneksi SMTP. Untuk skala sekarang tidak urgent. Bisa dioptimasi dengan `Notification::sendNow($users, $notification)` yang batch kirim di internal Laravel; perubahan API minimal.
+
+3. **Idempotency implicit via query, bukan guard eksplisit.** Kalau `CheckTermReadyToBillService` kebetulan dipanggil dua kali dengan progress yang sama, teoritis bisa trigger notifikasi dobel. Praktiknya aman karena query filter `where code = 'pending'` → termin yang sudah `ready_to_bill` di call pertama tidak masuk hasil query call kedua. Keamanan ini **bergantung pada state DB**, bukan pada guard di service. Kalau nanti ada caller yang bypass update status (misal batch job), guard eksplisit mungkin dibutuhkan.
+
+4. **PIC via on-demand notification tanpa akun user.** `CreateProjectFromSalesOrderService::notifyProjectCreated()` kirim ke `picEmployee->email` lewat `Notification::route('mail', [...])->notify(...)` → `AnonymousNotifiable`. `ProjectCreatedNotification::toMail()` tidak mengakses properti `$notifiable` (tidak ada `$notifiable->name` atau `$notifiable->email`), jadi aman untuk PIC tanpa akun user. Kalau kelak notifikasi butuh info notifiable (misal personal greeting), harus guard `instanceof User` dulu.
+
+---
+
+## 7. Status
+
+**31 Oktober 2026:** Dua notifikasi wajib sudah terpasang dan memakai template email Sanitra yang telah dipublish. Pengiriman SMTP nyata belum diverifikasi dan test belum dijalankan. Empat notifikasi opsional serta pengingat invoice terjadwal ditunda sesuai keputusan saat ini; tidak ada scheduler atau worker yang ditambahkan.
+
+Prasyarat uji manual: `RoleSeeder` dan `UserSeeder` wajib dijalankan sebelum trigger notifikasi — tanpa itu, `User::role('Finance'|'Teknis')->get()` return kosong dan notifikasi tidak sampai ke siapa pun.
