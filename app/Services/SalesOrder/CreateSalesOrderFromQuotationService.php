@@ -15,11 +15,14 @@ use Illuminate\Support\Facades\DB;
 
 class CreateSalesOrderFromQuotationService
 {
-    public function __construct(public GenerateCodeService $generateCode) {}
+    public function __construct(
+        public GenerateCodeService $generateCode,
+        public NotifyTermReadyToBillService $notifyTermReadyToBill,
+    ) {}
 
     public function execute(TransSalesQuotationHd $quotation): TransSalesOrderHd
     {
-        return DB::transaction(fn(): TransSalesOrderHd => $this->run($quotation));
+        return DB::transaction(fn (): TransSalesOrderHd => $this->run($quotation));
     }
 
     private function run(TransSalesQuotationHd $quotation): TransSalesOrderHd
@@ -83,6 +86,10 @@ class CreateSalesOrderFromQuotationService
                     (int) $term->progress_threshold === 0 ? TermStatus::ReadyToBill->value : TermStatus::Pending->value,
                 ),
             ]);
+
+            if ((int) $term->progress_threshold === 0) {
+                DB::afterCommit(fn () => $this->notifyTermReadyToBill->execute($term));
+            }
         }
 
         return $order;

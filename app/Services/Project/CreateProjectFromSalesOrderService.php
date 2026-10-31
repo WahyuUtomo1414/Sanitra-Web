@@ -11,13 +11,17 @@ use App\Models\MsProjectWorkflow;
 use App\Models\MsStatus;
 use App\Models\TransProjectHd;
 use App\Models\TransSalesOrderHd;
+use App\Models\User;
+use App\Notifications\ProjectCreatedNotification;
 use App\Services\SalesOrder\CheckTermReadyToBillService;
 use App\Services\Shared\GenerateCodeService;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Throwable;
 
 class CreateProjectFromSalesOrderService
 {
@@ -92,8 +96,39 @@ class CreateProjectFromSalesOrderService
 
             $this->checkTerms->execute($order, 0);
 
+            DB::afterCommit(fn () => $this->notifyProjectCreated($project));
+
             return $project;
         });
+    }
+
+    private function notifyProjectCreated(TransProjectHd $project): void
+    {
+        $project->loadMissing(['order', 'picEmployee']);
+        $technicalUsers = User::role('Teknis')->whereNotNull('email')->get()->unique('email');
+        $notification = new ProjectCreatedNotification($project);
+
+        foreach ($technicalUsers as $recipient) {
+            try {
+                $recipient->notify($notification);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        $picEmail = $project->picEmployee?->email;
+
+        if (
+            $picEmail !== null
+            && filter_var($picEmail, FILTER_VALIDATE_EMAIL)
+            && ! $technicalUsers->contains(fn (User $user): bool => strcasecmp($user->email, $picEmail) === 0)
+        ) {
+            try {
+                Notification::route('mail', [$picEmail => $project->picEmployee->name])->notify($notification);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     public function hasPaidDownPayment(TransSalesOrderHd $order): bool

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class CheckTermReadyToBillService
 {
+    public function __construct(public NotifyTermReadyToBillService $notifyTermReadyToBill) {}
+
     public function execute(TransSalesOrderHd $order, int $progressPercentage): int
     {
         if ($progressPercentage < 0 || $progressPercentage > 100) {
@@ -33,7 +35,7 @@ class CheckTermReadyToBillService
                 ->lockForUpdate()
                 ->get();
 
-            $updated = 0;
+            $readyTerms = [];
 
             foreach ($pendingTerms as $term) {
                 $hasActiveInvoice = $term->invoiceDetails()
@@ -47,10 +49,18 @@ class CheckTermReadyToBillService
                 }
 
                 $term->update(['status_id' => $readyStatusId]);
-                $updated++;
+                $readyTerms[] = $term;
             }
 
-            return $updated;
+            if ($readyTerms !== []) {
+                DB::afterCommit(function () use ($readyTerms): void {
+                    foreach ($readyTerms as $term) {
+                        $this->notifyTermReadyToBill->execute($term);
+                    }
+                });
+            }
+
+            return count($readyTerms);
         });
     }
 }
