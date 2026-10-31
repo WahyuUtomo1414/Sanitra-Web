@@ -1,4 +1,4 @@
-<x-emails.layout :company="$company" docLabel="PROJECT<br>BARU">
+<x-emails.layout :company="$company" :logoData="$logoData ?? null" docLabel="PROJECT<br>BARU">
 
   <p style="color:#374151;margin:0 0 4px;font-size:14px;line-height:1.6;">
     Project berikut telah dibuat dan siap dikerjakan. Harap cek detail dan mulai persiapan teknis.

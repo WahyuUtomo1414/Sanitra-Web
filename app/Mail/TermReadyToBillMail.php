@@ -28,6 +28,7 @@ class TermReadyToBillMail extends SanitraMail
             view: 'emails.term-ready-to-bill',
             with: [
                 'company' => $this->company,
+                'logoData' => $this->logoData,
                 'term' => $this->term,
                 'order' => $this->term->order,
                 'actionUrl' => TransSalesOrderHdResource::getUrl('view', [
