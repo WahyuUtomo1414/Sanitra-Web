@@ -28,3 +28,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/playwright/.auth/
+/playwright-report/
+/test-results/
+/blob-report/

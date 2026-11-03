@@ -1,0 +1,16 @@
+import { test as setup, expect } from '@playwright/test';
+import { ROLES } from './fixtures/roles';
+
+for (const [roleKey, role] of Object.entries(ROLES)) {
+  setup(`authenticate as ${roleKey}`, async ({ page }) => {
+    await page.goto('/dashboard/login');
+
+    await page.getByRole('textbox', { name: 'Alamat email' }).fill(role.email);
+    await page.getByRole('textbox', { name: 'Kata sandi' }).fill(role.password);
+    await page.getByRole('button', { name: 'Masuk' }).click();
+
+    await expect(page).not.toHaveURL(/\/dashboard\/login/);
+
+    await page.context().storageState({ path: role.storageStatePath });
+  });
+}

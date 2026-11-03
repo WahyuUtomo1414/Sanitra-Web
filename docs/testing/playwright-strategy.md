@@ -1,6 +1,6 @@
 # E2E Testing Strategy — Playwright
 
-**Status:** Draft awal, belum diimplementasikan (belum ada `@playwright/test` ter-install di `package.json`).
+**Status:** Infra setup selesai (lihat §2.1) — `@playwright/test` ter-install, auth fixture 4 role jalan, smoke test lulus. Resource & business flow test (§2.2–2.4) belum ditulis.
 
 Dokumen ini adalah index. Detail tiap strategi ada di file terpisah:
 
@@ -50,7 +50,45 @@ Staging (kalau nanti ada) dipakai sebagai **smoke test tambahan sebelum deploy**
 
 ## 2. Roadmap Implementasi
 
-1. **Setup infra** — install `@playwright/test`, config dasar (`playwright.config.ts`), auth fixture per role, baseURL via env var.
-2. **Resource test — Master data** — lihat `resource-testing-strategy.md` §2.
-3. **Resource test — Transaksi** — lihat `resource-testing-strategy.md` §3.
-4. **Business flow test** — lihat `business-flow-strategy.md`.
+### 2.1 Setup infra — ✅ selesai
+
+- `@playwright/test` ter-install sebagai devDependency, Chromium ter-download (`npx playwright install chromium`).
+- `playwright.config.ts` di root project: `testDir: ./tests/e2e`, `baseURL` dari env var `PLAYWRIGHT_BASE_URL` (default `http://localhost:8000`), reporter HTML.
+- Project `setup` (`tests/e2e/auth.setup.ts`) login ke `/dashboard/login` untuk 4 role (`super@gmail.com`, `marketing@gmail.com`, `finance@gmail.com`, `teknis@gmail.com` — password `12345678`, sesuai `database/seeders/UserSeeder.php`), simpan `storageState` ke `playwright/.auth/<role>.json`.
+- 4 project test terpisah (`chromium-super-admin`, `chromium-marketing`, `chromium-finance`, `chromium-teknis`), masing-masing `dependencies: ['setup']` dan pakai `storageState` role terkait — jadi test apapun yang ditulis di `tests/e2e/resources/` atau `tests/e2e/flows/` otomatis jalan 4x (satu per role) kecuali di-filter.
+- Kredensial role: `tests/e2e/fixtures/roles.ts` (single source of truth, dipakai `auth.setup.ts`).
+- Smoke test `tests/e2e/smoke.spec.ts` — verifikasi semua role berhasil login & reach `/dashboard` tanpa ke-redirect balik ke login. **8/8 test passed** saat verifikasi (4 auth setup + 4 smoke run per role).
+- `package.json` scripts: `npm run test:e2e`, `test:e2e:ui` (mode UI interaktif), `test:e2e:report` (buka HTML report terakhir).
+- `.gitignore` ditambah `/playwright/.auth/`, `/playwright-report/`, `/test-results/`, `/blob-report/`.
+- `typescript` + `@types/node` (devDependency) dan `tsconfig.json` ditambahkan supaya editor bisa type-check file `.ts` di `tests/e2e/` dan `playwright.config.ts` — tanpa ini editor menampilkan error merah palsu (bukan error Playwright beneran) karena tidak ada TypeScript compiler di project.
+
+**Gotcha ditemukan saat verifikasi:** label form Filament login ini **Bahasa Indonesia** ("Alamat email", "Kata sandi", tombol "Masuk"), bukan default Filament Inggris — karena `App\Filament\Pages\Auth\Login` custom (`docs` lain belum mencatat ini, cek `app/Filament/Pages/Auth/Login.php` kalau ada perubahan copy). Juga locator `getByLabel('Kata sandi')` ambigu (strict mode violation) karena tombol "Tampilkan/Sembunyikan kata sandi" juga match label — harus pakai `getByRole('textbox', { name: 'Kata sandi' })`.
+
+**Prasyarat sebelum run:**
+
+1. Aplikasi Laravel harus jalan di lokal (`php artisan serve` atau Herd) — Playwright hit browser beneran ke `baseURL`, bukan test environment terisolasi. Default `http://localhost:8000`.
+2. Database lokal sudah di-seed (`SanitraMasterSeeder`, `RoleSeeder`, `UserSeeder`) supaya 4 akun role (§2.1) bisa login dan master data konsisten.
+3. (Sekali saja) `npx playwright install chromium` kalau browser belum ter-download di mesin tersebut.
+
+**Cara run:**
+
+```bash
+npm run test:e2e           # headless, semua project (setup + 4 role)
+npm run test:e2e:ui        # mode UI interaktif
+npm run test:e2e:report    # buka HTML report terakhir
+PLAYWRIGHT_BASE_URL=https://staging.example.com npm run test:e2e   # arahkan ke staging
+```
+
+Kalau editor menampilkan error merah di file `.ts` padahal test di atas tetap lulus, itu bukan error Playwright — biasanya TypeScript server editor butuh reload (`Developer: Reload Window`) setelah `typescript`/`@types/node` baru ter-install.
+
+### 2.2 Resource test — Master data — belum dikerjakan
+
+Lihat `resource-testing-strategy.md` §2.
+
+### 2.3 Resource test — Transaksi — belum dikerjakan
+
+Lihat `resource-testing-strategy.md` §3.
+
+### 2.4 Business flow test — belum dikerjakan
+
+Lihat `business-flow-strategy.md`.

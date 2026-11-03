@@ -83,6 +83,8 @@ Urutan implementasi yang disarankan:
 
 **Catatan test:** `tests/Feature/TransactionSchemaTest.php` memverifikasi schema, relasi, dan seeder (4 test, 22 assertion) — bukan flow end-to-end (Send → Approve → SO → Invoice → Payment). Flow bisnis tetap perlu feature test per transisi service.
 
+**E2E testing (Playwright) — infra siap, 3 November 2026:** Setup `@playwright/test` selesai (config, auth fixture 4 role, smoke test 8/8 passed). Strategi & checklist lengkap ada di `docs/testing/` (`playwright-strategy.md`, `resource-testing-strategy.md`, `business-flow-strategy.md`). Resource & business flow test belum ditulis — baru infra.
+
 ## 6. Verifikasi Akhir (setelah semua modul selesai)
 
 - [x] Semua migration up (`php artisan migrate:status`) — status saat ini: migration master + transaksi semuanya `Ran`
