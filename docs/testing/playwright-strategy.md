@@ -62,7 +62,10 @@ Staging (kalau nanti ada) dipakai sebagai **smoke test tambahan sebelum deploy**
 - `.gitignore` ditambah `/playwright/.auth/`, `/playwright-report/`, `/test-results/`, `/blob-report/`.
 - `typescript` + `@types/node` (devDependency) dan `tsconfig.json` ditambahkan supaya editor bisa type-check file `.ts` di `tests/e2e/` dan `playwright.config.ts` — tanpa ini editor menampilkan error merah palsu (bukan error Playwright beneran) karena tidak ada TypeScript compiler di project.
 
-**Gotcha ditemukan saat verifikasi:** label form Filament login ini **Bahasa Indonesia** ("Alamat email", "Kata sandi", tombol "Masuk"), bukan default Filament Inggris — karena `App\Filament\Pages\Auth\Login` custom (`docs` lain belum mencatat ini, cek `app/Filament/Pages/Auth/Login.php` kalau ada perubahan copy). Juga locator `getByLabel('Kata sandi')` ambigu (strict mode violation) karena tombol "Tampilkan/Sembunyikan kata sandi" juga match label — harus pakai `getByRole('textbox', { name: 'Kata sandi' })`.
+**Gotcha ditemukan saat verifikasi:**
+
+- Label form Filament login ini **Bahasa Indonesia** ("Alamat email", "Kata sandi", tombol "Masuk"), bukan default Filament Inggris — karena `App\Filament\Pages\Auth\Login` custom (cek `app/Filament/Pages/Auth/Login.php` kalau ada perubahan copy). Locator `getByLabel('Kata sandi')` juga ambigu (strict mode violation) karena tombol "Tampilkan/Sembunyikan kata sandi" match label yang sama — harus pakai `getByRole('textbox', { name: 'Kata sandi' })`.
+- **Rate limit login Filament kena saat 4 role login paralel** ("Terlalu banyak permintaan... coba lagi dalam X detik"). `fullyParallel: true` di config bikin `auth.setup.ts` nembak 4 login nyaris bersamaan, trigger rate limiter bawaan Filament. Fix: `setup.describe.configure({ mode: 'serial' })` di `auth.setup.ts` supaya ke-4 login jalan berurutan, bukan paralel. Kalau nanti rate limiter aplikasi diperketat lagi, cek ulang apakah serial saja cukup atau perlu delay tambahan antar login.
 
 **Prasyarat sebelum run:**
 
