@@ -1,11 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * baseURL points at the local `php artisan serve` / Herd instance by default.
- * Override with PLAYWRIGHT_BASE_URL to point at a staging smoke test instead.
- * See docs/testing/playwright-strategy.md §0 for the local-vs-staging decision.
- */
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8000';
+const baseURL = 'http://127.0.0.1:8011';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -23,6 +18,13 @@ export default defineConfig({
   // notifications) on the local dev server under load — bump assertion
   // timeout, not just action timeouts.
   expect: { timeout: 10_000 },
+
+  webServer: {
+    command: 'bash tests/e2e/start-server.sh',
+    url: `${baseURL}/dashboard/login`,
+    reuseExistingServer: false,
+    timeout: 120_000,
+  },
 
   use: {
     baseURL,

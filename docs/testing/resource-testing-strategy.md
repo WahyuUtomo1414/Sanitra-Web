@@ -74,11 +74,11 @@ Daftar resource master (`app/Filament/Resources/`), semua role punya campuran ak
 **Urutan test yang disarankan** (karena saling bergantung sebagai referensi):
 
 1. ✅ `MsUnit`, `MsItemCategory` — tidak bergantung resource lain. **Selesai** (`tests/e2e/resources/ms-unit.spec.ts`, `ms-item-category.spec.ts`).
-2. `MsItem` — bergantung `MsItemCategory` dan `MsUnit`.
-3. `MsClient` — independen, tapi dipakai di Quotation nanti.
-4. `MsCompany`, `MsEmployee`, `MsBankAccount` — independen, dipakai di konfigurasi perusahaan/invoice.
-5. `MsProjectType`, `MsProjectWorkflow` — independen, dipakai nanti saat modul Project ada.
-6. `MsStatus` — reference data, biasanya read-only untuk semua role, full CRUD untuk super_admin saja.
+2. `MsItem` — spec tersedia; bergantung `MsItemCategory` dan `MsUnit`.
+3. `MsClient` — spec tersedia; dipakai di Quotation nanti.
+4. `MsCompany`, `MsEmployee`, `MsBankAccount` — spec tersedia; dipakai di konfigurasi perusahaan/invoice.
+5. `MsProjectType`, `MsProjectWorkflow` — spec tersedia; dipakai nanti saat modul Project ada.
+6. `MsStatus` — spec tersedia; full CRUD untuk super_admin saja.
 
 **Catatan khusus `MsClient`:** test harus cover juga sub-data kontak & dokumen client (bukan cuma field utama client), karena Marketing dapat full CRUD untuk itu sesuai `docs/permision.md`.
 
