@@ -4,6 +4,25 @@ Lihat index di [`playwright-strategy.md`](./playwright-strategy.md) untuk kontek
 
 Urutan prioritas: **Master data dulu, baru Transaksi** — resource transaksi bergantung pada master data (item, client, dll) sudah benar duluan.
 
+## 0. Pola UI nyata yang sudah terverifikasi (dari `MsUnit` & `MsItemCategory`)
+
+Ditemukan dengan cara probing langsung ke app (bukan nebak) saat menulis 2 test resource pertama — berlaku untuk resource Filament lain yang pakai konvensi sama (cek ulang per resource, jangan asumsi buta):
+
+- UI 100% Bahasa Indonesia. Tombol: "Buat `<Label>`" (create, di halaman list), "Simpan" (bukan "Simpan perubahan", di halaman edit), "Buat" + "Buat & buat lainnya" + "Batal" (di halaman create). Notifikasi sukses: **"Data berhasil dibuat"**, **"Data berhasil disimpan"**, **"Data berhasil dihapus"** — konsisten di semua resource standar Filament (bukan per-resource custom text).
+- Setelah **Create** sukses → redirect ke halaman **View** (`Lihat <Label>`), bukan ke Edit atau List.
+- Setelah **Edit/Simpan** sukses → **tetap di halaman Edit** (tidak redirect), form tetap terbuka untuk edit lanjutan.
+- Row actions di tabel **bukan dropdown "Open actions"** — tiap aksi (`Lihat`/`Ubah`/`Hapus`) adalah link/button terpisah langsung di cell "Aksi". Role yang read-only (misal Marketing di `MsItemCategory`) cuma punya `Lihat`, tanpa `Ubah`/`Hapus` sama sekali (bukan disabled, tapi tidak ada).
+- Delete pakai modal konfirmasi: `getByRole('alertdialog', { name: 'Hapus <Label>' })`, isinya tombol **"Batal"** dan **"Hapus"** (dua tombol literal "Hapus" di halaman — satu di row, satu di modal — harus discope ke dalam `alertdialog` biar tidak ambigu).
+- Field `Select`/dropdown Filament untuk enum (misal `Tipe` di `MsUnit`) dirender sebagai **native `<select>`** (`role: combobox`), bukan custom listbox — pakai `selectOption({ label: '...' })`, bukan klik buka dropdown lalu klik opsi.
+- Field kode auto-generate (misal `MsItemCategory.code`) di form create: `TextInput` dengan `disabled()` + `dehydrated(false)` — di UI tampil sebagai textbox disabled dengan placeholder "Akan di-generate otomatis saat disimpan". Assert `toBeDisabled()`, jangan coba isi.
+- Halaman 403 Filament: `heading "403"` + `text "Forbidden"` (bukan redirect ke halaman lain atau pesan custom).
+- Role tanpa akses menu (ViewAny ditolak): link resource itu memang **hilang total** dari sidebar, bukan ada-tapi-disabled.
+
+**Gotcha infra penting (lihat `playwright-strategy.md` §2.1 untuk detail lengkap):**
+- Rate limiter login: maksimal 5 percobaan/60 detik per IP (bukan per akun) — jangan run `test:e2e` dua kali berturut-turut dalam <60 detik.
+- `workers: 1` wajib di config — server dev lokal tidak tahan concurrent load, 2+ worker bikin notifikasi toast flaky (hilang/duplikat).
+- Kalau menulis test baru dan tidak yakin label/behavior sebenarnya, **jangan nebak** — buat test probe sementara yang sengaja gagal (`expect(page.getByText('__force_fail__')).toBeVisible()`) untuk dump accessibility snapshot halaman asli ke `test-results/.../error-context.md`, baca dari situ, baru tulis assertion final. Hapus file probe setelah selesai.
+
 ## 1. Checklist generik per resource
 
 Checklist ini berlaku untuk tiap resource Filament (baik master maupun transaksi), ditest di file `resources/<nama-resource>.spec.ts`:
@@ -54,7 +73,7 @@ Daftar resource master (`app/Filament/Resources/`), semua role punya campuran ak
 
 **Urutan test yang disarankan** (karena saling bergantung sebagai referensi):
 
-1. `MsUnit`, `MsItemCategory` — tidak bergantung resource lain.
+1. ✅ `MsUnit`, `MsItemCategory` — tidak bergantung resource lain. **Selesai** (`tests/e2e/resources/ms-unit.spec.ts`, `ms-item-category.spec.ts`).
 2. `MsItem` — bergantung `MsItemCategory` dan `MsUnit`.
 3. `MsClient` — independen, tapi dipakai di Quotation nanti.
 4. `MsCompany`, `MsEmployee`, `MsBankAccount` — independen, dipakai di konfigurasi perusahaan/invoice.

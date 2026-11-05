@@ -12,8 +12,17 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Serial even locally: the app runs against a single local dev server
+  // (php artisan serve / Herd). Any concurrency — even 2 workers — causes
+  // flaky/vanishing Livewire notification toasts under load. Confirmed by
+  // testing: workers:1 is reliably green, workers:2 intermittently isn't.
+  // See docs/testing/playwright-strategy.md §2.1 gotcha.
+  workers: 1,
   reporter: 'html',
+  // Default 5s is too tight for Livewire form submits (create/edit/delete
+  // notifications) on the local dev server under load — bump assertion
+  // timeout, not just action timeouts.
+  expect: { timeout: 10_000 },
 
   use: {
     baseURL,
