@@ -18,9 +18,13 @@ Ditemukan dengan cara probing langsung ke app (bukan nebak) saat menulis 2 test 
 - Halaman 403 Filament: `heading "403"` + `text "Forbidden"` (bukan redirect ke halaman lain atau pesan custom).
 - Role tanpa akses menu (ViewAny ditolak): link resource itu memang **hilang total** dari sidebar, bukan ada-tapi-disabled.
 
-**Gotcha infra penting (lihat `playwright-strategy.md` §2.1 untuk detail lengkap):**
+- **Select/combobox searchable (misal "Tipe Project") bisa bikin tombol submit sempat `disabled` sementara Livewire proses pilihan** — jangan langsung klik submit setelah `selectOption()`/pilih opsi, tunggu dulu tombolnya `toBeEnabled()`. Pola ini sudah diterapkan generik di `master-resource.ts`.
+- **Upload file (`setInputFiles`) itu async** — Livewire upload file ke server duluan sebelum form sempat di-submit; klik submit langsung sesudah `setInputFiles()` race dan gagal validasi "The file field is required." Tunggu indikator "Pengunggahan selesai" dulu (`.first()` karena teksnya muncul 2x di DOM — status utama + assistive text).
+
+**Gotcha infra penting (lihat `playwright-strategy.md` §2.1 untuk detail lengkap, termasuk insiden besar 6 November 2026):**
 - Rate limiter login: maksimal 5 percobaan/60 detik per IP (bukan per akun) — jangan run `test:e2e` dua kali berturut-turut dalam <60 detik.
 - `workers: 1` wajib di config — server dev lokal tidak tahan concurrent load, 2+ worker bikin notifikasi toast flaky (hilang/duplikat).
+- **Server "isolated" (`tests/e2e/start-server.sh`) bisa diam-diam nulis ke MySQL asli / pakai DB kosong / salah locale / permission super_admin tidak lengkap / upload file gagal 500** — semua sudah di-fix di script-nya, tapi kalau script ini diubah lagi, verifikasi ulang dengan cara: matikan server, jalankan manual (`bash tests/e2e/start-server.sh`), lalu `ps eww -p <pid>` untuk cek env var apa saja yang BENERAN diterima proses server (bukan cuma yang di-`export` di script) — jangan asumsikan `export` di bash script otomatis sampai ke proses yang benar-benar handle HTTP request.
 - Kalau menulis test baru dan tidak yakin label/behavior sebenarnya, **jangan nebak** — buat test probe sementara yang sengaja gagal (`expect(page.getByText('__force_fail__')).toBeVisible()`) untuk dump accessibility snapshot halaman asli ke `test-results/.../error-context.md`, baca dari situ, baru tulis assertion final. Hapus file probe setelah selesai.
 
 ## 1. Checklist generik per resource
@@ -71,14 +75,14 @@ Daftar resource master (`app/Filament/Resources/`), semua role punya campuran ak
 | `MsStatus` | `MsStatus` | biasanya super_admin only (reference data status) | | |
 | `UserProfile` / `User` | `User` | biasanya super_admin only | | |
 
-**Urutan test yang disarankan** (karena saling bergantung sebagai referensi):
+**Status: ✅ semua 10 resource master selesai & lulus full matrix (60 passed/0 failed).**
 
-1. ✅ `MsUnit`, `MsItemCategory` — tidak bergantung resource lain. **Selesai** (`tests/e2e/resources/ms-unit.spec.ts`, `ms-item-category.spec.ts`).
-2. `MsItem` — spec tersedia; bergantung `MsItemCategory` dan `MsUnit`.
-3. `MsClient` — spec tersedia; dipakai di Quotation nanti.
-4. `MsCompany`, `MsEmployee`, `MsBankAccount` — spec tersedia; dipakai di konfigurasi perusahaan/invoice.
-5. `MsProjectType`, `MsProjectWorkflow` — spec tersedia; dipakai nanti saat modul Project ada.
-6. `MsStatus` — spec tersedia; full CRUD untuk super_admin saja.
+1. ✅ `MsUnit`, `MsItemCategory` — tidak bergantung resource lain.
+2. ✅ `MsItem` — bergantung `MsItemCategory` dan `MsUnit`.
+3. ✅ `MsClient` — dipakai di Quotation nanti.
+4. ✅ `MsCompany`, `MsEmployee`, `MsBankAccount` — dipakai di konfigurasi perusahaan/invoice.
+5. ✅ `MsProjectType`, `MsProjectWorkflow` — dipakai nanti saat modul Project ada.
+6. ✅ `MsStatus` — full CRUD untuk super_admin saja.
 
 **Catatan khusus `MsClient`:** test harus cover juga sub-data kontak & dokumen client (bukan cuma field utama client), karena Marketing dapat full CRUD untuk itu sesuai `docs/permision.md`.
 

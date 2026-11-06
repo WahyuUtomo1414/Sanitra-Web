@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        // Livewire hardcodes this disk name for temporary file uploads
+        // whenever app()->runningUnitTests() is true (i.e. APP_ENV=testing)
+        // — see vendor/livewire/livewire/src/Features/SupportFileUploads/FileUploadConfiguration.php.
+        // Without an entry here, any file upload component throws
+        // "Disk [tmp-for-tests] does not have a configured driver" whenever
+        // the app runs with APP_ENV=testing — including our Playwright E2E
+        // server (tests/e2e/start-server.sh), not just PHPUnit.
+        'tmp-for-tests' => [
+            'driver' => 'local',
+            'root' => storage_path('framework/testing/disks/tmp-for-tests'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -1,6 +1,6 @@
 # E2E Testing Strategy — Playwright
 
-**Status:** Infra setup selesai (§2.1). Spec untuk seluruh 10 resource master sudah tersedia (§2.2); verifikasi ulang dua skenario relasi khusus dan matriks seluruh role masih diperlukan. Resource transaksi (§2.3) & business flow test (§2.4) belum ditulis.
+**Status:** Infra setup selesai & terverifikasi penuh (§2.1). Seluruh 10 resource master punya spec dan **lulus matriks penuh 4 role, 60 passed/0 failed, dikonfirmasi 2x run berturut-turut** (§2.2). Resource transaksi (§2.3) & business flow test (§2.4) belum ditulis.
 
 Dokumen ini adalah index. Detail tiap strategi ada di file terpisah:
 
@@ -61,8 +61,9 @@ Staging (kalau nanti ada) dipakai sebagai **smoke test tambahan sebelum deploy**
 - `package.json` scripts: `npm run test:e2e`, `test:e2e:ui` (mode UI interaktif), `test:e2e:report` (buka HTML report terakhir).
 - `.gitignore` ditambah `/playwright/.auth/`, `/playwright-report/`, `/test-results/`, `/blob-report/`.
 - `typescript` + `@types/node` (devDependency) dan `tsconfig.json` ditambahkan supaya editor bisa type-check file `.ts` di `tests/e2e/` dan `playwright.config.ts` — tanpa ini editor menampilkan error merah palsu (bukan error Playwright beneran) karena tidak ada TypeScript compiler di project.
+- `tests/e2e/start-server.sh` — server E2E terisolasi (SQLite temp file, port 8011) yang dijalankan `webServer` config, lengkap dengan 4 fix bug tersembunyi (lihat insiden 6 November di bawah): `rm -f bootstrap/cache/config.php` (cegah config cache basi bikin nulis ke MySQL asli), `APP_LOCALE=id` eksplisit, `shield:generate` sebelum seed (biar permission super_admin lengkap), `--no-reload` di `php artisan serve` (tanpa ini SEMUA env var custom di-strip diam-diam oleh Laravel), `CACHE_STORE=array` (bukan `file`, biar rate limiter tidak numpuk ke disk yang dipakai bersama app asli), dan `config/filesystems.php` disk `tmp-for-tests` (fix upload file gagal 500 saat `APP_ENV=testing`).
 
-**Gotcha ditemukan saat verifikasi:**
+**Gotcha ditemukan saat verifikasi (general, auth):**
 
 - Label form Filament login ini **Bahasa Indonesia** ("Alamat email", "Kata sandi", tombol "Masuk"), bukan default Filament Inggris — karena `App\Filament\Pages\Auth\Login` custom (cek `app/Filament/Pages/Auth/Login.php` kalau ada perubahan copy). Locator `getByLabel('Kata sandi')` juga ambigu (strict mode violation) karena tombol "Tampilkan/Sembunyikan kata sandi" match label yang sama — harus pakai `getByRole('textbox', { name: 'Kata sandi' })`.
 - **Rate limit login Filament kena saat 4 role login paralel** ("Terlalu banyak permintaan... coba lagi dalam X detik"). `fullyParallel: true` di config bikin `auth.setup.ts` nembak 4 login nyaris bersamaan, trigger rate limiter bawaan Filament. Fix: `setup.describe.configure({ mode: 'serial' })` di `auth.setup.ts` supaya ke-4 login jalan berurutan, bukan paralel.
@@ -75,6 +76,15 @@ Staging (kalau nanti ada) dipakai sebagai **smoke test tambahan sebelum deploy**
   '
   ```
 - **`workers: 1` wajib, bahkan untuk run lokal (bukan cuma CI).** Sempat dicoba `workers: 2` — berhasil di sebagian besar run tapi tetap flaky sesekali (notifikasi toast Livewire hilang/duplikat saat 2 browser context menembak server dev lokal yang sama secara bersamaan). Diverifikasi: `workers: 1` konsisten hijau, `workers: 2` kadang gagal di assertion notifikasi meski `expect.timeout` sudah dinaikkan ke 10 detik. Server dev lokal (`php artisan serve`/Herd) tidak didesain untuk concurrent load testing — trade-off kecepatan demi keandalan. Kalau nanti pindah ke CI dengan environment lebih kuat, boleh dicoba naikkan lagi, tapi uji dulu stabilitasnya sebelum percaya hasilnya.
+
+**🚨 Insiden besar 6 November 2026 — server "isolated" ternyata nulis ke MySQL asli, lalu rangkaian root-cause lain.** Ditemukan user melaporkan "banyak yang merah" saat testing manual. Investigasi menemukan **4 bug tersembunyi bertumpuk** di `tests/e2e/start-server.sh`, semuanya sudah di-fix dan dikonfirmasi (lihat §2.1 "4 bug tersembunyi" di atas untuk daftar lengkap):
+
+1. `bootstrap/cache/config.php` basi bikin `migrate`/insert nembus ke MySQL `sanitra` lokal asli (bukan SQLite terisolasi) — **data sampah sempat kebentuk di MySQL asli**, sudah dibersihkan manual (`MsUnit`, `MsItemCategory`, `MsItem`, `MsClient` + relasinya, `MsCompany`, `MsEmployee`, `MsBankAccount`, `MsProjectType`, `MsProjectWorkflow` — semua record `name LIKE 'E2E%'` atau `'Probe%'`).
+2. `php artisan serve` **tanpa** `--no-reload` cuma meneruskan allowlist env var (`APP_ENV`, `PATH`, dst) ke proses yang benar-benar handle HTTP request — SEMUA `export` custom di script (`DB_CONNECTION`, `DB_DATABASE`, `APP_LOCALE`, dll) di-strip diam-diam, server beneran jalan pakai `.env.testing` fallback (`DB_DATABASE=:memory:`, locale default `en`) — BUKAN DB yang sudah di-migrate+seed.
+3. `RoleSeeder` cuma sync `super_admin` ke permission yang **sudah ada sebagai row** di DB — permission seperti `Create:MsBankAccount` baru ada setelah `shield:generate` pernah dijalankan; di app asli itu historical fact, di SQLite fresh belum pernah terjadi → super_admin kelihatan "tidak berhak create" padahal seharusnya full access.
+4. Livewire hardcode disk `tmp-for-tests` untuk upload file setiap kali `app()->runningUnitTests()` true (dipicu `APP_ENV=testing`) — disk itu tidak pernah terdaftar di `config/filesystems.php` (biasanya di-fake otomatis oleh PHPUnit), jadi upload dokumen klien gagal 500.
+
+**Cara mendiagnosis insiden semacam ini ke depan:** jangan percaya "passed" kalau baru pertama kali lihat test itu lulus — matikan server manual (`bash tests/e2e/start-server.sh`), curl halaman yang bermasalah, cek `storage/logs/laravel.log` (perhatikan `Connection: mysql` vs `sqlite` di pesan error), dan cek `ps eww -p <pid server>` untuk lihat env var APA SAJA yang benar-benar diterima proses server (bukan cuma yang di-`export` di script).
 
 **Prasyarat sebelum run:**
 
@@ -91,11 +101,14 @@ npm run test:e2e:report    # buka HTML report terakhir
 
 Kalau editor menampilkan error merah di file `.ts` padahal test di atas tetap lulus, itu bukan error Playwright — biasanya TypeScript server editor butuh reload (`Developer: Reload Window`) setelah `typescript`/`@types/node` baru ter-install.
 
-### 2.2 Resource test — Master data — 🔄 dimulai
+### 2.2 Resource test — Master data — ✅ selesai, 10/10 resource
 
-Selesai: `MsUnit` (`tests/e2e/resources/ms-unit.spec.ts`), `MsItemCategory` (`tests/e2e/resources/ms-item-category.spec.ts`). Keduanya: test permission per role + test CRUD lengkap (super admin only, karena `RoleSeeder` belum ngasih akses Create/Update/Delete ke role manapun untuk 2 resource ini). **18 passed, 0 failed** saat verifikasi akhir (sesudah fix rate limit + `workers: 1`).
+Semua 10 resource master punya spec dan lulus matriks penuh (4 role × permission check + CRUD super-admin-only):
 
-Spec untuk delapan master sisanya (`MsItem`, `MsClient`, `MsCompany`, `MsEmployee`, `MsBankAccount`, `MsProjectType`, `MsProjectWorkflow`, `MsStatus`) sudah ditulis. CRUD dasar seluruh delapan master telah lolos sebagai super admin pada run terisolasi; dua test relasi khusus Item dan Klien perlu dijalankan ulang setelah penyesuaian locator, dan matriks akses seluruh role perlu run akhir.
+- `MsUnit`, `MsItemCategory`, `MsItem`, `MsClient`, `MsCompany`, `MsEmployee`, `MsBankAccount`, `MsProjectType`, `MsProjectWorkflow`, `MsStatus` — pola generik di `tests/e2e/resources/master-resource.ts` (`registerMasterResourceTests`), dipakai tiap file `ms-*.spec.ts` dengan konfigurasi per resource (slug, label, field, fungsi `fillCreate`).
+- Test tambahan khusus: `ms-item.spec.ts` (unit pertama otomatis jadi base unit, tidak bisa dihapus), `ms-client.spec.ts` (Marketing bisa tambah kontak & dokumen client, termasuk upload file).
+
+**Verifikasi akhir (6 November 2026):** `npm run test:e2e` → **60 passed, 36 skipped (by design — CRUD super-admin-only), 0 failed**, dikonfirmasi 2x run berturut-turut tanpa flaky.
 
 ### 2.3 Resource test — Transaksi — belum dikerjakan
 

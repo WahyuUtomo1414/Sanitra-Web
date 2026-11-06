@@ -32,7 +32,7 @@ test('marketing can add client contacts and documents', async ({ page }, testInf
   await page.getByRole('tab', { name: 'Kontak Klien' }).click();
   await page.getByRole('button', { name: 'Buat ms client contact' }).click();
   await page.getByRole('textbox', { name: 'Nama Kontak' }).fill('Kontak E2E');
-  await page.getByRole('textbox', { name: 'Email' }).fill('contact@example.test');
+  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('contact@example.test');
   await page.getByRole('switch', { name: 'Kontak Utama' }).check();
   await page.getByRole('button', { name: 'Buat', exact: true }).click();
   await expect(page.getByRole('row', { name: /Kontak E2E/ })).toBeVisible();
@@ -45,6 +45,10 @@ test('marketing can add client contacts and documents', async ({ page }, testInf
     mimeType: 'image/png',
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lXcAAAAASUVORK5CYII=', 'base64'),
   });
+  // setInputFiles only starts the (async) Livewire temp upload — submitting
+  // immediately races it and fails validation with "The file field is
+  // required." Wait for the upload-complete indicator first.
+  await expect(page.getByText('Pengunggahan selesai').first()).toBeVisible();
   await page.getByRole('button', { name: 'Buat', exact: true }).click();
   await expect(page.getByRole('row', { name: /Dokumen E2E/ })).toBeVisible();
 });

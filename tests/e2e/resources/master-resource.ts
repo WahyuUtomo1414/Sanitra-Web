@@ -51,7 +51,12 @@ export function registerMasterResourceTests(resource: MasterResource): void {
         await expect(page.getByRole('textbox', { name: 'Kode', exact: true })).toBeDisabled();
       }
       await resource.fillCreate(page, name);
-      await page.getByRole('button', { name: 'Buat', exact: true }).click();
+      const createButton = page.getByRole('button', { name: 'Buat', exact: true });
+      // A searchable Select (e.g. "Tipe Project") can leave the submit button
+      // disabled briefly while Livewire finishes processing the selection —
+      // wait for it to re-enable instead of racing the click.
+      await expect(createButton).toBeEnabled();
+      await createButton.click();
 
       await expect(page.getByText('Data berhasil dibuat').first()).toBeVisible();
       await expect(page.getByRole('heading', { name: `Lihat ${resource.label}` })).toBeVisible();
