@@ -8,7 +8,7 @@ registerMasterResourceTests({
   fillCreate: async (page, name) => {
     await selectOption(page, 'Tipe Project', 'Konsultan');
     await page.getByRole('textbox', { name: 'Nama Tahap' }).fill(name);
-    await page.getByRole('spinbutton', { name: 'Urutan' }).fill('99');
+    await page.getByRole('spinbutton', { name: 'Urutan' }).fill(String((Date.now() % 1_000_000_000) + 1));
     await page.getByRole('spinbutton', { name: 'Bobot Progress' }).fill('0');
   },
 });
