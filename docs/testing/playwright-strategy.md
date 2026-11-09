@@ -1,6 +1,19 @@
 # E2E Testing Strategy — Playwright
 
-**Status:** Infra setup selesai & terverifikasi penuh (§2.1). Seluruh 10 resource master punya spec dan **lulus matriks penuh 4 role, 60 passed/0 failed, dikonfirmasi 2x run berturut-turut** (§2.2). Resource transaksi (§2.3) & business flow test (§2.4) belum ditulis.
+**Status:** Infra setup selesai & terverifikasi penuh (§2.1). Seluruh 10 resource master punya spec dan **lulus matriks penuh 4 role, 60 passed/0 failed, dikonfirmasi 2x run berturut-turut** (§2.2). Resource transaksi (§2.3) belum ditulis. Business flow (§2.4) baru **1 dari 5 file** (`quotation-to-so.spec.ts`, **hijau 8 Nov: 6 passed/0 failed, 2x run**) — rantai Invoice → Payment → SO `open` masih nol coverage.
+
+**E2E adalah satu-satunya jalur testing otomatis di proyek ini** (keputusan 8 November 2026) — lihat bagian kebijakan di bawah dan [`../testing-safety.md`](../testing-safety.md) §1.2.
+
+## Kebijakan: E2E adalah satu-satunya jalur testing otomatis
+
+**Keputusan pengguna (8 November 2026): proyek ini tidak memakai unit test maupun feature test. Seluruh testing otomatis lewat E2E Playwright.** Alasan dan konsekuensi lengkapnya ada di [`../testing-safety.md`](../testing-safety.md) §1.2 — baca itu dulu sebelum menambah test apa pun.
+
+Ringkasnya untuk dokumen ini:
+
+- Jangan menulis apa pun di `tests/Feature/` atau `tests/Unit/`, dan jangan menawarkannya sebagai alternatif ketika sebuah aturan bisnis terasa lebih pas diuji di level service. Pindahkan ke `flows/` atau catat sebagai tidak tercakup.
+- Karena E2E kini satu-satunya jaring, **cakupan `flows/` jadi tanggung jawab tunggal** untuk seluruh aturan bisnis BR-01 s/d BR-17 yang bisa dijangkau UI.
+- Satu aturan memang tidak terjangkau: **BR-02** (nilai termin dikunci) tidak bisa diuji dari browser karena quotation `Disetujui` read-only. Diterima sebagai gap — jangan dibuat test yang kelihatan menutupinya padahal hanya membandingkan nilai statis.
+- Beban keamanan pindah sepenuhnya ke `tests/e2e/start-server.sh`. Guard di sana bukan setup biasa — lihat `../testing-safety.md` §4.3.
 
 Dokumen ini adalah index. Detail tiap strategi ada di file terpisah:
 
@@ -20,7 +33,7 @@ Staging (kalau nanti ada) dipakai sebagai **smoke test tambahan sebelum deploy**
 **⚠️ Peringatan penting (beda dari PHPUnit):** Playwright menjalankan browser sungguhan terhadap server Laravel. Karena itu `webServer` membuat server `APP_ENV=testing` dan database SQLite sementara sendiri (lihat `docs/testing-safety.md`). Artinya:
 
 - Jangan mengubah `baseURL` ke server aplikasi biasa atau staging untuk suite yang membuat, mengubah, dan menghapus data.
-- Insiden MySQL terhapus (`docs/testing-safety.md`) itu soal PHPUnit/`migrate:fresh`; server E2E terpisah mencegah Playwright menyentuh MySQL aplikasi.
+- **⚠️ KOREKSI (6 November 2026):** dokumen ini sebelumnya menyatakan "insiden MySQL terhapus itu soal PHPUnit/`migrate:fresh`; server E2E terpisah mencegah Playwright menyentuh MySQL aplikasi". **Pernyataan itu salah dan sudah terbantah di lapangan.** Akar masalah insiden 11 Oktober adalah `bootstrap/cache/config.php`, bukan PHPUnit — dan akar yang sama kambuh di E2E pada 6 November: request HTTP dari browser benar-benar menulis ke MySQL `sanitra` asli, record `E2E%` sempat terbentuk di sana (lihat insiden di §2.1 bawah dan `docs/testing-safety.md` §1.1). Yang mencegah Playwright menyentuh MySQL **bukan** fakta bahwa ia "E2E", melainkan 4 guard eksplisit di `tests/e2e/start-server.sh` (`docs/testing-safety.md` §4.3). Jangan pernah mengandalkan "ini kan E2E, jadi aman".
 
 ## 1. Stack & Flow Testing
 
@@ -114,6 +127,50 @@ Semua 10 resource master punya spec dan lulus matriks penuh (4 role × permissio
 
 Lihat `resource-testing-strategy.md` §3.
 
-### 2.4 Business flow test — belum dikerjakan
+### 2.4 Business flow test — baru 1 dari 5 file, belum pernah dijalankan
 
-Lihat `business-flow-strategy.md`.
+**Ini BUKAN "full flow".** Yang ada baru mata rantai pertama:
+
+```text
+Quotation ──Approved──► SO (draft)    ← ada: flows/quotation-to-so.spec.ts
+   ──DP Ready to Bill──► Invoice DP   ← belum ada
+          ──► Payment Confirmed       ← belum ada
+                ──► SO jadi `open`    ← belum ada (assertion terpenting di seluruh rantai)
+```
+
+| File (`business-flow-strategy.md`) | Status |
+| --- | --- |
+| `flows/quotation.spec.ts` §2.1 | belum ada — skenario BR-01 & kunci edit-nya sebagian tergabung/masih bolong di file §2.2 |
+| `flows/quotation-to-so.spec.ts` §2.2 | **ada & hijau** (2 test, Marketing-only) — **6 passed / 6 skipped / 0 failed**, dikonfirmasi 2x run berturut-turut 8 Nov |
+| `flows/so-term-to-invoice.spec.ts` §2.3 | belum ada |
+| `flows/invoice-to-payment.spec.ts` §2.4 | belum ada |
+| `flows/full-flow.spec.ts` §2.5 | belum ada |
+
+**Run pertama 8 November — contoh lagi bahwa "benar secara statis" ≠ "hijau".** Seluruh assertion `quotation-to-so.spec.ts` sudah dicocokkan ke kode app lebih dulu (label action, slug, nama status dari `ms_status`, `company.legal_name`, nominal termin dari `RecalculateQuotationService`, empty-state tabel) dan tidak ada satu pun yang salah tulis — tapi **kedua test tetap gagal 90s timeout di langkah pertama**, karena satu baris helper:
+
+```ts
+// SALAH — tidak akan pernah match, walau modalnya terbuka penuh
+page.getByRole('dialog').or(page.getByRole('alertdialog')).filter({ visible: true })
+```
+
+**Gotcha penting untuk SEMUA spec yang menyentuh modal Filament:** elemen `role="dialog"` Filament adalah `<div role="dialog" class="fi-modal fi-absolute-positioning-context">` (lihat `vendor/filament/support/resources/views/components/modal/index.blade.php:132`) — ia cuma *positioning context*, anak-anaknya yang absolutely-positioned, jadi **elemen dialog-nya sendiri tidak punya bounding box**. `filter({ visible: true })` mensyaratkan bounding box tidak kosong → tidak pernah cocok, padahal seluruh isi modal visible dan interaktif. Ciri khas di `error-context.md`: semua anak modal dapat `ref`, tapi barisan `dialog "…"` sendiri tanpa `ref`.
+
+Pakai penanda milik Filament sendiri:
+
+```ts
+page.locator('.fi-modal.fi-modal-open[role="dialog"], .fi-modal.fi-modal-open[role="alertdialog"]')
+```
+
+`fi-modal-open` di-bind lewat `x-bind:class` saat modal terbuka, dan modal tertutup kena `display:none` dari `x-show` — jadi tidak perlu filter visibility sama sekali. Setelah perbaikan ini: 6 passed, 2x run berturut-turut, ~24 detik.
+
+Catatan: race `Item → Unit` yang sebelumnya dicurigai (opsi `Unit` dihitung dari `$get('item_id')` lewat `->live()`) **tidak muncul** di 3 run berturut-turut. Belum terbukti sebagai masalah; tetap diawasi kalau nanti ada kegagalan sporadis di langkah pemilihan Unit.
+
+Gap cakupan yang diketahui di file itu (semuanya **bisa** ditutup lewat E2E, bukan butuh feature test):
+
+1. Validasi BR-01 (total termin ≠ 100%, atau DP threshold-0 bukan tepat satu) — belum diuji sama sekali. Assert subheading `"Lengkapi quotation sebelum dikirim: …"` + tombol `Kirim Penawaran` absen.
+2. Kunci BR-11 baru setengah — cuma cek link `Ubah Detail` hilang; belum cek tombol `Buat item`/`Buat skema termin`/`Ubah`/`Hapus` ikut hilang (guard aslinya di `isDraft()` kedua relation manager), dan belum cek `goto(editUrl)` saat status `Dikirim` menghasilkan 403.
+3. Nol coverage role-negatif — `test.skip` membuang 3 project role lain, jadi tidak ada assertion bahwa Finance/Teknis tidak bisa `Setujui Penawaran`.
+4. Notifikasi sukses action (`Quotation disetujui dan Sales Order dibuat.` dll) tidak di-assert, padahal spec resource master konsisten melakukannya.
+5. Risiko race `Item → Unit` di `createDraftQuotation` — `Item` itu `->live()` dan opsi `Unit` dihitung dari `$get('item_id')`, jadi butuh satu round-trip Livewire sebelum `Unit` dipilih. Kelas bug yang sama dengan race "submit sebelum Select selesai" yang sudah di-fix 6 November di `master-resource.ts`.
+
+Lihat `business-flow-strategy.md` untuk strategi per file.
